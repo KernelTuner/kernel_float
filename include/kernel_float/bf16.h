@@ -50,6 +50,14 @@ struct vec_storage<bfloat16, 2> {
         }
     }
 
+    KERNEL_FLOAT_INLINE void set(size_t index, bfloat16 value) const {
+        if (index == 0) {
+            set(I0 {}, value);
+        } else {
+            set(I1 {}, value);
+        }
+    }
+
     KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(bfloat16, 2)
 
 #if KERNEL_FLOAT_CUDA_DEVICE

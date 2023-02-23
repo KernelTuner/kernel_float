@@ -162,6 +162,7 @@ struct vec_storage<T, 6> {
     KERNEL_FLOAT_INLINE vec_storage(vec_storage<T, 4> low, vec_storage<T, 2> high) noexcept :
         low_ {low},
         high_ {high} {}
+
     KERNEL_FLOAT_STORAGE_ACCESSORS(T, 6)
 
     KERNEL_FLOAT_INLINE T get(size_t index) const {
