@@ -23,12 +23,16 @@
 #define KERNEL_FLOAT_CUDA_ARCH   (0)
 #endif
 
-#ifndef KERNEL_FLOAT_FP16
+#ifndef KERNEL_FLOAT_FP16_AVAILABLE
 #define KERNEL_FLOAT_FP16_AVAILABLE (1)
 #endif
 
-#ifndef KERNEL_FLOAT_BF16
+#ifndef KERNEL_FLOAT_BF16_AVAILABLE
 #define KERNEL_FLOAT_BF16_AVAILABLE (1)
+#endif
+
+#ifndef KERNEL_FLOAT_FP8_AVAILABLE
+#define KERNEL_FLOAT_FP8_AVAILABLE (0)
 #endif
 
 #endif  //KERNEL_FLOAT_MACROS_H
@@ -149,7 +153,7 @@ struct common_type<T, U, First, Rest...> {
 };
 
 template<typename... Args>
-using common_t = typename common_type<Args...>::type;
+using common_t = typename common_type<typename std::decay<Args>::type...>::type;
 
 template<typename From, typename To>
 static constexpr bool is_implicit_convertible = std::is_same<common_t<From, To>, To>::value;
@@ -182,16 +186,16 @@ struct assign_helper<index_sequence<>, index_sequence<>> {
     KERNEL_FLOAT_INLINE static void call(To& to, const From& from) {}
 };
 
-#define KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(T, N)                                              \
-    template<size_t... Is>                                                                      \
-    KERNEL_FLOAT_INLINE vec_storage<T, sizeof...(Is)> get(index_sequence<Is...>) const {        \
-        return {this->get(constant_index<Is> {})...};                                           \
-    }                                                                                           \
-    template<size_t... Is>                                                                      \
-    KERNEL_FLOAT_INLINE void set(index_sequence<Is...>, vec_storage<T, sizeof...(Is)> values) { \
-        assign_helper<index_sequence<Is...>, make_index_sequence<sizeof...(Is)>>::call(         \
-            *this,                                                                              \
-            values);                                                                            \
+#define KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(T, N)                                      \
+    template<size_t... Is>                                                              \
+    KERNEL_FLOAT_INLINE vec<T, sizeof...(Is)> get(index_sequence<Is...>) const {        \
+        return {this->get(constant_index<Is> {})...};                                   \
+    }                                                                                   \
+    template<size_t... Is>                                                              \
+    KERNEL_FLOAT_INLINE void set(index_sequence<Is...>, vec<T, sizeof...(Is)> values) { \
+        assign_helper<index_sequence<Is...>, make_index_sequence<sizeof...(Is)>>::call( \
+            *this,                                                                      \
+            values);                                                                    \
     }
 
 #define KERNEL_FLOAT_STORAGE_ACCESSORS(T, N)                   \
@@ -281,11 +285,11 @@ struct vec_storage<T, 4> {
 
     KERNEL_FLOAT_STORAGE_ACCESSORS(T, 4)
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 2> get(index_sequence<0, 1>) const {
+    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<0, 1>) const {
         return low_;
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 2> get(index_sequence<2, 3>) const {
+    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<2, 3>) const {
         return high_;
     }
 
@@ -338,19 +342,19 @@ struct vec_storage<T, 6> {
         }
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 4> get(index_sequence<0, 1, 2, 3>) const {
+    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<0, 1, 2, 3>) const {
         return low_;
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 2> get(index_sequence<4, 5>) const {
+    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<4, 5>) const {
         return high_;
     }
 
-    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1, 2, 3>, vec_storage<T, 4> values) {
+    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1, 2, 3>, vec<T, 4> values) {
         low_ = values;
     }
 
-    KERNEL_FLOAT_INLINE void set(index_sequence<4, 5>, vec_storage<T, 2> values) {
+    KERNEL_FLOAT_INLINE void set(index_sequence<4, 5>, vec<T, 2> values) {
         high_ = values;
     }
 
@@ -394,11 +398,11 @@ struct vec_storage<T, 8> {
         }
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 4> get(index_sequence<0, 1, 2, 3>) const {
+    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<0, 1, 2, 3>) const {
         return low_;
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 4> get(index_sequence<4, 5, 6, 7>) const {
+    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<4, 5, 6, 7>) const {
         return high_;
     }
 
@@ -660,6 +664,11 @@ struct reduce_helper {
     }
 };
 
+template<typename T, size_t N, typename F>
+KERNEL_FLOAT_INLINE T reduce(F fun, const vec<T, N>& input) {
+    return reduce_helper<F, T, N>::call(fun, input);
+}
+
 template<>
 struct reduce_apply_helper<1> {
     template<typename F, typename T>
@@ -717,39 +726,39 @@ struct reduce_apply_helper<8> {
     }
 };
 
-template<typename T, size_t N, typename F>
-KERNEL_FLOAT_INLINE T reduce(const vec<T, N>& input, F fun) {
-    return reduce_helper<F, T, N>::call(fun, input);
-}
-
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T min(const vec<T, N>& input) {
-    return reduce(input, ops::min<T> {});
+    return reduce(ops::min<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T max(const vec<T, N>& input) {
-    return reduce(input, ops::max<T> {});
+    return reduce(ops::max<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T sum(const vec<T, N>& input) {
-    return reduce(input, ops::add<T> {});
+    return reduce(ops::add<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T product(const vec<T, N>& input) {
-    return reduce(input, ops::mulitply<T> {});
+    return reduce(ops::mulitply<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE bool all(const vec<T, N>& input) {
-    return reduce(cast<bool>(input), ops::bit_and<bool> {});
+    return reduce(ops::bit_and<bool> {}, cast<bool>(input));
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE bool any(const vec<T, N>& input) {
-    return reduce(cast<bool>(input), ops::bit_or<bool> {});
+    return reduce(ops::bit_or<bool> {}, cast<bool>(input));
+}
+
+template<typename T, size_t N>
+KERNEL_FLOAT_INLINE int count(const vec<T, N>& input) {
+    return sum(cast<int>(cast<bool>(input)));
 }
 
 }  // namespace kernel_float
@@ -774,6 +783,11 @@ struct map_helper {
     }
 };
 
+template<typename T, size_t N, typename F, typename R = result_t<F, T>>
+KERNEL_FLOAT_INLINE vec<R, N> map(F fun, const vec<T, N>& input) noexcept {
+    return map_helper<F, T, N>::call(fun, input);
+}
+
 template<size_t N, size_t... Is>
 struct map_apply_helper<N, index_sequence<Is...>> {
     template<typename F, typename T, typename R = result_t<F, T>>
@@ -796,7 +810,7 @@ struct map_apply_helper<4> {
     KERNEL_FLOAT_INLINE static vec<R, 4> call(F fun, const vec<T, 4>& input) noexcept {
         return {
             map(fun, input.get(index_sequence<0, 1> {})),
-            map(fun, input.get(index_sequence<1, 2> {}))};
+            map(fun, input.get(index_sequence<2, 3> {}))};
     }
 };
 
@@ -819,11 +833,6 @@ struct map_apply_helper<8> {
             map(fun, input.get(index_sequence<4, 5, 6, 7> {}))};
     }
 };
-
-template<typename T, size_t N, typename F, typename R = result_t<F, T>>
-KERNEL_FLOAT_INLINE vec<R, N> map(const vec<T, N>& input, F fun) noexcept {
-    return map_helper<F, T, N>::call(fun, input);
-}
 
 namespace ops {
 template<typename T, typename R>
@@ -850,7 +859,7 @@ struct map_helper<ops::cast<T, T>, T, N> {
 
 template<typename R, typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<R, N> cast(const vec<T, N>& input) noexcept {
-    return map(input, ops::cast<T, R> {});
+    return map(ops::cast<T, R> {}, input);
 }
 
 #define KERNEL_FLOAT_DEFINE_FUN1_OP(NAME, EXPR)                  \
@@ -864,7 +873,7 @@ KERNEL_FLOAT_INLINE vec<R, N> cast(const vec<T, N>& input) noexcept {
     }                                                            \
     template<typename T, size_t N>                               \
     KERNEL_FLOAT_INLINE vec<T, N> NAME(const vec<T, N>& input) { \
-        return map(input, ops::NAME<T> {});                      \
+        return map(ops::NAME<T> {}, input);                      \
     }
 
 KERNEL_FLOAT_DEFINE_FUN1_OP(negate, -input)
@@ -873,17 +882,17 @@ KERNEL_FLOAT_DEFINE_FUN1_OP(logical_not, !input)
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<T, N> operator-(const vec<T, N>& input) {
-    return map(input, ops::negate<T> {});
+    return map(ops::negate<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<T, N> operator~(const vec<T, N>& input) {
-    return map(input, ops::bit_not<T> {});
+    return map(ops::bit_not<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<T, N> operator!(const vec<T, N>& input) {
-    return map(input, ops::logical_not<T> {});
+    return map(ops::logical_not<T> {}, input);
 }
 
 #define KERNEL_FLOAT_DEFINE_FUN1(NAME) KERNEL_FLOAT_DEFINE_FUN1_OP(NAME, ::NAME(input))
@@ -995,8 +1004,8 @@ struct zip_helper<F, T, U, 6> {
                 rhs.get(index_sequence<0, 1, 2, 3> {})),
             zip_helper<F, T, U, 2>::call(
                 fun,
-                lhs.get(index_sequence<2, 3> {}),
-                rhs.get(index_sequence<2, 3> {}))};
+                lhs.get(index_sequence<4, 5> {}),
+                rhs.get(index_sequence<4, 5> {}))};
     }
 };
 
@@ -1232,7 +1241,7 @@ struct vec: public detail::vec_storage<T, N>, public detail::swizzler<T, N, vec<
     vec& operator=(vec&) = default;
     vec& operator=(vec&&) noexcept = default;
 
-    KERNEL_FLOAT_INLINE explicit vec(T item) : vec(full<N>(item)) {}
+    KERNEL_FLOAT_INLINE vec(T item) : vec(full<N>(item)) {}
 
     KERNEL_FLOAT_INLINE vec() : vec(T {}) {}
 
@@ -1330,239 +1339,13 @@ KERNEL_FLOAT_INLINE vec<T, N> full(T item) {
 
 };  // namespace kernel_float
 
-#if KERNEL_FLOAT_BF16_AVAILABLE
-#include <cuda_bf16.h>
-
-namespace kernel_float {}
-#endif
-
 #endif  //KERNEL_FLOAT_KERNEL_FLOAT_H
-#ifndef KERNEL_FLOAT_BF16_H
-#define KERNEL_FLOAT_BF16_H
-
-#include <cuda_bf16.h>
-
-
-
-namespace kernel_float {
-using bfloat16 = __nv_bfloat16;
-using bfloat16x2 = __nv_bfloat162;
-
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float32, bfloat16)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float64, bfloat16)
-
-namespace detail {
-template<>
-struct vec_storage<bfloat16, 2> {
-    static_assert(sizeof(bfloat16) * 2 == sizeof(bfloat16x2), "invalid size");
-    static_assert(alignof(bfloat16) <= alignof(bfloat16x2), "invalid size");
-
-    KERNEL_FLOAT_INLINE vec_storage(bfloat16 x, bfloat16 y) noexcept : vector_ {x, y} {}
-
-    KERNEL_FLOAT_INLINE vec_storage(bfloat16x2 xy) noexcept : vector_ {xy} {}
-
-    KERNEL_FLOAT_INLINE operator bfloat16x2() const noexcept {
-        return vector_;
-    }
-
-    KERNEL_FLOAT_INLINE bfloat16 get(I0) const {
-        return vector_.x;
-    }
-
-    KERNEL_FLOAT_INLINE bfloat16 get(I1) const {
-        return vector_.y;
-    }
-
-    KERNEL_FLOAT_INLINE void set(I0, bfloat16 v) {
-        *this = vec_storage(v, __high2float(vector_));
-    }
-
-    KERNEL_FLOAT_INLINE void set(I1, bfloat16 v) {
-        *this = vec_storage(__low2float(vector_), v);
-    }
-
-    KERNEL_FLOAT_INLINE bfloat16 get(size_t index) const {
-        if (index == 0) {
-            return get(I0 {});
-        } else {
-            return get(I1 {});
-        }
-    }
-
-    KERNEL_FLOAT_INLINE void set(size_t index, bfloat16 value) const {
-        if (index == 0) {
-            set(I0 {}, value);
-        } else {
-            set(I1 {}, value);
-        }
-    }
-
-    KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(bfloat16, 2)
-
-#if KERNEL_FLOAT_CUDA_DEVICE
-    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<0, 1>) const {
-        return vector_;
-    }
-
-    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<1, 0>) const {
-        return __lowhigh2highlow(vector_);
-    }
-
-    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<0, 0>) const {
-        return {vector_.x, vector_.x};
-    }
-
-    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<1, 1>) const {
-        return __high2bfloat162(vector_);
-    }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1>, bfloat16x2 v) {
-        vector_ = v;
-    }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<1, 0>, bfloat16x2 v) {
-        vector_ = __lowhigh2highlow(v);
-    }
-#endif
-
-  private:
-    bfloat16x2 vector_;
-};
-}  // namespace detail
-
-#if KERNEL_FLOAT_BF16_AVAILABLE && KERNEL_FLOAT_CUDA_DEVICE
-#define KERNEL_FLOAT_BF16_MONOP(NAME, FUN1, FUN2)                 \
-    namespace ops {                                               \
-    template<>                                                    \
-    struct NAME<bfloat16> {                                       \
-        KERNEL_FLOAT_INLINE bfloat16 operator()(bfloat16 input) { \
-            return FUN1(input);                                   \
-        }                                                         \
-    };                                                            \
-    }                                                             \
-    template<>                                                    \
-    struct map_helper<ops::NAME<bfloat16>, bfloat16, 2> {         \
-        KERNEL_FLOAT_INLINE static vec<bfloat16, 2>               \
-        call(ops::NAME<bfloat16>, bfloat16x2 input) noexcept {    \
-            return FUN2(input);                                   \
-        }                                                         \
-    };
-
-KERNEL_FLOAT_BF16_MONOP(abs, ::__habs, ::__habs2);
-KERNEL_FLOAT_BF16_MONOP(negate, ::__hneg, ::__hneg2);
-KERNEL_FLOAT_BF16_MONOP(ceil, ::hceil, ::h2ceil);
-KERNEL_FLOAT_BF16_MONOP(cos, ::hcos, ::h2cos);
-KERNEL_FLOAT_BF16_MONOP(exp, ::hexp, ::h2exp);
-KERNEL_FLOAT_BF16_MONOP(exp10, ::hexp10, ::h2exp10);
-KERNEL_FLOAT_BF16_MONOP(floor, ::hfloor, ::h2floor);
-KERNEL_FLOAT_BF16_MONOP(log, ::hlog, ::h2log);
-KERNEL_FLOAT_BF16_MONOP(log10, ::hlog10, ::h2log2);
-KERNEL_FLOAT_BF16_MONOP(rint, ::hrint, ::h2rint);
-KERNEL_FLOAT_BF16_MONOP(rsqrt, ::hrsqrt, ::h2rsqrt);
-KERNEL_FLOAT_BF16_MONOP(sin, ::hsin, ::h2sin);
-KERNEL_FLOAT_BF16_MONOP(sqrt, ::hsqrt, ::h2sqrt);
-KERNEL_FLOAT_BF16_MONOP(trunc, ::htrunc, ::h2trunc);
-//    KERNEL_FLOAT_BF16_MONOP(rcp, hrcp, h2rcp);
-
-#define KERNEL_FLOAT_BF16_BINOP(NAME, FUN1, FUN2)                             \
-    namespace ops {                                                           \
-    template<>                                                                \
-    struct NAME<bfloat16> {                                                   \
-        KERNEL_FLOAT_INLINE bfloat16 operator()(bfloat16 lhs, bfloat16 rhs) { \
-            return FUN1(lhs, rhs);                                            \
-        }                                                                     \
-    };                                                                        \
-    }                                                                         \
-    template<>                                                                \
-    struct zip_helper<ops::NAME<bfloat16>, bfloat16, bfloat16, 2> {           \
-        KERNEL_FLOAT_INLINE static bfloat16x2                                 \
-        call(ops::NAME<bfloat16>, bfloat16x2 lhs, bfloat16x2 rhs) {           \
-            return FUN2(lhs, rhs);                                            \
-        }                                                                     \
-    };
-
-KERNEL_FLOAT_BF16_BINOP(add, __hadd, __hadd2);
-KERNEL_FLOAT_BF16_BINOP(subtract, __hsub, __hsub2);
-KERNEL_FLOAT_BF16_BINOP(mulitply, __hmul, __hmul2);
-KERNEL_FLOAT_BF16_BINOP(divide, __hdiv, __h2div);
-KERNEL_FLOAT_BF16_BINOP(min, __hmin, __hmin2);
-KERNEL_FLOAT_BF16_BINOP(max, __hmax, __hmax2);
-
-#define KERNEL_FLOAT_BF16_RELOP(NAME, FUN1, FUN2)                         \
-    namespace ops {                                                       \
-    template<>                                                            \
-    struct NAME<bfloat16> {                                               \
-        KERNEL_FLOAT_INLINE bool operator()(bfloat16 lhs, bfloat16 rhs) { \
-            return FUN1(lhs, rhs);                                        \
-        }                                                                 \
-    };                                                                    \
-    }
-
-KERNEL_FLOAT_BF16_RELOP(equal_to, __heq, __heq2);
-KERNEL_FLOAT_BF16_RELOP(not_equal_to, __hne, __hne2);
-KERNEL_FLOAT_BF16_RELOP(greater, __hgt, __hgt2);
-KERNEL_FLOAT_BF16_RELOP(greater_equal, __hge, __hge2);
-KERNEL_FLOAT_BF16_RELOP(less, __hlt, __hlt2);
-KERNEL_FLOAT_BF16_RELOP(less_equal, __hle, __hle2);
-#endif
-
-#define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)      \
-    namespace ops {                                        \
-    template<>                                             \
-    struct cast<T, bfloat16> {                             \
-        KERNEL_FLOAT_INLINE bfloat16 operator()(T input) { \
-            return TO_HALF;                                \
-        }                                                  \
-    };                                                     \
-    template<>                                             \
-    struct cast<bfloat16, T> {                             \
-        KERNEL_FLOAT_INLINE T operator()(bfloat16 input) { \
-            return FROM_HALF;                              \
-        }                                                  \
-    };                                                     \
-    }
-
-KERNEL_FLOAT_BF16_CAST(float64, __double2bfloat16(input), float64(__bfloat162float(input)));
-KERNEL_FLOAT_BF16_CAST(float32, __float2bfloat16(input), __bfloat162float(input));
-
-KERNEL_FLOAT_BF16_CAST(signed short, __bfloat162short_rz(input), __short2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(signed int, __bfloat162int_rz(input), __int2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(
-    signed long,
-    __ll2bfloat16_rn(input),
-    (signed long)(__bfloat162ll_rz(input)));
-KERNEL_FLOAT_BF16_CAST(signed long long, __ll2bfloat16_rn(input), __bfloat162ll_rz(input));
-
-KERNEL_FLOAT_BF16_CAST(unsigned short, __bfloat162ushort_rz(input), __ushort2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(unsigned int, __bfloat162uint_rz(input), __uint2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(
-    unsigned long,
-    __ull2bfloat16_rn(input),
-    (unsigned long)(__bfloat162ull_rz(input)));
-KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
-
-template<>
-struct map_helper<ops::cast<bfloat16, float32>, bfloat16, 2> {
-    KERNEL_FLOAT_INLINE static vec<float32, 2>
-    call(ops::cast<bfloat16, float32>, const vec<bfloat16, 2>& input) noexcept {
-        return __bfloat1622float2(input);
-    }
-};
-
-template<>
-struct map_helper<ops::cast<float32, bfloat16>, float32, 2> {
-    KERNEL_FLOAT_INLINE static vec<bfloat16, 2>
-    call(ops::cast<float32, bfloat16>, const vec<float32, 2>& input) noexcept {
-        return __float22bfloat162_rn(input);
-    }
-};
-
-}  // namespace kernel_float
-
-#endif  //KERNEL_FLOAT_BF16_H
 #ifndef KERNEL_FLOAT_FP16_H
 #define KERNEL_FLOAT_FP16_H
 
+
+
+#if KERNEL_FLOAT_FP16_AVAILABLE
 #include <cuda_fp16.h>
 
 
@@ -1653,7 +1436,7 @@ struct vec_storage<float16, 2> {
 };
 }  // namespace detail
 
-#if KERNEL_FLOAT_FP16_AVAILABLE && KERNEL_FLOAT_CUDA_DEVICE
+#if KERNEL_FLOAT_CUDA_DEVICE
 #define KERNEL_FLOAT_FP16_MONOP(NAME, FUN1, FUN2)               \
     namespace ops {                                             \
     template<>                                                  \
@@ -1748,13 +1531,18 @@ KERNEL_FLOAT_FP16_RELOP(less_equal, __hle, __hle2);
 KERNEL_FLOAT_FP16_CAST(float64, __double2half(input), float64(__half2float(input)));
 KERNEL_FLOAT_FP16_CAST(float32, __float2half(input), __half2float(input));
 
-KERNEL_FLOAT_FP16_CAST(signed int, __half2int_rz(input), __int2half_rn(input));
-KERNEL_FLOAT_FP16_CAST(signed short, __half2short_rz(input), __short2half_rn(input));
+// there are no official char casts. Instead, cast to int and then to char
+KERNEL_FLOAT_FP16_CAST(char, __int2half_rn(input), (char)__half2int_rz(input));
+KERNEL_FLOAT_FP16_CAST(signed char, __int2half_rn(input), (signed char)__half2int_rz(input));
+KERNEL_FLOAT_FP16_CAST(unsigned char, __int2half_rn(input), (unsigned char)__half2int_rz(input));
+
+KERNEL_FLOAT_FP16_CAST(signed short, __short2half_rn(input), __half2short_rz(input));
+KERNEL_FLOAT_FP16_CAST(signed int, __int2half_rn(input), __half2int_rz(input));
 KERNEL_FLOAT_FP16_CAST(signed long, __ll2half_rn(input), (signed long)(__half2ll_rz(input)));
 KERNEL_FLOAT_FP16_CAST(signed long long, __ll2half_rn(input), __half2ll_rz(input));
 
-KERNEL_FLOAT_FP16_CAST(unsigned int, __half2uint_rz(input), __uint2half_rn(input));
-KERNEL_FLOAT_FP16_CAST(unsigned short, __half2ushort_rz(input), __ushort2half_rn(input));
+KERNEL_FLOAT_FP16_CAST(unsigned int, __uint2half_rn(input), __half2uint_rz(input));
+KERNEL_FLOAT_FP16_CAST(unsigned short, __ushort2half_rn(input), __half2ushort_rz(input));
 KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__half2ull_rz(input)));
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
 
@@ -1776,9 +1564,260 @@ struct map_helper<ops::cast<float32, float16>, float32, 2> {
 
 }  // namespace kernel_float
 
+#endif
 #endif  //KERNEL_FLOAT_FP16_H
+#ifndef KERNEL_FLOAT_BF16_H
+#define KERNEL_FLOAT_BF16_H
+
+
+
+#if KERNEL_FLOAT_BF16_AVAILABLE
+#include <cuda_bf16.h>
+
+
+
+namespace kernel_float {
+using bfloat16 = __nv_bfloat16;
+using bfloat16x2 = __nv_bfloat162;
+
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(float32, bfloat16)
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(float64, bfloat16)
+
+namespace detail {
+template<>
+struct vec_storage<bfloat16, 2> {
+    static_assert(sizeof(bfloat16) * 2 == sizeof(bfloat16x2), "invalid size");
+    static_assert(alignof(bfloat16) <= alignof(bfloat16x2), "invalid size");
+
+    KERNEL_FLOAT_INLINE vec_storage(bfloat16 x, bfloat16 y) noexcept : vector_ {x, y} {}
+
+    KERNEL_FLOAT_INLINE vec_storage(bfloat16x2 xy) noexcept : vector_ {xy} {}
+
+    KERNEL_FLOAT_INLINE operator bfloat16x2() const noexcept {
+        return vector_;
+    }
+
+    KERNEL_FLOAT_INLINE bfloat16 get(I0) const {
+        return vector_.x;
+    }
+
+    KERNEL_FLOAT_INLINE bfloat16 get(I1) const {
+        return vector_.y;
+    }
+
+    KERNEL_FLOAT_INLINE void set(I0, bfloat16 v) {
+        *this = vec_storage(v, __high2float(vector_));
+    }
+
+    KERNEL_FLOAT_INLINE void set(I1, bfloat16 v) {
+        *this = vec_storage(__low2float(vector_), v);
+    }
+
+    KERNEL_FLOAT_INLINE bfloat16 get(size_t index) const {
+        if (index == 0) {
+            return get(I0 {});
+        } else {
+            return get(I1 {});
+        }
+    }
+
+    KERNEL_FLOAT_INLINE void set(size_t index, bfloat16 value) const {
+        if (index == 0) {
+            set(I0 {}, value);
+        } else {
+            set(I1 {}, value);
+        }
+    }
+
+    KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(bfloat16, 2)
+
+#if KERNEL_FLOAT_CUDA_DEVICE
+    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<0, 1>) const {
+        return vector_;
+    }
+
+    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<1, 0>) const {
+        return __lowhigh2highlow(vector_);
+    }
+
+    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<0, 0>) const {
+        return {vector_.x, vector_.x};
+    }
+
+    KERNEL_FLOAT_INLINE vec<bfloat16, 2> get(index_sequence<1, 1>) const {
+        return __high2bfloat162(vector_);
+    }
+
+    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1>, bfloat16x2 v) {
+        vector_ = v;
+    }
+
+    KERNEL_FLOAT_INLINE void set(index_sequence<1, 0>, bfloat16x2 v) {
+        vector_ = __lowhigh2highlow(v);
+    }
+#endif
+
+  private:
+    bfloat16x2 vector_;
+};
+}  // namespace detail
+
+#if KERNEL_FLOAT_CUDA_DEVICE
+#define KERNEL_FLOAT_BF16_MONOP(NAME, FUN1, FUN2)                 \
+    namespace ops {                                               \
+    template<>                                                    \
+    struct NAME<bfloat16> {                                       \
+        KERNEL_FLOAT_INLINE bfloat16 operator()(bfloat16 input) { \
+            return FUN1(input);                                   \
+        }                                                         \
+    };                                                            \
+    }                                                             \
+    template<>                                                    \
+    struct map_helper<ops::NAME<bfloat16>, bfloat16, 2> {         \
+        KERNEL_FLOAT_INLINE static vec<bfloat16, 2>               \
+        call(ops::NAME<bfloat16>, bfloat16x2 input) noexcept {    \
+            return FUN2(input);                                   \
+        }                                                         \
+    };
+
+KERNEL_FLOAT_BF16_MONOP(abs, ::__habs, ::__habs2);
+KERNEL_FLOAT_BF16_MONOP(negate, ::__hneg, ::__hneg2);
+KERNEL_FLOAT_BF16_MONOP(ceil, ::hceil, ::h2ceil);
+KERNEL_FLOAT_BF16_MONOP(cos, ::hcos, ::h2cos);
+KERNEL_FLOAT_BF16_MONOP(exp, ::hexp, ::h2exp);
+KERNEL_FLOAT_BF16_MONOP(exp10, ::hexp10, ::h2exp10);
+KERNEL_FLOAT_BF16_MONOP(floor, ::hfloor, ::h2floor);
+KERNEL_FLOAT_BF16_MONOP(log, ::hlog, ::h2log);
+KERNEL_FLOAT_BF16_MONOP(log10, ::hlog10, ::h2log2);
+KERNEL_FLOAT_BF16_MONOP(rint, ::hrint, ::h2rint);
+KERNEL_FLOAT_BF16_MONOP(rsqrt, ::hrsqrt, ::h2rsqrt);
+KERNEL_FLOAT_BF16_MONOP(sin, ::hsin, ::h2sin);
+KERNEL_FLOAT_BF16_MONOP(sqrt, ::hsqrt, ::h2sqrt);
+KERNEL_FLOAT_BF16_MONOP(trunc, ::htrunc, ::h2trunc);
+//    KERNEL_FLOAT_BF16_MONOP(rcp, hrcp, h2rcp);
+
+#define KERNEL_FLOAT_BF16_BINOP(NAME, FUN1, FUN2)                             \
+    namespace ops {                                                           \
+    template<>                                                                \
+    struct NAME<bfloat16> {                                                   \
+        KERNEL_FLOAT_INLINE bfloat16 operator()(bfloat16 lhs, bfloat16 rhs) { \
+            return FUN1(lhs, rhs);                                            \
+        }                                                                     \
+    };                                                                        \
+    }                                                                         \
+    template<>                                                                \
+    struct zip_helper<ops::NAME<bfloat16>, bfloat16, bfloat16, 2> {           \
+        KERNEL_FLOAT_INLINE static bfloat16x2                                 \
+        call(ops::NAME<bfloat16>, bfloat16x2 lhs, bfloat16x2 rhs) {           \
+            return FUN2(lhs, rhs);                                            \
+        }                                                                     \
+    };
+
+KERNEL_FLOAT_BF16_BINOP(add, __hadd, __hadd2);
+KERNEL_FLOAT_BF16_BINOP(subtract, __hsub, __hsub2);
+KERNEL_FLOAT_BF16_BINOP(mulitply, __hmul, __hmul2);
+KERNEL_FLOAT_BF16_BINOP(divide, __hdiv, __h2div);
+KERNEL_FLOAT_BF16_BINOP(min, __hmin, __hmin2);
+KERNEL_FLOAT_BF16_BINOP(max, __hmax, __hmax2);
+
+#define KERNEL_FLOAT_BF16_RELOP(NAME, FUN1, FUN2)                         \
+    namespace ops {                                                       \
+    template<>                                                            \
+    struct NAME<bfloat16> {                                               \
+        KERNEL_FLOAT_INLINE bool operator()(bfloat16 lhs, bfloat16 rhs) { \
+            return FUN1(lhs, rhs);                                        \
+        }                                                                 \
+    };                                                                    \
+    }
+
+KERNEL_FLOAT_BF16_RELOP(equal_to, __heq, __heq2);
+KERNEL_FLOAT_BF16_RELOP(not_equal_to, __hne, __hne2);
+KERNEL_FLOAT_BF16_RELOP(greater, __hgt, __hgt2);
+KERNEL_FLOAT_BF16_RELOP(greater_equal, __hge, __hge2);
+KERNEL_FLOAT_BF16_RELOP(less, __hlt, __hlt2);
+KERNEL_FLOAT_BF16_RELOP(less_equal, __hle, __hle2);
+#endif
+
+#define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)      \
+    namespace ops {                                        \
+    template<>                                             \
+    struct cast<T, bfloat16> {                             \
+        KERNEL_FLOAT_INLINE bfloat16 operator()(T input) { \
+            return TO_HALF;                                \
+        }                                                  \
+    };                                                     \
+    template<>                                             \
+    struct cast<bfloat16, T> {                             \
+        KERNEL_FLOAT_INLINE T operator()(bfloat16 input) { \
+            return FROM_HALF;                              \
+        }                                                  \
+    };                                                     \
+    }
+
+KERNEL_FLOAT_BF16_CAST(float32, __float2bfloat16(input), __bfloat162float(input));
+KERNEL_FLOAT_BF16_CAST(float64, __double2bfloat16(input), float64(__bfloat162float(input)));
+
+// there are no official char casts. Instead, cast to int and then to char
+KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(
+    signed char,
+    __int2bfloat16_rn(input),
+    (signed char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(
+    unsigned char,
+    __int2bfloat16_rn(input),
+    (unsigned char)__bfloat162int_rz(input));
+
+KERNEL_FLOAT_BF16_CAST(signed short, __short2bfloat16_rn(input), __bfloat162short_rz(input));
+KERNEL_FLOAT_BF16_CAST(signed int, __int2bfloat16_rn(input), __bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(
+    signed long,
+    __ll2bfloat16_rn(input),
+    (signed long)(__bfloat162ll_rz(input)));
+KERNEL_FLOAT_BF16_CAST(signed long long, __ll2bfloat16_rn(input), __bfloat162ll_rz(input));
+
+KERNEL_FLOAT_BF16_CAST(unsigned short, __ushort2bfloat16_rn(input), __bfloat162ushort_rz(input));
+KERNEL_FLOAT_BF16_CAST(unsigned int, __uint2bfloat16_rn(input), __bfloat162uint_rz(input));
+KERNEL_FLOAT_BF16_CAST(
+    unsigned long,
+    __ull2bfloat16_rn(input),
+    (unsigned long)(__bfloat162ull_rz(input)));
+KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
+
+template<>
+struct map_helper<ops::cast<bfloat16, float32>, bfloat16, 2> {
+    KERNEL_FLOAT_INLINE static vec<float32, 2>
+    call(ops::cast<bfloat16, float32>, const vec<bfloat16, 2>& input) noexcept {
+        return __bfloat1622float2(input);
+    }
+};
+
+template<>
+struct map_helper<ops::cast<float32, bfloat16>, float32, 2> {
+    KERNEL_FLOAT_INLINE static vec<bfloat16, 2>
+    call(ops::cast<float32, bfloat16>, const vec<float32, 2>& input) noexcept {
+        return __float22bfloat162_rn(input);
+    }
+};
+
+}  // namespace kernel_float
+#endif  // KERNEL_FLOAT_BF16_AVAILABLE
+
+#if KERNEL_FLOAT_FP16_AVAILABLE && KERNEL_FLOAT_BF16_AVAILABLE
+
+
+namespace kernel_launcher {
+KERNEL_FLOAT_BF16_CAST(float16, __float2bfloat16(input), __bfloat162float(input));
+}
+
+#endif  // KERNEL_FLOAT_FP16_AVAILABLE && KERNEL_FLOAT_BF16_AVAILABLE
+#endif  // KERNEL_FLOAT_BF16_H
 #ifndef KERNEL_FLOAT_FP8_H
 #define KERNEL_FLOAT_FP8_H
+
+
+
+#if KERNEL_FLOAT_BF8_AVAILABLE
 
 
 
@@ -1963,4 +2002,5 @@ struct map_helper<ops::cast<float8_e5m2, float8_e4m3>, float8_e5m2, 2> {
 }  // namespace detail
 }  // namespace kernel_float
 
+#endif
 #endif  //KERNEL_FLOAT_FP8_H

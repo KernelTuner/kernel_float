@@ -11,3 +11,7 @@ target_include_directories(${PROJECT_NAME} INTERFACE "${PROJECT_SOURCE_DIR}/incl
 if (KERNEL_FLOAT_BUILD_TEST)
     add_subdirectory(tests)
 endif()
+
+if (KERNEL_FLOAT_BUILD_EXAMPLE)
+    add_subdirectory(examples)
+endif()
