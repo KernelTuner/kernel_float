@@ -257,6 +257,8 @@ struct vec_storage<T, 8> {
     vec_storage<T, 4> high_;
 };
 
+};  // namespace detail
+
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, I, FIELD)     \
     KERNEL_FLOAT_INLINE T get(constant_index<I>) const {       \
         return FIELD;                                          \
@@ -266,6 +268,7 @@ struct vec_storage<T, 8> {
     }
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T2, T3, T4)                                            \
+    namespace detail {                                                                            \
     template<>                                                                                    \
     struct vec_storage<T, 2> {                                                                    \
         KERNEL_FLOAT_INLINE vec_storage(T x, T y) noexcept : vector_ {make_##T2(x, y)} {}         \
@@ -322,7 +325,12 @@ struct vec_storage<T, 8> {
             T4 vector_;                                                                           \
             T array_[4];                                                                          \
         };                                                                                        \
-    };
+    };                                                                                            \
+    }                                                                                             \
+    KERNEL_FLOAT_INTO_VEC(T, T, 1)                                                                \
+    KERNEL_FLOAT_INTO_VEC(T2, T, 2)                                                               \
+    KERNEL_FLOAT_INTO_VEC(T3, T, 3)                                                               \
+    KERNEL_FLOAT_INTO_VEC(T4, T, 4)
 
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char2, char3, char4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short2, short3, short4)
@@ -339,55 +347,7 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong2, ulonglong3, ulon
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float2, float3, float4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double2, double3, double4)
 
-template<typename T>
-struct into_vec_helper;
-
-template<typename T>
-struct into_vec_helper<const T>: into_vec_helper<T> {};
-
-template<typename T>
-struct into_vec_helper<const T&>: into_vec_helper<T> {};
-
-template<typename T>
-struct into_vec_helper<T&&>: into_vec_helper<T> {};
-
-template<typename T, size_t N>
-struct into_vec_helper<vec<T, N>> {
-    using value_type = T;
-    static constexpr size_t size = N;
-
-    KERNEL_FLOAT_INLINE static vec<T, N> call(vec<T, N> input) {
-        return input;
-    }
-};
-
-template<typename T>
-struct is_vec_helper {
-    static constexpr bool value = false;
-};
-
-template<typename T, size_t N>
-struct is_vec_helper<vec<T, N>> {
-    static constexpr bool value = true;
-};
-};  // namespace detail
-
-template<typename T>
-static constexpr size_t into_vec_size = detail::into_vec_helper<T>::size;
-
-template<typename T>
-using into_vec_value_t = typename detail::into_vec_helper<T>::value_type;
-
-template<typename T>
-using into_vec_t = vec<into_vec_value_t<T>, into_vec_size<T>>;
-
-template<typename T>
-static constexpr bool is_vec = detail::is_vec_helper<T>::value;
-
-template<typename T>
-KERNEL_FLOAT_INLINE into_vec_t<T> into_vec(T&& input) {
-    return detail::into_vec_helper<T>::call(std::forward<T>(input));
-}
+KERNEL_FLOAT_INTO_VEC(bool, bool, 1)
 
 };  // namespace kernel_float
 

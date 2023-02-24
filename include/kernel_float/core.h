@@ -24,15 +24,23 @@ struct constant_index {
     using value_type = size_t;
     static constexpr size_t value = I;
 
-    KERNEL_FLOAT_INLINE constexpr operator std::integral_constant<size_t, I>() const noexcept {
+    KERNEL_FLOAT_INLINE constexpr operator std::integral_constant<size_t, I>() const
+
+        noexcept {
         return {};
     }
 
-    KERNEL_FLOAT_INLINE constexpr operator size_t() const noexcept {
+    KERNEL_FLOAT_INLINE constexpr operator size_t() const
+
+        noexcept {
         return I;
     }
 
-    KERNEL_FLOAT_INLINE constexpr size_t operator()() const noexcept {
+    KERNEL_FLOAT_INLINE constexpr size_t
+
+    operator()() const
+
+        noexcept {
         return I;
     }
 };
@@ -119,6 +127,115 @@ using common_t = typename common_type<typename std::decay<Args>::type...>::type;
 
 template<typename From, typename To>
 static constexpr bool is_implicit_convertible = std::is_same<common_t<From, To>, To>::value;
+
+namespace detail {
+
+template<typename T>
+struct into_vec_helper {};
+
+template<typename T>
+struct into_vec_helper<const T>: into_vec_helper<T> {};
+
+template<typename T>
+struct into_vec_helper<T&>: into_vec_helper<T> {};
+
+template<typename T>
+struct into_vec_helper<const T&>: into_vec_helper<T> {};
+
+template<typename T>
+struct into_vec_helper<T&&>: into_vec_helper<T> {};
+
+template<typename T, size_t N>
+struct into_vec_helper<vec<T, N>> {
+    using value_type = T;
+    static constexpr size_t size = N;
+
+    KERNEL_FLOAT_INLINE static vec<T, N> call(vec<T, N> input) {
+        return input;
+    }
+};
+}  // namespace detail
+
+#define KERNEL_FLOAT_INTO_VEC(V, T, N)                               \
+    namespace detail {                                               \
+    template<>                                                       \
+    struct into_vec_helper<V> {                                      \
+        using value_type = T;                                        \
+        static constexpr size_t size = N;                            \
+        KERNEL_FLOAT_INLINE static vec_storage<T, N> call(V input) { \
+            return input;                                            \
+        }                                                            \
+    };                                                               \
+    }
+
+namespace detail {
+template<typename T>
+struct is_vec_helper {
+    static constexpr bool value = false;
+};
+
+template<typename T, size_t N>
+struct is_vec_helper<vec<T, N>> {
+    static constexpr bool value = true;
+};
+
+template<typename T>
+struct is_vec_helper<const T>: is_vec_helper<T> {};
+
+template<typename T>
+struct is_vec_helper<T&>: is_vec_helper<T> {};
+
+template<typename T>
+struct is_vec_helper<const T&>: is_vec_helper<T> {};
+
+template<typename T>
+struct is_vec_helper<T&&>: is_vec_helper<T> {};
+
+template<size_t... Is>
+struct common_size {};
+
+template<size_t N>
+struct common_size<N> {
+    static constexpr size_t value = N;
+};
+
+template<size_t N, size_t... Rest>
+struct common_size<N, N, Rest...>: common_size<N, Rest...> {};
+
+template<size_t N, size_t... Rest>
+struct common_size<N, 1, Rest...>: common_size<N, Rest...> {};
+
+template<size_t N, size_t... Rest>
+struct common_size<1, N, Rest...>: common_size<N, Rest...> {};
+
+template<size_t... Rest>
+struct common_size<1, 1, Rest...>: common_size<1, Rest...> {};
+
+};  // namespace detail
+
+template<typename T>
+static constexpr size_t into_vec_size = detail::into_vec_helper<T>::size;
+
+template<typename T>
+using into_vec_value_t = typename detail::into_vec_helper<T>::value_type;
+
+template<typename T>
+using into_vec_t = vec<into_vec_value_t<T>, into_vec_size<T>>;
+
+template<typename... Ts>
+static constexpr size_t common_vec_size = detail::common_size<into_vec_size<Ts>...>::value;
+
+template<typename... Ts>
+using common_vec_value_t = typename common_type<into_vec_value_t<Ts>...>::type;
+
+template<typename T>
+static constexpr bool is_vec = detail::is_vec_helper<T>::value;
+
+template<typename T>
+KERNEL_FLOAT_INLINE into_vec_t<T> into_vec(T&& input) {
+    return detail::into_vec_helper<T>::call(std::forward<T>(input));
+}
+
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_CORE_H
