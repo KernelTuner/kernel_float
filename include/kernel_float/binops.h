@@ -77,59 +77,58 @@ struct zip_helper<F, T, U, 8> {
     }
 };
 
-template<typename T, typename U, size_t N, typename F, typename R = result_t<F, T, U>>
-KERNEL_FLOAT_INLINE vec<R, N> zip(F fun, const vec<T, N>& lhs, const vec<U, N>& rhs) {
-    return zip_helper<F, T, U, N>::call(fun, lhs, rhs);
+template<
+    typename F,
+    typename A,
+    typename B,
+    typename T = into_vec_value_t<A>,
+    typename U = into_vec_value_t<B>,
+    size_t N = common_vec_size<A, B>,
+    typename R = result_t<F, T, U>>
+KERNEL_FLOAT_INLINE vec<R, N> zip(F fun, A&& lhs, B&& rhs) {
+    return zip_helper<F, T, U, N>::call(fun, broadcast<T, N>(lhs), broadcast<U, N>(rhs));
 }
 
 template<
-    typename T,
-    typename U,
-    size_t N,
     typename F,
-    typename C = common_t<T, U>,
+    typename A,
+    typename B,
+    typename C = common_vec_value_t<A, B>,
+    size_t N = common_vec_size<A, B>,
     typename R = result_t<F, C, C>>
-KERNEL_FLOAT_INLINE vec<R, N> zip_common(F fun, const vec<T, N>& lhs, const vec<U, N>& rhs) {
-    return zip(fun, cast<C>(lhs), cast<C>(rhs));
+KERNEL_FLOAT_INLINE vec<R, N> zip_common(F fun, A&& lhs, B&& rhs) {
+    return zip_helper<F, C, C, N>::call(fun, broadcast<C, N>(lhs), broadcast<C, N>(rhs));
 }
 
-#define KERNEL_FLOAT_DEFINE_FUN2_OP(NAME, EXPR)                                      \
-    namespace ops {                                                                  \
-    template<typename T>                                                             \
-    struct NAME {                                                                    \
-        KERNEL_FLOAT_INLINE auto operator()(T lhs, T rhs) -> decltype(EXPR) {        \
-            return EXPR;                                                             \
-        }                                                                            \
-    };                                                                               \
-    }                                                                                \
-    template<                                                                        \
-        typename T,                                                                  \
-        typename U,                                                                  \
-        size_t N,                                                                    \
-        typename C = common_t<T, U>,                                                 \
-        typename R = result_t<ops::NAME<C>, C, C>>                                   \
-    KERNEL_FLOAT_INLINE vec<R, N> NAME(const vec<T, N>& lhs, const vec<U, N>& rhs) { \
-        return zip(ops::NAME<C> {}, cast<C>(lhs), cast<C>(rhs));                     \
+#define KERNEL_FLOAT_DEFINE_FUN2_OP(NAME, EXPR)                               \
+    namespace ops {                                                           \
+    template<typename T>                                                      \
+    struct NAME {                                                             \
+        KERNEL_FLOAT_INLINE auto operator()(T lhs, T rhs) -> decltype(EXPR) { \
+            return EXPR;                                                      \
+        }                                                                     \
+    };                                                                        \
+    }                                                                         \
+    template<                                                                 \
+        typename A,                                                           \
+        typename B,                                                           \
+        typename C = common_vec_value_t<A, B>,                                \
+        size_t N = common_vec_size<A, B>,                                     \
+        typename R = result_t<ops::NAME<C>, C, C>>                            \
+    KERNEL_FLOAT_INLINE vec<R, N> NAME(A&& lhs, B&& rhs) {                    \
+        return zip_common(ops::NAME<C> {}, lhs, rhs);                         \
     }
 
-#define KERNEL_FLOAT_DEFINE_BINOP(NAME, OP)                                                 \
-    KERNEL_FLOAT_DEFINE_FUN2_OP(NAME, lhs OP rhs)                                           \
-    template<                                                                               \
-        typename T,                                                                         \
-        typename U,                                                                         \
-        size_t N,                                                                           \
-        typename C = common_t<T, U>,                                                        \
-        typename R = result_t<ops::NAME<C>, C, C>>                                          \
-    KERNEL_FLOAT_INLINE vec<R, N> operator OP(const vec<T, N>& lhs, const vec<U, N>& rhs) { \
-        return zip(ops::NAME<C> {}, cast<C>(lhs), cast<C>(rhs));                            \
-    }                                                                                       \
-    template<typename T, size_t N, typename R = result_t<ops::NAME<T>, T, T>>               \
-    KERNEL_FLOAT_INLINE vec<R, N> operator OP(const vec<T, N>& lhs, const T& rhs) {         \
-        return zip(ops::NAME<T> {}, lhs, vec<T, N> {rhs});                                  \
-    }                                                                                       \
-    template<typename T, size_t N, typename R = result_t<ops::NAME<T>, T, T>>               \
-    KERNEL_FLOAT_INLINE vec<R, N> operator OP(const T& rhs, const vec<T, N>& lhs) {         \
-        return zip(ops::NAME<T> {}, vec<T, N> {lhs}, rhs);                                  \
+#define KERNEL_FLOAT_DEFINE_BINOP(NAME, OP)                                       \
+    KERNEL_FLOAT_DEFINE_FUN2_OP(NAME, lhs OP rhs)                                 \
+    template<                                                                     \
+        typename A,                                                               \
+        typename B,                                                               \
+        typename C = enabled_t<is_vec<A> || is_vec<B>, common_vec_value_t<A, B>>, \
+        size_t N = common_vec_size<A, B>,                                         \
+        typename R = result_t<ops::NAME<C>, C, C>>                                \
+    KERNEL_FLOAT_INLINE vec<R, N> operator OP(A&& lhs, B&& rhs) {                 \
+        return zip_common(ops::NAME<C> {}, lhs, rhs);                             \
     }
 
 KERNEL_FLOAT_DEFINE_BINOP(add, +)

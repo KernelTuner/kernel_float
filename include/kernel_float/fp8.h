@@ -184,8 +184,16 @@ struct map_helper<ops::cast<float8_e5m2, float8_e4m3>, float8_e5m2, 2> {
         return __nv_fp8x2_e4m3(__half2(input));
     }
 };
-
 }  // namespace detail
+
+KERNEL_FLOAT_INTO_VEC(__nv_fp8_e5m2, __nv_fp8_e5m2, 1)
+KERNEL_FLOAT_INTO_VEC(__nv_fp8x2_e5m2, __nv_fp8_e5m2, 2)
+KERNEL_FLOAT_INTO_VEC(__nv_fp8x4_e5m2, __nv_fp8_e5m2, 4)
+
+KERNEL_FLOAT_INTO_VEC(__nv_fp8_e4m3, __nv_fp8_e4m3, 1)
+KERNEL_FLOAT_INTO_VEC(__nv_fp8x2_e4m3, __nv_fp8_e4m3, 2)
+KERNEL_FLOAT_INTO_VEC(__nv_fp8x4_e4m3, __nv_fp8_e4m3, 4)
+
 }  // namespace kernel_float
 
 #endif

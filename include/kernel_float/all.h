@@ -128,8 +128,11 @@ struct vec: public detail::vec_storage<T, N>, public detail::swizzler<T, N, vec<
 
     KERNEL_FLOAT_INLINE vec(storage_type storage) : storage_type {storage} {}
 
-    template<typename U, typename = enabled_t<is_implicit_convertible<U, T>>>
-    KERNEL_FLOAT_INLINE vec(const vec<U, N>& that) : vec(::kernel_float::cast<T>(that)) {}
+    template<
+        typename U,
+        size_t M,
+        typename = enabled_t<is_implicit_convertible<U, T> && (M == 1 || M == N)>>
+    KERNEL_FLOAT_INLINE vec(const vec<U, M>& that) : vec(broadcast<T, N>(that)) {}
 
     template<typename... Args, typename = enabled_t<is_constructible<storage_type, Args...>>>
     KERNEL_FLOAT_INLINE vec(Args&&... args) : storage_type {std::forward<Args>(args)...} {}

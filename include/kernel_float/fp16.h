@@ -216,6 +216,9 @@ struct map_helper<ops::cast<float32, __half>, float32, 2> {
     }
 };
 
+KERNEL_FLOAT_INTO_VEC(__half, __half, 1)
+KERNEL_FLOAT_INTO_VEC(__half2, __half, 2)
+
 }  // namespace kernel_float
 
 #endif

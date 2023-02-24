@@ -230,6 +230,9 @@ struct map_helper<ops::cast<float32, __nv_bfloat16>, float32, 2> {
     }
 };
 
+KERNEL_FLOAT_INTO_VEC(__nv_bfloat16, __nv_bfloat16, 1)
+KERNEL_FLOAT_INTO_VEC(__nv_bfloat162, __nv_bfloat16, 2)
+
 }  // namespace kernel_float
 #endif  // KERNEL_FLOAT_BF16_AVAILABLE
 

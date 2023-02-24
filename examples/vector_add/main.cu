@@ -18,7 +18,7 @@ my_kernel(int length, const kf::halfX<N>* input, double constant, kf::floatX<N>*
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        output[i] = input[i] * kf::halfX<N>(constant);
+        output[i] = kf::cast<float>(input[i] * constant);
     }
 }
 
