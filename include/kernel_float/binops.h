@@ -2,7 +2,7 @@
 #define KERNEL_FLOAT_BINARY_H
 
 #include "storage.h"
-#include "unary.h"
+#include "unops.h"
 
 namespace kernel_float {
 
@@ -54,8 +54,8 @@ struct zip_helper<F, T, U, 6> {
                 rhs.get(index_sequence<0, 1, 2, 3> {})),
             zip_helper<F, T, U, 2>::call(
                 fun,
-                lhs.get(index_sequence<2, 3> {}),
-                rhs.get(index_sequence<2, 3> {}))};
+                lhs.get(index_sequence<4, 5> {}),
+                rhs.get(index_sequence<4, 5> {}))};
     }
 };
 

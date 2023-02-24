@@ -16,6 +16,11 @@ struct reduce_helper {
     }
 };
 
+template<typename T, size_t N, typename F>
+KERNEL_FLOAT_INLINE T reduce(F fun, const vec<T, N>& input) {
+    return reduce_helper<F, T, N>::call(fun, input);
+}
+
 template<>
 struct reduce_apply_helper<1> {
     template<typename F, typename T>
@@ -73,39 +78,39 @@ struct reduce_apply_helper<8> {
     }
 };
 
-template<typename T, size_t N, typename F>
-KERNEL_FLOAT_INLINE T reduce(const vec<T, N>& input, F fun) {
-    return reduce_helper<F, T, N>::call(fun, input);
-}
-
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T min(const vec<T, N>& input) {
-    return reduce(input, ops::min<T> {});
+    return reduce(ops::min<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T max(const vec<T, N>& input) {
-    return reduce(input, ops::max<T> {});
+    return reduce(ops::max<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T sum(const vec<T, N>& input) {
-    return reduce(input, ops::add<T> {});
+    return reduce(ops::add<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE T product(const vec<T, N>& input) {
-    return reduce(input, ops::mulitply<T> {});
+    return reduce(ops::mulitply<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE bool all(const vec<T, N>& input) {
-    return reduce(cast<bool>(input), ops::bit_and<bool> {});
+    return reduce(ops::bit_and<bool> {}, cast<bool>(input));
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE bool any(const vec<T, N>& input) {
-    return reduce(cast<bool>(input), ops::bit_or<bool> {});
+    return reduce(ops::bit_or<bool> {}, cast<bool>(input));
+}
+
+template<typename T, size_t N>
+KERNEL_FLOAT_INLINE int count(const vec<T, N>& input) {
+    return sum(cast<int>(cast<bool>(input)));
 }
 
 }  // namespace kernel_float

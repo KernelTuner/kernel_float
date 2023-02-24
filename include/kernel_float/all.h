@@ -4,13 +4,13 @@
 #include <type_traits>
 #include <utility>
 
-#include "binary.h"
+#include "binops.h"
 #include "core.h"
 #include "iterate.h"
 #include "macros.h"
 #include "reduce.h"
 #include "storage.h"
-#include "unary.h"
+#include "unops.h"
 
 namespace kernel_float {
 
@@ -122,7 +122,7 @@ struct vec: public detail::vec_storage<T, N>, public detail::swizzler<T, N, vec<
     vec& operator=(vec&) = default;
     vec& operator=(vec&&) noexcept = default;
 
-    KERNEL_FLOAT_INLINE explicit vec(T item) : vec(full<N>(item)) {}
+    KERNEL_FLOAT_INLINE vec(T item) : vec(full<N>(item)) {}
 
     KERNEL_FLOAT_INLINE vec() : vec(T {}) {}
 
@@ -219,11 +219,5 @@ KERNEL_FLOAT_INLINE vec<T, N> full(T item) {
 }
 
 };  // namespace kernel_float
-
-#if KERNEL_FLOAT_BF16_AVAILABLE
-#include <cuda_bf16.h>
-
-namespace kernel_float {}
-#endif
 
 #endif  //KERNEL_FLOAT_KERNEL_FLOAT_H

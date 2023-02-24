@@ -1,6 +1,10 @@
 #ifndef KERNEL_FLOAT_FP8_H
 #define KERNEL_FLOAT_FP8_H
 
+#include "macros.h"
+
+#if KERNEL_FLOAT_BF8_AVAILABLE
+
 #include "bf16.h"
 #include "fp16.h"
 
@@ -184,4 +188,5 @@ struct map_helper<ops::cast<float8_e5m2, float8_e4m3>, float8_e5m2, 2> {
 }  // namespace detail
 }  // namespace kernel_float
 
+#endif
 #endif  //KERNEL_FLOAT_FP8_H

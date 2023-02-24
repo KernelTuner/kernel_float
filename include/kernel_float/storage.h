@@ -24,16 +24,16 @@ struct assign_helper<index_sequence<>, index_sequence<>> {
     KERNEL_FLOAT_INLINE static void call(To& to, const From& from) {}
 };
 
-#define KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(T, N)                                              \
-    template<size_t... Is>                                                                      \
-    KERNEL_FLOAT_INLINE vec_storage<T, sizeof...(Is)> get(index_sequence<Is...>) const {        \
-        return {this->get(constant_index<Is> {})...};                                           \
-    }                                                                                           \
-    template<size_t... Is>                                                                      \
-    KERNEL_FLOAT_INLINE void set(index_sequence<Is...>, vec_storage<T, sizeof...(Is)> values) { \
-        assign_helper<index_sequence<Is...>, make_index_sequence<sizeof...(Is)>>::call(         \
-            *this,                                                                              \
-            values);                                                                            \
+#define KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(T, N)                                      \
+    template<size_t... Is>                                                              \
+    KERNEL_FLOAT_INLINE vec<T, sizeof...(Is)> get(index_sequence<Is...>) const {        \
+        return {this->get(constant_index<Is> {})...};                                   \
+    }                                                                                   \
+    template<size_t... Is>                                                              \
+    KERNEL_FLOAT_INLINE void set(index_sequence<Is...>, vec<T, sizeof...(Is)> values) { \
+        assign_helper<index_sequence<Is...>, make_index_sequence<sizeof...(Is)>>::call( \
+            *this,                                                                      \
+            values);                                                                    \
     }
 
 #define KERNEL_FLOAT_STORAGE_ACCESSORS(T, N)                   \
@@ -123,11 +123,11 @@ struct vec_storage<T, 4> {
 
     KERNEL_FLOAT_STORAGE_ACCESSORS(T, 4)
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 2> get(index_sequence<0, 1>) const {
+    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<0, 1>) const {
         return low_;
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 2> get(index_sequence<2, 3>) const {
+    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<2, 3>) const {
         return high_;
     }
 
@@ -180,19 +180,19 @@ struct vec_storage<T, 6> {
         }
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 4> get(index_sequence<0, 1, 2, 3>) const {
+    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<0, 1, 2, 3>) const {
         return low_;
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 2> get(index_sequence<4, 5>) const {
+    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<4, 5>) const {
         return high_;
     }
 
-    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1, 2, 3>, vec_storage<T, 4> values) {
+    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1, 2, 3>, vec<T, 4> values) {
         low_ = values;
     }
 
-    KERNEL_FLOAT_INLINE void set(index_sequence<4, 5>, vec_storage<T, 2> values) {
+    KERNEL_FLOAT_INLINE void set(index_sequence<4, 5>, vec<T, 2> values) {
         high_ = values;
     }
 
@@ -236,11 +236,11 @@ struct vec_storage<T, 8> {
         }
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 4> get(index_sequence<0, 1, 2, 3>) const {
+    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<0, 1, 2, 3>) const {
         return low_;
     }
 
-    KERNEL_FLOAT_INLINE vec_storage<T, 4> get(index_sequence<4, 5, 6, 7>) const {
+    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<4, 5, 6, 7>) const {
         return high_;
     }
 

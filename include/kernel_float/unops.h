@@ -17,6 +17,11 @@ struct map_helper {
     }
 };
 
+template<typename T, size_t N, typename F, typename R = result_t<F, T>>
+KERNEL_FLOAT_INLINE vec<R, N> map(F fun, const vec<T, N>& input) noexcept {
+    return map_helper<F, T, N>::call(fun, input);
+}
+
 template<size_t N, size_t... Is>
 struct map_apply_helper<N, index_sequence<Is...>> {
     template<typename F, typename T, typename R = result_t<F, T>>
@@ -39,7 +44,7 @@ struct map_apply_helper<4> {
     KERNEL_FLOAT_INLINE static vec<R, 4> call(F fun, const vec<T, 4>& input) noexcept {
         return {
             map(fun, input.get(index_sequence<0, 1> {})),
-            map(fun, input.get(index_sequence<1, 2> {}))};
+            map(fun, input.get(index_sequence<2, 3> {}))};
     }
 };
 
@@ -62,11 +67,6 @@ struct map_apply_helper<8> {
             map(fun, input.get(index_sequence<4, 5, 6, 7> {}))};
     }
 };
-
-template<typename T, size_t N, typename F, typename R = result_t<F, T>>
-KERNEL_FLOAT_INLINE vec<R, N> map(const vec<T, N>& input, F fun) noexcept {
-    return map_helper<F, T, N>::call(fun, input);
-}
 
 namespace ops {
 template<typename T, typename R>
@@ -93,7 +93,7 @@ struct map_helper<ops::cast<T, T>, T, N> {
 
 template<typename R, typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<R, N> cast(const vec<T, N>& input) noexcept {
-    return map(input, ops::cast<T, R> {});
+    return map(ops::cast<T, R> {}, input);
 }
 
 #define KERNEL_FLOAT_DEFINE_FUN1_OP(NAME, EXPR)                  \
@@ -107,7 +107,7 @@ KERNEL_FLOAT_INLINE vec<R, N> cast(const vec<T, N>& input) noexcept {
     }                                                            \
     template<typename T, size_t N>                               \
     KERNEL_FLOAT_INLINE vec<T, N> NAME(const vec<T, N>& input) { \
-        return map(input, ops::NAME<T> {});                      \
+        return map(ops::NAME<T> {}, input);                      \
     }
 
 KERNEL_FLOAT_DEFINE_FUN1_OP(negate, -input)
@@ -116,17 +116,17 @@ KERNEL_FLOAT_DEFINE_FUN1_OP(logical_not, !input)
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<T, N> operator-(const vec<T, N>& input) {
-    return map(input, ops::negate<T> {});
+    return map(ops::negate<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<T, N> operator~(const vec<T, N>& input) {
-    return map(input, ops::bit_not<T> {});
+    return map(ops::bit_not<T> {}, input);
 }
 
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vec<T, N> operator!(const vec<T, N>& input) {
-    return map(input, ops::logical_not<T> {});
+    return map(ops::logical_not<T> {}, input);
 }
 
 #define KERNEL_FLOAT_DEFINE_FUN1(NAME) KERNEL_FLOAT_DEFINE_FUN1_OP(NAME, ::NAME(input))

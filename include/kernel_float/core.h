@@ -115,7 +115,7 @@ struct common_type<T, U, First, Rest...> {
 };
 
 template<typename... Args>
-using common_t = typename common_type<Args...>::type;
+using common_t = typename common_type<typename std::decay<Args>::type...>::type;
 
 template<typename From, typename To>
 static constexpr bool is_implicit_convertible = std::is_same<common_t<From, To>, To>::value;
