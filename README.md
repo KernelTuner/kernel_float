@@ -74,7 +74,17 @@ Even though the second kernel looks a lot more complex, the ptx code generated b
 
 ## Installation
 
-TODO
+This is a header-only library. Copy the file `single_include/kernel_float.h` to your project and include it:
+
+```cpp
+#include "kernel_float.h"
+```
+
+Use the provided Makefile to generate this single-include header file if it is outdated:
+
+```
+make
+```
 
 
 ## Documentation
