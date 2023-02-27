@@ -3,197 +3,218 @@
 
 #include "macros.h"
 
-#if KERNEL_FLOAT_BF8_AVAILABLE
+#if KERNEL_FLOAT_FP8_AVAILABLE
+
+#include <cuda_fp8.h>
 
 #include "bf16.h"
 #include "fp16.h"
+#include "interface.h"
 
 namespace kernel_float {
-using float8_e4m3 = __nv_fp8_e4m3;
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, __nv_fp8_e5m2)
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, __nv_fp8_e5m2)
+
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, __nv_fp8_e4m3)
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, __nv_fp8_e4m3)
+
+#if KERNEL_FLOAT_FP16_AVAILABLE
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(__half, __nv_fp8_e4m3)
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(__half, __nv_fp8_e5m2)
+#endif
+
+#if KERNEL_FLOAT_BF16_AVAILABLE
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(__nv_bfloat16, __nv_fp8_e4m3)
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(__nv_bfloat16, __nv_fp8_e5m2)
+#endif
+
 using float8_e5m2 = __nv_fp8_e5m2;
+using float8x2_e5m2 = vector_union<__nv_fp8_e5m2, 2, __nv_fp8x2_e5m2>;
+using float8x4_e5m2 = vector_union<__nv_fp8_e5m2, 4, __nv_fp8x4_e5m2>;
 
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float16, float8_e4m3)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(bfloat16, float8_e4m3)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float32, float8_e4m3)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float64, float8_e4m3)
+using float8_e4m3 = __nv_fp8_e4m3;
+using float8x2_e4m3 = vector_union<__nv_fp8_e4m3, 2, __nv_fp8x2_e4m3>;
+using float8x4_e4m3 = vector_union<__nv_fp8_e4m3, 4, __nv_fp8x4_e4m3>;
 
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float16, float8_e5m2)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(bfloat16, float8_e5m2)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float32, float8_e5m2)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float64, float8_e5m2)
-
-namespace detail {
 template<>
-struct vec_storage<float8_e4m3, 2> {
-    vec_storage(__nv_fp8_e4m3 x, float8_e4m3 y) : array {x, y} {}
-    vec_storage(__nv_fp8x2_e4m3 v) : storage_(v) {}
+struct vector_traits<float8_e5m2>: vector_traits<vector_scalar<float8_e5m2>> {};
+template<>
+struct vector_traits<float8_e4m3>: vector_traits<vector_scalar<float8_e4m3>> {};
 
-    operator __nv_fp8x2_e4m3() const {
-        return storage_;
-    }
+template<>
+struct vector_traits<__nv_fp8x2_e5m2>: vector_traits<float8x2_e5m2> {};
+template<>
+struct vector_traits<__nv_fp8x4_e5m2>: vector_traits<float8x4_e5m2> {};
 
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(array_, float8_e4m3, 2)
+template<>
+struct vector_traits<__nv_fp8x2_e4m3>: vector_traits<float8x2_e4m3> {};
+template<>
+struct vector_traits<__nv_fp8x4_e4m3>: vector_traits<float8x4_e4m3> {};
 
-  private:
-    union {
-        __nv_fp8x2_e4m3 storage_;
-        __nv_fp8_e4m3 array_[2];
-    }
+template<>
+struct default_vector_storage<float8_e5m2, 2> {
+    using type = float8x2_e5m2;
 };
 
 template<>
-struct vec_storage<float8_e4m3, 4> {
-    vec_storage(__nv_fp8_e4m3 x, float8_e4m3 y, __nv_fp8_e4m3 z, float8_e4m3 w) :
-        array {x, y, z, w} {}
-    vec_storage(__nv_fp8x4_e4m3 v) : storage_(v) {}
-
-    operator __nv_fp8x4_e4m3() const {
-        return storage_;
-    }
-
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(array_, float8_e4m3, 4)
-
-    KERNEL_FLOAT_INLINE vec_storage<T, 2> get(index_sequence<4, 5>) const {
-        return high_;
-    }
-
-    KERNEL_FLOAT_INLINE vec_storage<float8_e4m3, 2> get(index_sequence<0, 1>) const {
-        __nv_fp8x2_e4m3 out;
-        out.__x = storage_.__x;
-        return out;
-    }
-
-    KERNEL_FLOAT_INLINE vec_storage<float8_e4m3, 2> get(index_sequence<2, 3>) const {
-        __nv_fp8x2_e4m3 out;
-        out.__x = storage_.__x >> 16;
-        return out;
-    }
-
-  private:
-    union {
-        __nv_fp8x4_e4m3 storage_;
-        __nv_fp8_e4m3 array_[4];
-    }
+struct default_vector_storage<float8_e5m2, 4> {
+    using type = float8x4_e5m2;
 };
 
 template<>
-struct vec_storage<float8_e5m2, 2> {
-    vec_storage(__nv_fp8_e5m2 x, float8_e5m2 y) : array {x, y} {}
-    vec_storage(__nv_fp8x2_e5m2 v) : storage_(v) {}
-
-    operator __nv_fp8x2_e5m2() const {
-        return storage_;
-    }
-
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(array_, float8_e5m2, 2)
-
-  private:
-    union {
-        __nv_fp8x2_e5m2 storage_;
-        __nv_fp8_e5m2 array_[2];
-    }
+struct default_vector_storage<float8_e4m3, 2> {
+    using type = float8x2_e4m3;
 };
 
 template<>
-struct vec_storage<float8_e5m2, 4> {
-    vec_storage(__nv_fp8_e5m2 x, float8_e5m2 y, __nv_fp8_e5m2 z, float8_e5m2 w) :
-        array {x, y, z, w} {}
-    vec_storage(__nv_fp8x4_e5m2 v) : storage_(v) {}
-
-    operator __nv_fp8x4_e5m2() const {
-        return storage_;
-    }
-
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(array_, float8_e5m2, 4)
-
-    KERNEL_FLOAT_INLINE vec_storage<float8_e5m2, 2> get(index_sequence<0, 1>) const {
-        __nv_fp8x2_e5m2 out;
-        out.__x = (storage_.__x) & 0xffff;
-        return out;
-    }
-
-    KERNEL_FLOAT_INLINE vec_storage<float8_e5m2, 2> get(index_sequence<2, 3>) const {
-        __nv_fp8x2_e5m2 out;
-        out.__x = (storage_.__x >> 16) & 0xffff;
-        return out;
-    }
-
-  private:
-    union {
-        __nv_fp8x4_e5m2 storage_;
-        __nv_fp8_e5m2 array_[4];
-    }
-};
-
-template<typename T>
-struct map_helper<ops::cast<float8_e4m3, T>, float8_e4m3, 2> {
-    KERNEL_FLOAT_INLINE static vec<T, 2> call(ops::cast<float8_e4m3, T>, __nv_fp8x2_e4m3 input) {
-        return cast<T>(vec<half, 2>(__half2(input)));
-    }
-};
-
-template<typename T>
-struct map_helper<ops::cast<T, float8_e4m3>, T, 2> {
-    KERNEL_FLOAT_INLINE static vec<float8_e4m3, 2>
-    call(ops::cast<T, float8_e4m3>, vec<T, 2> input) {
-        return __nv_fp8x2_e4m3(__half2(cast<half, 2>(input)));
-    }
-};
-
-template<typename T>
-struct map_helper<ops::cast<float8_e5m2, T>, float8_e5m2, 2> {
-    KERNEL_FLOAT_INLINEstatic vec<T, 2> call(ops::cast<float8_e5m2, T>, __nv_fp8x2_e5m2 input) {
-        return cast<T>(vec<half, 2>(__half2(input)));
-    }
-};
-
-template<typename T>
-struct map_helper<ops::cast<T, float8_e5m2>, T, 2> {
-    KERNEL_FLOAT_INLINE static vec<float8_e5m2, 2>
-    call(ops::cast<T, float8_e5m2>, vec<T, 2> input) {
-        return __nv_fp8x2_e5m2(__half2(cast<half, 2>(input)));
-    }
+struct default_vector_storage<float8_e4m3, 4> {
+    using type = float8x4_e4m3;
 };
 
 namespace ops {
-struct cast<float8_e4m3, float8_e5m2> {
-    KERNEL_FLOAT_INLINE float8_e5m2 operator()(float8_e4m3 v) const {
-        return float8_e5m2(__half(v));
-    }
-};
-
+template<>
 struct cast<float8_e5m2, float8_e4m3> {
     KERNEL_FLOAT_INLINE float8_e4m3 operator()(float8_e5m2 v) const {
         return float8_e4m3(__half(v));
     }
 };
-}  // namespace ops
 
-template<typename T>
-struct map_helper<ops::cast<float8_e4m3, float8_e5m2>, float8_e4m3, 2> {
-    KERNEL_FLOAT_INLINE static vec<float8_e5m2, 2>
-    call(ops::cast<float8_e4m3, float8_e5m2>, __nv_fp8x2_e4m3 input) {
-        return __nv_fp8x2_e5m2(__half2(input));
+template<>
+struct cast<float8_e4m3, float8_e5m2> {
+    KERNEL_FLOAT_INLINE float8_e5m2 operator()(float8_e4m3 v) const {
+        return float8_e5m2(__half(v));
     }
 };
+};  // namespace ops
 
-template<typename T>
-struct map_helper<ops::cast<float8_e5m2, float8_e4m3>, float8_e5m2, 2> {
-    KERNEL_FLOAT_INLINE static vec<float8_e4m3, 2>
-    call(ops::cast<float8_e5m2, float8_e4m3>, __nv_fp8x2_e5m2 input) {
-        return __nv_fp8x2_e4m3(__half2(input));
+#define KERNEL_FLOAT_FP8_CAST_VIA(T, BRIDGE)                    \
+    namespace ops {                                             \
+    template<>                                                  \
+    struct cast<float8_e5m2, T> {                               \
+        KERNEL_FLOAT_INLINE T operator()(float8_e5m2 v) const { \
+            return (T)((BRIDGE)(v));                            \
+        }                                                       \
+    };                                                          \
+    template<>                                                  \
+    struct cast<T, float8_e5m2> {                               \
+        KERNEL_FLOAT_INLINE float8_e5m2 operator()(T v) const { \
+            return float8_e5m2((BRIDGE)(v));                    \
+        }                                                       \
+    };                                                          \
+    template<>                                                  \
+    struct cast<float8_e4m3, T> {                               \
+        KERNEL_FLOAT_INLINE T operator()(float8_e4m3 v) const { \
+            return (T)(BRIDGE)(v);                              \
+        }                                                       \
+    };                                                          \
+    template<>                                                  \
+    struct cast<T, float8_e4m3> {                               \
+        KERNEL_FLOAT_INLINE float8_e4m3 operator()(T v) const { \
+            return float8_e4m3((BRIDGE)(v));                    \
+        }                                                       \
+    };                                                          \
     }
-};
-}  // namespace detail
 
-KERNEL_FLOAT_INTO_VEC(__nv_fp8_e5m2, __nv_fp8_e5m2, 1)
-KERNEL_FLOAT_INTO_VEC(__nv_fp8x2_e5m2, __nv_fp8_e5m2, 2)
-KERNEL_FLOAT_INTO_VEC(__nv_fp8x4_e5m2, __nv_fp8_e5m2, 4)
+#define KERNEL_FLOAT_FP8_CAST(T) KERNEL_FLOAT_FP8_CAST_VIA(T, T)
 
-KERNEL_FLOAT_INTO_VEC(__nv_fp8_e4m3, __nv_fp8_e4m3, 1)
-KERNEL_FLOAT_INTO_VEC(__nv_fp8x2_e4m3, __nv_fp8_e4m3, 2)
-KERNEL_FLOAT_INTO_VEC(__nv_fp8x4_e4m3, __nv_fp8_e4m3, 4)
+KERNEL_FLOAT_FP8_CAST(float)
+KERNEL_FLOAT_FP8_CAST(double)
 
+#if KERNEL_FLOAT_FP16_AVAILABLE
+KERNEL_FLOAT_FP8_CAST(__half)
+#endif
+
+#if KERNEL_FLOAT_BF16_AVAILABLE
+KERNEL_FLOAT_FP8_CAST(__nv_bfloat16)
+#endif
+
+KERNEL_FLOAT_FP8_CAST(bool)
+KERNEL_FLOAT_FP8_CAST_VIA(char, int)
+
+KERNEL_FLOAT_FP8_CAST(signed char)
+KERNEL_FLOAT_FP8_CAST(short)
+KERNEL_FLOAT_FP8_CAST(int)
+KERNEL_FLOAT_FP8_CAST_VIA(long, long long)
+KERNEL_FLOAT_FP8_CAST(long long)
+
+KERNEL_FLOAT_FP8_CAST(unsigned char)
+KERNEL_FLOAT_FP8_CAST(unsigned short)
+KERNEL_FLOAT_FP8_CAST(unsigned int)
+KERNEL_FLOAT_FP8_CAST_VIA(unsigned long, unsigned long long)
+KERNEL_FLOAT_FP8_CAST(unsigned long long)
+
+#define KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(T, N)                   \
+    namespace detail {                                            \
+    template<>                                                    \
+    struct map_helper<                                            \
+        ops::cast<T, float8_e4m3>,                                \
+        vector_storage<float8_e4m3, N>,                           \
+        vector_storage<T, N>> {                                   \
+        KERNEL_FLOAT_INLINE static vector_storage<float8_e4m3, N> \
+        call(ops::cast<T, float8_e4m3>, T##N input) {             \
+            return __nv_fp8x##N##_e4m3(input);                    \
+        }                                                         \
+    };                                                            \
+    template<>                                                    \
+    struct map_helper<                                            \
+        ops::cast<T, float8_e5m2>,                                \
+        vector_storage<float8_e5m2, N>,                           \
+        vector_storage<T, N>> {                                   \
+        KERNEL_FLOAT_INLINE static vector_storage<float8_e5m2, N> \
+        call(ops::cast<T, float8_e5m2>, T##N input) {             \
+            return __nv_fp8x##N##_e5m2(input);                    \
+        }                                                         \
+    };                                                            \
+    }
+
+#define KERNEL_FLOAT_FP8_CAST_VECTOR_TO(T, N)                        \
+    namespace detail {                                               \
+    template<>                                                       \
+    struct map_helper<                                               \
+        ops::cast<float8_e4m3, T>,                                   \
+        vector_storage<T, N>,                                        \
+        vector_storage<float8_e4m3, N>> {                            \
+        KERNEL_FLOAT_INLINE static vector_storage<T, N>              \
+        call(ops::cast<float8_e4m3, T>, __nv_fp8x##N##_e4m3 input) { \
+            return (T##N)(input);                                    \
+        }                                                            \
+    };                                                               \
+    template<>                                                       \
+    struct map_helper<                                               \
+        ops::cast<float8_e5m2, T>,                                   \
+        vector_storage<T, N>,                                        \
+        vector_storage<float8_e5m2, N>> {                            \
+        KERNEL_FLOAT_INLINE static vector_storage<T, N>              \
+        call(ops::cast<float8_e5m2, T>, __nv_fp8x##N##_e5m2 input) { \
+            return (T##N)(input);                                    \
+        }                                                            \
+    };                                                               \
+    }
+
+// TODO: Some of these casts don't seem to work? Figure out why!
+#if KERNEL_FLOAT_FP16_AVAILABLE
+KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(__half, 2)
+KERNEL_FLOAT_FP8_CAST_VECTOR_TO(__half, 2)
+//    KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(__half, 4)
+//    KERNEL_FLOAT_FP8_CAST_VECTOR_TO(__half, 4)
+#endif
+
+#if KERNEL_FLOAT_BF16_AVAILABLE
+KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(__nv_bfloat16, 2)
+//    KERNEL_FLOAT_FP8_CAST_VECTOR_TO(__nv_bfloat16, 2)
+//    KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(__nv_bfloat16, 4)
+//    KERNEL_FLOAT_FP8_CAST_VECTOR_TO(__nv_bfloat16, 4)
+#endif
+
+KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(float, 2)
+KERNEL_FLOAT_FP8_CAST_VECTOR_TO(float, 2)
+KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(float, 4)
+KERNEL_FLOAT_FP8_CAST_VECTOR_TO(float, 4)
+
+KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(double, 2)
+KERNEL_FLOAT_FP8_CAST_VECTOR_TO(double, 2)
+KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(double, 4)
+KERNEL_FLOAT_FP8_CAST_VECTOR_TO(double, 4)
 }  // namespace kernel_float
 
 #endif

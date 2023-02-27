@@ -102,7 +102,9 @@ template<typename Input, typename Output, typename T, size_t N>
 struct broadcast_helper<Input, Output, T, N, T, N> {
     KERNEL_FLOAT_INLINE static Output call(Input&& input) {
         using F = ops::cast<T, T>;
-        return map_helper<F, Output, Input>::call(F {}, std::forward<Input>(input));
+        return map_helper<F, Output, into_vector_type<Input>>::call(
+            F {},
+            into_vector(std::forward<Input>(input)));
     }
 };
 
@@ -140,7 +142,9 @@ template<typename Output, typename Input, typename T, typename R, size_t N>
 struct broadcast_helper<Input, Output, T, N, R, N> {
     KERNEL_FLOAT_INLINE static Output call(Input&& input) {
         using F = ops::cast<T, R>;
-        return map_helper<F, Output, Input>::call(F {}, std::forward<Input>(input));
+        return map_helper<F, Output, into_vector_type<Input>>::call(
+            F {},
+            into_vector(std::forward<Input>(input)));
     }
 };
 }  // namespace detail
