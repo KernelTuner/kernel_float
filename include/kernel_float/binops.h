@@ -122,6 +122,41 @@ KERNEL_FLOAT_DEFINE_BINARY_OP(bit_and, &)
 KERNEL_FLOAT_DEFINE_BINARY_OP(bit_or, |)
 KERNEL_FLOAT_DEFINE_BINARY_OP(bit_xor, ^)
 
+// clang-format off
+template<template<typename T> typename F, typename L, typename R>
+static constexpr bool vector_assign_allowed =
+    is_vector<L> &&
+    common_vector_size<L, R> == vector_size<L> &&
+    is_implicit_convertible<
+        result_t<
+                F<common_t<vector_value_type<L>, vector_value_type<R>>>,
+                vector_value_type<L>,
+                vector_value_type<R>
+        >,
+        vector_value_type<L>
+    >;
+// clang-format on
+
+#define KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(NAME, OP)                                        \
+    template<                                                                                 \
+        typename L,                                                                           \
+        typename R,                                                                           \
+        typename T = enabled_t<vector_assign_allowed<ops::NAME, L, R>, vector_value_type<L>>> \
+    KERNEL_FLOAT_INLINE L& operator OP(L& lhs, R&& rhs) {                                     \
+        using F = ops::NAME<T>;                                                               \
+        lhs = zip_common<F, L&, R, into_vector_type<L>>(F {}, lhs, std::forward<R>(rhs));     \
+        return lhs;                                                                           \
+    }
+
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(add, +=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(subtract, -=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(divide, /=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(multiply, *=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(modulo, %=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_and, &=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_or, |=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_xor, ^=)
+
 #define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME) KERNEL_FLOAT_DEFINE_BINARY(NAME, ::NAME(left, right))
 
 KERNEL_FLOAT_DEFINE_BINARY_FUN(min)

@@ -12,6 +12,7 @@ struct arithmetic_test<T, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<T> gen) {
         kf::vec<T, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
 
+        // binary operator
         c = a + b;
         ASSERT(bitwise_equal(c.get(Is), a.get(Is) + b.get(Is)) && ...);
 
@@ -22,6 +23,23 @@ struct arithmetic_test<T, N, std::index_sequence<Is...>> {
         ASSERT(bitwise_equal(c.get(Is), a.get(Is) * b.get(Is)) && ...);
 
         c = a / b;
+        ASSERT(bitwise_equal(c.get(Is), a.get(Is) / b.get(Is)) && ...);
+
+        // assignment operator
+        c = a;
+        c += b;
+        ASSERT(bitwise_equal(c.get(Is), a.get(Is) + b.get(Is)) && ...);
+
+        c = a;
+        c -= b;
+        ASSERT(bitwise_equal(c.get(Is), a.get(Is) - b.get(Is)) && ...);
+
+        c = a;
+        c *= b;
+        ASSERT(bitwise_equal(c.get(Is), a.get(Is) * b.get(Is)) && ...);
+
+        c = a;
+        c /= b;
         ASSERT(bitwise_equal(c.get(Is), a.get(Is) / b.get(Is)) && ...);
     }
 };

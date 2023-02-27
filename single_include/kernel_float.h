@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-02-27 12:26:42.722441
-// git hash: 350890f450ea34eda511a14a83a90dd7f2a1c3b3
+// date: 2023-02-27 12:59:02.060399
+// git hash: fb9c707c2daa90d1375874dc6717386ef7746d1f
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -143,6 +143,10 @@ KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long, char)
 KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(int, short)
 KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(int, char)
 KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(short, char)
+
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(long double, bool)
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, bool)
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, bool)
 
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed long long, bool)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed long, bool)
@@ -1120,6 +1124,41 @@ KERNEL_FLOAT_DEFINE_BINARY_OP(bit_and, &)
 KERNEL_FLOAT_DEFINE_BINARY_OP(bit_or, |)
 KERNEL_FLOAT_DEFINE_BINARY_OP(bit_xor, ^)
 
+// clang-format off
+template<template<typename T> typename F, typename L, typename R>
+static constexpr bool vector_assign_allowed =
+    is_vector<L> &&
+    common_vector_size<L, R> == vector_size<L> &&
+    is_implicit_convertible<
+        result_t<
+                F<common_t<vector_value_type<L>, vector_value_type<R>>>,
+                vector_value_type<L>,
+                vector_value_type<R>
+        >,
+        vector_value_type<L>
+    >;
+// clang-format on
+
+#define KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(NAME, OP)                                        \
+    template<                                                                                 \
+        typename L,                                                                           \
+        typename R,                                                                           \
+        typename T = enabled_t<vector_assign_allowed<ops::NAME, L, R>, vector_value_type<L>>> \
+    KERNEL_FLOAT_INLINE L& operator OP(L& lhs, R&& rhs) {                                     \
+        using F = ops::NAME<T>;                                                               \
+        lhs = zip_common<F, L&, R, into_vector_type<L>>(F {}, lhs, std::forward<R>(rhs));     \
+        return lhs;                                                                           \
+    }
+
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(add, +=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(subtract, -=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(divide, /=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(multiply, *=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(modulo, %=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_and, &=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_or, |=)
+KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_xor, ^=)
+
 #define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME) KERNEL_FLOAT_DEFINE_BINARY(NAME, ::NAME(left, right))
 
 KERNEL_FLOAT_DEFINE_BINARY_FUN(min)
@@ -1466,6 +1505,7 @@ KERNEL_FLOAT_INLINE vec<common_t<Ts...>, sizeof...(Ts)> make_vec(Ts... items) {
 
 
 namespace kernel_float {
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(__half, bool)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, __half)
 

@@ -9,6 +9,7 @@
 #include "interface.h"
 
 namespace kernel_float {
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(__half, bool)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, __half)
 
