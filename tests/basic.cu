@@ -15,13 +15,13 @@ struct basic_test<T, N, std::index_sequence<Is...>> {
 
         // check if getters work
         ASSERT(bitwise_equal(a.get(Is), items[Is]) && ...);
-        ASSERT(bitwise_equal(a.get(kf::constant_index<Is> {}), items[Is]) && ...);
+        ASSERT(bitwise_equal(a.get(kf::const_index<Is> {}), items[Is]) && ...);
         ASSERT(bitwise_equal<T>(a[Is], items[Is]) && ...);
-        ASSERT(bitwise_equal<T>(a[kf::constant_index<Is> {}], items[Is]) && ...);
+        ASSERT(bitwise_equal<T>(a[kf::const_index<Is> {}], items[Is]) && ...);
 
         // check if setter works
         T new_items[N] = {gen.next(Is)...};
-        (a.set(kf::constant_index<Is> {}, new_items[Is]), ...);
+        (a.set(kf::const_index<Is> {}, new_items[Is]), ...);
         ASSERT(bitwise_equal(a.get(Is), new_items[Is]) && ...);
 
         // check if setter works

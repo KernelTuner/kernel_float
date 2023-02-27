@@ -76,25 +76,25 @@ struct relational_test<T, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<T> gen) {
         kf::vec<T, N> a {gen.next(Is)...};
         kf::vec<T, N> b {gen.next(Is)...};
-        kf::vec<bool, N> c;
+        kf::vec<T, N> c;
 
         c = a == b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) == b.get(Is)) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) == b.get(Is))) && ...);
 
         c = a != b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) != b.get(Is)) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) != b.get(Is))) && ...);
 
         c = a < b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) < b.get(Is)) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) < b.get(Is))) && ...);
 
         c = a <= b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) <= b.get(Is)) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) <= b.get(Is))) && ...);
 
         c = a > b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) > b.get(Is)) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) > b.get(Is))) && ...);
 
         c = a >= b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) >= b.get(Is)) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) >= b.get(Is))) && ...);
     }
 };
 
@@ -107,14 +107,14 @@ struct bitwise_test<T, N, std::index_sequence<Is...>> {
         kf::vec<T, N> a {gen.next(Is)...};
         kf::vec<T, N> b {gen.next(Is)...};
 
-        auto c = a | b;
-        ASSERT(bitwise_equal(c.get(Is), (a.get(Is) | b.get(Is))) && ...);
+        kf::vec<T, N> c = a | b;
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) | b.get(Is))) && ...);
 
         c = a & b;
-        ASSERT(bitwise_equal(c.get(Is), (a.get(Is) & b.get(Is))) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) & b.get(Is))) && ...);
 
         c = a ^ b;
-        ASSERT(bitwise_equal(c.get(Is), (a.get(Is) ^ b.get(Is))) && ...);
+        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) ^ b.get(Is))) && ...);
     }
 };
 

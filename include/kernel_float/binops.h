@@ -1,168 +1,200 @@
-#ifndef KERNEL_FLOAT_BINARY_H
-#define KERNEL_FLOAT_BINARY_H
+#ifndef KERNEL_FLOAT_BINOPS_H
+#define KERNEL_FLOAT_BINOPS_H
 
-#include "storage.h"
 #include "unops.h"
 
 namespace kernel_float {
-
-template<typename F, typename T, typename U, size_t N>
+namespace detail {
+template<typename F, typename Output, typename Left, typename Right, typename = void>
 struct zip_helper {
-    using return_type = result_t<F, T, U>;
-    KERNEL_FLOAT_INLINE
-    static vec<return_type, N> call(F fun, const vec<T, N>& lhs, const vec<U, N>& rhs) {
-        return call(fun, lhs, rhs, make_index_sequence<N> {});
+    KERNEL_FLOAT_INLINE static Output call(F fun, const Left& left, const Right& right) {
+        return call_with_indices(fun, left, right, make_index_sequence<vector_size<Output>> {});
     }
 
   private:
     template<size_t... Is>
-    KERNEL_FLOAT_INLINE static vec<return_type, N>
-    call(F fun, const vec<T, N>& lhs, const vec<U, N>& rhs, index_sequence<Is...>) {
-        return detail::vec_storage<return_type, N> {
-            fun(lhs.get(constant_index<Is> {}), rhs.get(constant_index<Is> {}))...};
+    KERNEL_FLOAT_INLINE static Output
+    call_with_indices(F fun, const Left& left, const Right& right, index_sequence<Is...> = {}) {
+        return Output {fun(left.get(const_index<Is> {}), right.get(const_index<Is> {}))...};
     }
 };
 
-template<typename F, typename T, typename U>
-struct zip_helper<F, T, U, 4> {
-    using return_type = result_t<F, T, U>;
+template<typename F, typename T, typename L, typename R, size_t N>
+struct zip_helper<F, vector_compound<T, N>, vector_compound<L, N>, vector_compound<R, N>> {
+    KERNEL_FLOAT_INLINE static vector_compound<T, N>
+    call(F fun, const vector_compound<L, N>& left, const vector_compound<R, N>& right) {
+        static constexpr size_t low_size = vector_compound<T, N>::low_size;
+        static constexpr size_t high_size = vector_compound<T, N>::high_size;
 
-    KERNEL_FLOAT_INLINE static vec<return_type, 4>
-    call(F fun, const vec<T, 4>& lhs, const vec<U, 4>& rhs) {
-        return detail::vec_storage<return_type, 4> {
-            zip_helper<F, T, U, 2>::call(
-                fun,
-                lhs.get(index_sequence<0, 1> {}),
-                rhs.get(index_sequence<0, 1> {})),
-            zip_helper<F, T, U, 2>::call(
-                fun,
-                lhs.get(index_sequence<2, 3> {}),
-                rhs.get(index_sequence<2, 3> {}))};
+        return {
+            zip_helper<
+                F,
+                vector_storage<T, low_size>,
+                vector_storage<L, low_size>,
+                vector_storage<R, low_size>>::call(fun, left.low(), right.low()),
+            zip_helper<
+                F,
+                vector_storage<T, high_size>,
+                vector_storage<L, high_size>,
+                vector_storage<R, high_size>>::call(fun, left.high(), right.high())};
     }
 };
+};  // namespace detail
 
-template<typename F, typename T, typename U>
-struct zip_helper<F, T, U, 6> {
-    using return_type = result_t<F, T, U>;
+template<typename... Ts>
+using common_vector_value_type = common_t<vector_value_type<Ts>...>;
 
-    KERNEL_FLOAT_INLINE static vec<return_type, 6>
-    call(F fun, const vec<T, 6>& lhs, const vec<U, 6>& rhs) {
-        return detail::vec_storage<return_type, 6> {
-            zip_helper<F, T, U, 4>::call(
-                fun,
-                lhs.get(index_sequence<0, 1, 2, 3> {}),
-                rhs.get(index_sequence<0, 1, 2, 3> {})),
-            zip_helper<F, T, U, 2>::call(
-                fun,
-                lhs.get(index_sequence<4, 5> {}),
-                rhs.get(index_sequence<4, 5> {}))};
-    }
-};
+template<typename... Ts>
+static constexpr size_t common_vector_size = common_size<vector_size<Ts>...>;
 
-template<typename F, typename T, typename U>
-struct zip_helper<F, T, U, 8> {
-    using return_type = result_t<F, T, U>;
+template<typename F, typename L, typename R>
+using zip_type = vector_storage<
+    result_t<F, vector_value_type<L>, vector_value_type<R>>,
+    common_vector_size<L, R>>;
 
-    KERNEL_FLOAT_INLINE static vec<return_type, 8>
-    call(F fun, const vec<T, 8>& lhs, const vec<U, 8>& rhs) {
-        return detail::vec_storage<return_type, 8> {
-            zip_helper<F, T, U, 4>::call(
-                fun,
-                lhs.get(index_sequence<0, 1, 2, 3> {}),
-                rhs.get(index_sequence<0, 1, 2, 3> {})),
-            zip_helper<F, T, U, 4>::call(
-                fun,
-                lhs.get(index_sequence<4, 5, 6, 7> {}),
-                rhs.get(index_sequence<4, 5, 6, 7> {}))};
-    }
-};
+template<typename F, typename Left, typename Right, typename Output = zip_type<F, Left, Right>>
+KERNEL_FLOAT_INLINE Output zip(F fun, Left&& left, Right&& right) {
+    static constexpr size_t N = vector_size<Output>;
+    return detail::zip_helper<F, Output, into_vector_type<Left>, into_vector_type<Right>>::call(
+        fun,
+        broadcast<N>(std::forward<Left>(left)),
+        broadcast<N>(std::forward<Right>(right)));
+}
+
+template<typename F, typename L, typename R>
+using zip_common_type = vector_storage<
+    result_t<F, common_vector_value_type<L, R>, common_vector_value_type<L, R>>,
+    common_vector_size<L, R>>;
 
 template<
     typename F,
-    typename A,
-    typename B,
-    typename T = into_vec_value_t<A>,
-    typename U = into_vec_value_t<B>,
-    size_t N = common_vec_size<A, B>,
-    typename R = result_t<F, T, U>>
-KERNEL_FLOAT_INLINE vec<R, N> zip(F fun, A&& lhs, B&& rhs) {
-    return zip_helper<F, T, U, N>::call(fun, broadcast<T, N>(lhs), broadcast<U, N>(rhs));
+    typename Left,
+    typename Right,
+    typename Output = zip_common_type<F, Left, Right>>
+KERNEL_FLOAT_INLINE Output zip_common(F fun, Left&& left, Right&& right) {
+    static constexpr size_t N = vector_size<Output>;
+    using C = common_t<vector_value_type<Left>, vector_value_type<Right>>;
+
+    return detail::zip_helper<F, Output, vector_storage<C, N>, vector_storage<C, N>>::call(
+        fun,
+        broadcast<C, N>(std::forward<Left>(left)),
+        broadcast<C, N>(std::forward<Right>(right)));
 }
 
-template<
-    typename F,
-    typename A,
-    typename B,
-    typename C = common_vec_value_t<A, B>,
-    size_t N = common_vec_size<A, B>,
-    typename R = result_t<F, C, C>>
-KERNEL_FLOAT_INLINE vec<R, N> zip_common(F fun, A&& lhs, B&& rhs) {
-    return zip_helper<F, C, C, N>::call(fun, broadcast<C, N>(lhs), broadcast<C, N>(rhs));
-}
-
-#define KERNEL_FLOAT_DEFINE_FUN2_OP(NAME, EXPR)                               \
-    namespace ops {                                                           \
-    template<typename T>                                                      \
-    struct NAME {                                                             \
-        KERNEL_FLOAT_INLINE auto operator()(T lhs, T rhs) -> decltype(EXPR) { \
-            return EXPR;                                                      \
-        }                                                                     \
-    };                                                                        \
-    }                                                                         \
-    template<                                                                 \
-        typename A,                                                           \
-        typename B,                                                           \
-        typename C = common_vec_value_t<A, B>,                                \
-        size_t N = common_vec_size<A, B>,                                     \
-        typename R = result_t<ops::NAME<C>, C, C>>                            \
-    KERNEL_FLOAT_INLINE vec<R, N> NAME(A&& lhs, B&& rhs) {                    \
-        return zip_common(ops::NAME<C> {}, lhs, rhs);                         \
+#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \
+    namespace ops {                                                                        \
+    template<typename T>                                                                   \
+    struct NAME {                                                                          \
+        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                                \
+            return T(EXPR);                                                                \
+        }                                                                                  \
+    };                                                                                     \
+    }                                                                                      \
+    template<typename L, typename R, typename C = common_vector_value_type<L, R>>          \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
+        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
     }
 
-#define KERNEL_FLOAT_DEFINE_BINOP(NAME, OP)                                       \
-    KERNEL_FLOAT_DEFINE_FUN2_OP(NAME, lhs OP rhs)                                 \
-    template<                                                                     \
-        typename A,                                                               \
-        typename B,                                                               \
-        typename C = enabled_t<is_vec<A> || is_vec<B>, common_vec_value_t<A, B>>, \
-        size_t N = common_vec_size<A, B>,                                         \
-        typename R = result_t<ops::NAME<C>, C, C>>                                \
-    KERNEL_FLOAT_INLINE vec<R, N> operator OP(A&& lhs, B&& rhs) {                 \
-        return zip_common(ops::NAME<C> {}, lhs, rhs);                             \
+#define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                                \
+    KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                                            \
+    template<                                                                                  \
+        typename L,                                                                            \
+        typename R,                                                                            \
+        typename C = enabled_t<is_vector<L> || is_vector<R>, common_vector_value_type<L, R>>>  \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> operator OP(L&& left, R&& right) { \
+        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right));     \
     }
 
-KERNEL_FLOAT_DEFINE_BINOP(add, +)
-KERNEL_FLOAT_DEFINE_BINOP(subtract, -)
-KERNEL_FLOAT_DEFINE_BINOP(mulitply, *)
-KERNEL_FLOAT_DEFINE_BINOP(divide, /)
-KERNEL_FLOAT_DEFINE_BINOP(modulus, %)
+KERNEL_FLOAT_DEFINE_BINARY_OP(add, +)
+KERNEL_FLOAT_DEFINE_BINARY_OP(subtract, -)
+KERNEL_FLOAT_DEFINE_BINARY_OP(divide, /)
+KERNEL_FLOAT_DEFINE_BINARY_OP(multiply, *)
+KERNEL_FLOAT_DEFINE_BINARY_OP(modulo, %)
 
-KERNEL_FLOAT_DEFINE_BINOP(equal_to, ==)
-KERNEL_FLOAT_DEFINE_BINOP(not_equal_to, !=)
-KERNEL_FLOAT_DEFINE_BINOP(less, <)
-KERNEL_FLOAT_DEFINE_BINOP(less_equal, <=)
-KERNEL_FLOAT_DEFINE_BINOP(greater, >)
-KERNEL_FLOAT_DEFINE_BINOP(greater_equal, >=)
+KERNEL_FLOAT_DEFINE_BINARY_OP(equal_to, ==)
+KERNEL_FLOAT_DEFINE_BINARY_OP(not_equal_to, !=)
+KERNEL_FLOAT_DEFINE_BINARY_OP(less, <)
+KERNEL_FLOAT_DEFINE_BINARY_OP(less_equal, <=)
+KERNEL_FLOAT_DEFINE_BINARY_OP(greater, >)
+KERNEL_FLOAT_DEFINE_BINARY_OP(greater_equal, >=)
 
-KERNEL_FLOAT_DEFINE_BINOP(bit_and, &)
-KERNEL_FLOAT_DEFINE_BINOP(bit_or, |)
-KERNEL_FLOAT_DEFINE_BINOP(bit_xor, ^)
+KERNEL_FLOAT_DEFINE_BINARY_OP(bit_and, &)
+KERNEL_FLOAT_DEFINE_BINARY_OP(bit_or, |)
+KERNEL_FLOAT_DEFINE_BINARY_OP(bit_xor, ^)
 
-#define KERNEL_FLOAT_DEFINE_FUN2(NANE) KERNEL_FLOAT_DEFINE_FUN2_OP(NANE, ::NANE(lhs, rhs))
+#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME) KERNEL_FLOAT_DEFINE_BINARY(NAME, ::NAME(left, right))
 
-KERNEL_FLOAT_DEFINE_FUN2(min)
-KERNEL_FLOAT_DEFINE_FUN2(max)
-KERNEL_FLOAT_DEFINE_FUN2(copysign)
-KERNEL_FLOAT_DEFINE_FUN2(hypot)
-KERNEL_FLOAT_DEFINE_FUN2(modf)
-KERNEL_FLOAT_DEFINE_FUN2(nextafter)
-KERNEL_FLOAT_DEFINE_FUN2(pow)
-KERNEL_FLOAT_DEFINE_FUN2(remainder)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(min)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(max)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(copysign)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(hypot)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(modf)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(nextafter)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(pow)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(remainder)
 
 #if KERNEL_FLOAT_CUDA_DEVICE
-KERNEL_FLOAT_DEFINE_FUN2(rhypot)
+KERNEL_FLOAT_DEFINE_BINARY_FUN(rhypot)
 #endif
+
+namespace ops {
+template<>
+struct add<bool> {
+    KERNEL_FLOAT_INLINE bool operator()(bool left, bool right) {
+        return left || right;
+    }
+};
+
+template<>
+struct multiply<bool> {
+    KERNEL_FLOAT_INLINE bool operator()(bool left, bool right) {
+        return left && right;
+    }
+};
+
+template<>
+struct bit_and<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return float(bool(left) && bool(right));
+    }
+};
+
+template<>
+struct bit_or<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return float(bool(left) || bool(right));
+    }
+};
+
+template<>
+struct bit_xor<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return float(bool(left) ^ bool(right));
+    }
+};
+
+template<>
+struct bit_and<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return double(bool(left) && bool(right));
+    }
+};
+
+template<>
+struct bit_or<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return double(bool(left) || bool(right));
+    }
+};
+
+template<>
+struct bit_xor<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return double(bool(left) ^ bool(right));
+    }
+};
+};  // namespace ops
 
 }  // namespace kernel_float
 
-#endif  //KERNEL_FLOAT_BINARY_H
+#endif  //KERNEL_FLOAT_BINOPS_H
