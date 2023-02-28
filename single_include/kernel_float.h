@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-02-27 12:59:02.060399
-// git hash: fb9c707c2daa90d1375874dc6717386ef7746d1f
+// date: 2023-02-28 10:54:08.736648
+// git hash: cbcf189e2fea0c6e0f7ffaa7d00356f1f1b63970
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
