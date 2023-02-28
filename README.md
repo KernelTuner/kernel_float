@@ -1,5 +1,6 @@
 # Kernel Float
 
+![Kernel Float logo](https://raw.githubusercontent.com/KernelTuner/kernel_float/main/docs/logo.png)
 
 [![github](https://img.shields.io/badge/github-repo-000.svg?logo=github&labelColor=gray&color=blue)](https://github.com/KernelTuner/kernel_float/)
 ![GitHub branch checks state](https://img.shields.io/github/actions/workflow/status/KernelTuner/kernel_float/docs.yml)
