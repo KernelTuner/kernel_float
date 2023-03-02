@@ -25,6 +25,16 @@ Operator overloading (like `+`, `*`, `&&`) has been implemented such that the mo
 Many mathetical functions (like `log`, `exp`, `sin`) and common operations (such as `sum`, `range`, `for_each`) are also available.
 
 
+## Features
+
+In a nutshell, _Kernel Float_ offers the following features:
+
+* Single type `vec<T, N>` that unifies all vector types.
+* Operator overloading to simplify programming.
+* Support for half (16 bit) and quarter (8 bit) floating-point precision.
+* Easy integration as a single header file.
+* Compatible with C++17.
+* Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).
 
 
 ## Example
