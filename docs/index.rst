@@ -8,8 +8,6 @@
    license
    Github repository <https://github.com/KernelTuner/kernel_float>
 
-Kernel Float
-===============
 
 .. mdinclude:: ../README.md
 
