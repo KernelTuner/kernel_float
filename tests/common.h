@@ -7,7 +7,7 @@
 #include <random>
 #include <string>
 
-#include "catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "kernel_float.h"
 
 #define ASSERT(expr) check_assertions((expr), #expr, __FILE__, __LINE__);
