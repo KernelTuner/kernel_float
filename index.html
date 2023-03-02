@@ -95,8 +95,8 @@ Operator overloading (like <code class="docutils literal notranslate"><span clas
 Many mathetical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>) and common operations (such as <code class="docutils literal notranslate"><span class="pre">sum</span></code>, <code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">for_each</span></code>) are also available.</p>
 <section id="example">
 <h2>Example<a class="headerlink" href="#example" title="Permalink to this heading"></a></h2>
-<p>See the documentation for <a class="reference external" href="https://kerneltuner.github.io/kernel_float/example.html">examples</a> or check out the <a class="reference external" href="https://github.com/KernelTuner/kernel_float/tree/master/examples">examples</a> directory.</p>
-<p>Below shows a CUDA kernel that adds a <code class="docutils literal notranslate"><span class="pre">constant</span></code> to the <code class="docutils literal notranslate"><span class="pre">input</span></code> array and writes the results to the <code class="docutils literal notranslate"><span class="pre">output</span></code> array.
+<p>Check out the <a class="reference external" href="https://github.com/KernelTuner/kernel_float/tree/master/examples">examples</a> directory for some examples.</p>
+<p>Below shows a simple example of a CUDA kernel that adds a <code class="docutils literal notranslate"><span class="pre">constant</span></code> to the <code class="docutils literal notranslate"><span class="pre">input</span></code> array and writes the results to the <code class="docutils literal notranslate"><span class="pre">output</span></code> array.
 Each thread processes two elements.
 Notice how easy it would be change the precision (for example, <code class="docutils literal notranslate"><span class="pre">double</span></code> to <code class="docutils literal notranslate"><span class="pre">half</span></code>) or the vector size (for example, 4 instead of 2 items per thread).</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;kernel_float.h&quot;</span>
@@ -142,7 +142,7 @@ Notice how easy it would be change the precision (for example, <code class="docu
 </section>
 <section id="documentation">
 <h2>Documentation<a class="headerlink" href="#documentation" title="Permalink to this heading"></a></h2>
-<p>TODO</p>
+<p>See the <a class="reference external" href="https://kerneltuner.github.io/kernel_float/">documentation</a> for the <a class="reference external" href="https://kerneltuner.github.io/kernel_float/api.html">API reference</a> of all functionality.</p>
 </section>
 <section id="license">
 <h2>License<a class="headerlink" href="#license" title="Permalink to this heading"></a></h2>
