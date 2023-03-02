@@ -93,6 +93,18 @@ that stores <code class="docutils literal notranslate"><span class="pre">N</span
 Internally, the data is stored using the most optimal type available, for example, <code class="docutils literal notranslate"><span class="pre">vec&lt;half,</span> <span class="pre">2&gt;</span></code> stores a <code class="docutils literal notranslate"><span class="pre">__half2</span></code> and <code class="docutils literal notranslate"><span class="pre">vec&lt;fp8_e5m2,</span> <span class="pre">4&gt;</span></code> uses a <code class="docutils literal notranslate"><span class="pre">__nv_fp8x4_e5m2</span></code>.
 Operator overloading (like <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">&amp;&amp;</span></code>) has been implemented such that the most optimal intrinsic for the available types is selected automatically.
 Many mathetical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>) and common operations (such as <code class="docutils literal notranslate"><span class="pre">sum</span></code>, <code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">for_each</span></code>) are also available.</p>
+<section id="features">
+<h2>Features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
+<p>In a nutshell, <em>Kernel Float</em> offers the following features:</p>
+<ul class="simple">
+<li><p>Single type <code class="docutils literal notranslate"><span class="pre">vec&lt;T,</span> <span class="pre">N&gt;</span></code> that unifies all vector types.</p></li>
+<li><p>Operator overloading to simplify programming.</p></li>
+<li><p>Support for half (16 bit) and quarter (8 bit) floating-point precision.</p></li>
+<li><p>Easy integration as a single header file.</p></li>
+<li><p>Compatible with C++17.</p></li>
+<li><p>Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).</p></li>
+</ul>
+</section>
 <section id="example">
 <h2>Example<a class="headerlink" href="#example" title="Permalink to this heading"></a></h2>
 <p>Check out the <a class="reference external" href="https://github.com/KernelTuner/kernel_float/tree/master/examples">examples</a> directory for some examples.</p>
