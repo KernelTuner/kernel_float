@@ -5,17 +5,17 @@
 
 Unary Operators
 ===============
-map
----
-.. doxygenfunction:: kernel_float::map
-
-cast
+fill
 ----
-.. doxygenfunction:: kernel_float::cast
+.. doxygenfunction:: kernel_float::fill
 
-broadcast
----------
-.. doxygenfunction:: kernel_float::broadcast
+zeros
+-----
+.. doxygenfunction:: kernel_float::zeros
+
+ones
+----
+.. doxygenfunction:: kernel_float::ones
 
 negate
 ------

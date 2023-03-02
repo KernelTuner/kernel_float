@@ -3,8 +3,8 @@
   This file has been auto-generated. DO NOT MODIFY ITS CONTENT
   ============================================================
 
-Iteration
-=========
+Primitives
+==========
 range
 -----
 .. doxygenfunction:: kernel_float::range()
@@ -13,17 +13,25 @@ range
 -----
 .. doxygenfunction:: kernel_float::range(F)
 
-fill
-----
-.. doxygenfunction:: kernel_float::fill
+map
+---
+.. doxygenfunction:: kernel_float::map
 
-zeros
------
-.. doxygenfunction:: kernel_float::zeros
+reduce
+------
+.. doxygenfunction:: kernel_float::reduce
 
-ones
+zip
+---
+.. doxygenfunction:: kernel_float::zip
+
+cast
 ----
-.. doxygenfunction:: kernel_float::ones
+.. doxygenfunction:: kernel_float::cast
+
+broadcast
+---------
+.. doxygenfunction:: kernel_float::broadcast
 
 for_each
 --------

@@ -5,10 +5,6 @@
 
 Reductions
 ==========
-reduce
-------
-.. doxygenfunction:: kernel_float::reduce
-
 sum
 ---
 .. doxygenfunction:: kernel_float::sum
