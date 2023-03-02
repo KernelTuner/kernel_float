@@ -1,0 +1,111 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Types
+=====
+vector
+------
+.. doxygenstruct:: kernel_float::vector
+
+Aliases
+-------
+.. doxygentypedef:: kernel_float::unaligned_vec
+
+.. doxygentypedef:: kernel_float::vec
+
+.. doxygentypedef:: kernel_float::vec2
+
+.. doxygentypedef:: kernel_float::vec3
+
+.. doxygentypedef:: kernel_float::vec4
+
+.. doxygentypedef:: kernel_float::vec5
+
+.. doxygentypedef:: kernel_float::vec6
+
+.. doxygentypedef:: kernel_float::vec7
+
+.. doxygentypedef:: kernel_float::vec8
+
+.. doxygentypedef:: kernel_float::floatX
+
+.. doxygentypedef:: kernel_float::float2
+
+.. doxygentypedef:: kernel_float::float3
+
+.. doxygentypedef:: kernel_float::float4
+
+.. doxygentypedef:: kernel_float::float5
+
+.. doxygentypedef:: kernel_float::float6
+
+.. doxygentypedef:: kernel_float::float7
+
+.. doxygentypedef:: kernel_float::float8
+
+.. doxygentypedef:: kernel_float::doubleX
+
+.. doxygentypedef:: kernel_float::double2
+
+.. doxygentypedef:: kernel_float::double3
+
+.. doxygentypedef:: kernel_float::double4
+
+.. doxygentypedef:: kernel_float::double5
+
+.. doxygentypedef:: kernel_float::double6
+
+.. doxygentypedef:: kernel_float::double7
+
+.. doxygentypedef:: kernel_float::double8
+
+.. doxygentypedef:: kernel_float::halfX
+
+.. doxygentypedef:: kernel_float::half2
+
+.. doxygentypedef:: kernel_float::half3
+
+.. doxygentypedef:: kernel_float::half4
+
+.. doxygentypedef:: kernel_float::half5
+
+.. doxygentypedef:: kernel_float::half6
+
+.. doxygentypedef:: kernel_float::half7
+
+.. doxygentypedef:: kernel_float::half8
+
+.. doxygentypedef:: kernel_float::bfloat16xX
+
+.. doxygentypedef:: kernel_float::bfloat16x2
+
+.. doxygentypedef:: kernel_float::bfloat16x3
+
+.. doxygentypedef:: kernel_float::bfloat16x4
+
+.. doxygentypedef:: kernel_float::bfloat16x5
+
+.. doxygentypedef:: kernel_float::bfloat16x6
+
+.. doxygentypedef:: kernel_float::bfloat16x7
+
+.. doxygentypedef:: kernel_float::bfloat16x8
+
+.. doxygentypedef:: kernel_float::X
+
+.. doxygentypedef:: kernel_float::2
+
+.. doxygentypedef:: kernel_float::3
+
+.. doxygentypedef:: kernel_float::4
+
+.. doxygentypedef:: kernel_float::5
+
+.. doxygentypedef:: kernel_float::6
+
+.. doxygentypedef:: kernel_float::7
+
+.. doxygentypedef:: kernel_float::8
+

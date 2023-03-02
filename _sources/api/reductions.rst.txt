@@ -1,0 +1,39 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Reductions
+==========
+reduce
+------
+.. doxygenfunction:: kernel_float::reduce
+
+sum
+---
+.. doxygenfunction:: kernel_float::sum
+
+max
+---
+.. doxygenfunction:: kernel_float::max(V&&)
+
+min
+---
+.. doxygenfunction:: kernel_float::min(V&&)
+
+product
+-------
+.. doxygenfunction:: kernel_float::product
+
+all
+---
+.. doxygenfunction:: kernel_float::all
+
+any
+---
+.. doxygenfunction:: kernel_float::any
+
+count
+-----
+.. doxygenfunction:: kernel_float::count
+

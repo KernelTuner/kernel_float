@@ -1,0 +1,31 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Iteration
+=========
+range
+-----
+.. doxygenfunction:: kernel_float::range()
+
+range
+-----
+.. doxygenfunction:: kernel_float::range(F)
+
+fill
+----
+.. doxygenfunction:: kernel_float::fill
+
+zeros
+-----
+.. doxygenfunction:: kernel_float::zeros
+
+ones
+----
+.. doxygenfunction:: kernel_float::ones
+
+for_each
+--------
+.. doxygenfunction:: kernel_float::for_each
+

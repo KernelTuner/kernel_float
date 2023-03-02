@@ -1,0 +1,95 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Binary Operators
+================
+zip
+---
+.. doxygenfunction:: kernel_float::zip
+
+add
+---
+.. doxygenfunction:: kernel_float::add
+
+subtract
+--------
+.. doxygenfunction:: kernel_float::subtract
+
+divide
+------
+.. doxygenfunction:: kernel_float::divide
+
+multiply
+--------
+.. doxygenfunction:: kernel_float::multiply
+
+equal_to
+--------
+.. doxygenfunction:: kernel_float::equal_to
+
+not_equal_to
+------------
+.. doxygenfunction:: kernel_float::not_equal_to
+
+less
+----
+.. doxygenfunction:: kernel_float::less
+
+less_equal
+----------
+.. doxygenfunction:: kernel_float::less_equal
+
+greater
+-------
+.. doxygenfunction:: kernel_float::greater
+
+greater_equal
+-------------
+.. doxygenfunction:: kernel_float::greater_equal
+
+bit_and
+-------
+.. doxygenfunction:: kernel_float::bit_and
+
+bit_or
+------
+.. doxygenfunction:: kernel_float::bit_or
+
+bit_xor
+-------
+.. doxygenfunction:: kernel_float::bit_xor
+
+copysign
+--------
+.. doxygenfunction:: kernel_float::copysign
+
+hypot
+-----
+.. doxygenfunction:: kernel_float::hypot
+
+max
+---
+.. doxygenfunction:: kernel_float::max(L&&, R&&)
+
+min
+---
+.. doxygenfunction:: kernel_float::min(L&&, R&&)
+
+nextafter
+---------
+.. doxygenfunction:: kernel_float::nextafter
+
+modf
+----
+.. doxygenfunction:: kernel_float::modf
+
+pow
+---
+.. doxygenfunction:: kernel_float::pow
+
+remainder
+---------
+.. doxygenfunction:: kernel_float::remainder
+

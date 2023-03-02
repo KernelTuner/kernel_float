@@ -1,0 +1,179 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Mathematical
+============
+abs
+---
+.. doxygenfunction:: kernel_float::abs
+
+acos
+----
+.. doxygenfunction:: kernel_float::acos
+
+acosh
+-----
+.. doxygenfunction:: kernel_float::acosh
+
+asin
+----
+.. doxygenfunction:: kernel_float::asin
+
+asinh
+-----
+.. doxygenfunction:: kernel_float::asinh
+
+atan
+----
+.. doxygenfunction:: kernel_float::atan
+
+atanh
+-----
+.. doxygenfunction:: kernel_float::atanh
+
+cbrt
+----
+.. doxygenfunction:: kernel_float::cbrt
+
+ceil
+----
+.. doxygenfunction:: kernel_float::ceil
+
+cos
+---
+.. doxygenfunction:: kernel_float::cos
+
+cosh
+----
+.. doxygenfunction:: kernel_float::cosh
+
+cospi
+-----
+.. doxygenfunction:: kernel_float::cospi
+
+erf
+---
+.. doxygenfunction:: kernel_float::erf
+
+erfc
+----
+.. doxygenfunction:: kernel_float::erfc
+
+erfcinv
+-------
+.. doxygenfunction:: kernel_float::erfcinv
+
+erfcx
+-----
+.. doxygenfunction:: kernel_float::erfcx
+
+erfinv
+------
+.. doxygenfunction:: kernel_float::erfinv
+
+exp
+---
+.. doxygenfunction:: kernel_float::exp
+
+exp10
+-----
+.. doxygenfunction:: kernel_float::exp10
+
+exp2
+----
+.. doxygenfunction:: kernel_float::exp2
+
+fabs
+----
+.. doxygenfunction:: kernel_float::fabs
+
+floor
+-----
+.. doxygenfunction:: kernel_float::floor
+
+ilogb
+-----
+.. doxygenfunction:: kernel_float::ilogb
+
+lgamma
+------
+.. doxygenfunction:: kernel_float::lgamma
+
+log
+---
+.. doxygenfunction:: kernel_float::log
+
+log10
+-----
+.. doxygenfunction:: kernel_float::log10
+
+logb
+----
+.. doxygenfunction:: kernel_float::logb
+
+nearbyint
+---------
+.. doxygenfunction:: kernel_float::nearbyint
+
+normcdf
+-------
+.. doxygenfunction:: kernel_float::normcdf
+
+rcbrt
+-----
+.. doxygenfunction:: kernel_float::rcbrt
+
+sin
+---
+.. doxygenfunction:: kernel_float::sin
+
+sinh
+----
+.. doxygenfunction:: kernel_float::sinh
+
+sqrt
+----
+.. doxygenfunction:: kernel_float::sqrt
+
+tan
+---
+.. doxygenfunction:: kernel_float::tan
+
+tanh
+----
+.. doxygenfunction:: kernel_float::tanh
+
+tgamma
+------
+.. doxygenfunction:: kernel_float::tgamma
+
+trunc
+-----
+.. doxygenfunction:: kernel_float::trunc
+
+rint
+----
+.. doxygenfunction:: kernel_float::rint
+
+rsqrt
+-----
+.. doxygenfunction:: kernel_float::rsqrt
+
+round
+-----
+.. doxygenfunction:: kernel_float::round
+
+signbit
+-------
+.. doxygenfunction:: kernel_float::signbit
+
+isinf
+-----
+.. doxygenfunction:: kernel_float::isinf
+
+isnan
+-----
+.. doxygenfunction:: kernel_float::isnan
+

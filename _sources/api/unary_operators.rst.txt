@@ -1,0 +1,31 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Unary Operators
+===============
+map
+---
+.. doxygenfunction:: kernel_float::map
+
+cast
+----
+.. doxygenfunction:: kernel_float::cast
+
+broadcast
+---------
+.. doxygenfunction:: kernel_float::broadcast
+
+negate
+------
+.. doxygenfunction:: kernel_float::negate
+
+bit_not
+-------
+.. doxygenfunction:: kernel_float::bit_not
+
+logical_not
+-----------
+.. doxygenfunction:: kernel_float::logical_not
+
