@@ -38,7 +38,11 @@ struct vector: public Storage {
     using value_type = vector_value_type<Storage>;
     static constexpr size_t const_size = vector_size<Storage>;
 
+    /**
+     * Construct vector where elements are default initialized.
+     */
     vector() = default;
+
     vector(const vector&) = default;
     vector(vector&) = default;
     vector(vector&&) = default;
@@ -52,9 +56,16 @@ struct vector: public Storage {
         return *this;
     }
 
+    /**
+     * Construct vector from ``N`` argumens that can be converted to type ``T``.
+     */
     template<typename... Args>
     KERNEL_FLOAT_INLINE vector(Args&&... args) : Storage(args...) {}
 
+    /**
+     * Construct vector from another vector of elements type ``U`` where ``U``
+     * should be convertible to ``T``. If this is not the case, use ``cast``.
+     */
     template<
         typename V,
         typename = enabled_t<
@@ -70,26 +81,41 @@ struct vector: public Storage {
         return *this;
     }
 
+    /**
+     * Returns the number of elements.
+     */
     KERNEL_FLOAT_INLINE
     size_t size() const noexcept {
         return const_size;
     }
 
+    /**
+     * Returns a reference to the ``index``-th item.
+     */
     template<typename I>
     KERNEL_FLOAT_INLINE vector_index<Storage, I> operator[](I index) noexcept {
         return {*this, index};
     }
 
+    /**
+     * Returns a reference to the ``index``-th item.
+     */
     template<typename I>
     KERNEL_FLOAT_INLINE value_type operator[](I index) const noexcept {
         return this->get(index);
     }
 
+    /**
+     * Cast the elements of this vector to type ``U``.
+     */
     template<typename U>
     KERNEL_FLOAT_INLINE vector<cast_type<U, Storage>> cast() const noexcept {
         return ::kernel_float::cast<U>(storage());
     }
 
+    /**
+     * Apply the given function to the elements of this vector.
+     */
     template<typename F>
     KERNEL_FLOAT_INLINE vector<map_type<F, Storage>> map(F fun) const noexcept {
         return ::kernel_float::map(fun, storage());
@@ -111,6 +137,8 @@ using float64 = double;
 
 template<typename T, size_t N>
 using vec = vector<vector_storage<T, N>>;
+template<typename T>
+using vec1 = vec<T, 1>;
 template<typename T>
 using vec2 = vec<T, 2>;
 template<typename T>

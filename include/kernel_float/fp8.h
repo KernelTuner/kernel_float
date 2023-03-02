@@ -215,6 +215,10 @@ KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(double, 2)
 KERNEL_FLOAT_FP8_CAST_VECTOR_TO(double, 2)
 KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(double, 4)
 KERNEL_FLOAT_FP8_CAST_VECTOR_TO(double, 4)
+
+KERNEL_FLOAT_TYPE_ALIAS(bf16x, __nv_bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
+
 }  // namespace kernel_float
 
 #endif

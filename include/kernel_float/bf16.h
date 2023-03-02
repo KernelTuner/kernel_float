@@ -221,15 +221,14 @@ KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
 
 }  // namespace kernel_float
 
-#endif
-
-#if KERNEL_FLOAT_FP16_AVAILABLE && KERNEL_FLOAT_BF16_AVAILABLE
+#if KERNEL_FLOAT_FP16_AVAILABLE
 #include "fp16.h"
 
 namespace kernel_float {
 KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
 }
 
-#endif  // KERNEL_FLOAT_FP16_AVAILABLE && KERNEL_FLOAT_BF16_AVAILABLE
+#endif  // KERNEL_FLOAT_FP16_AVAILABLE
+#endif
 
 #endif  //KERNEL_FLOAT_BF16_H

@@ -194,7 +194,6 @@ struct map_helper<ops::cast<float, __half>, vector_half2, vector_storage<float, 
         return __float22half2_rn(input);
     }
 };
-
 }  // namespace detail
 
 using half = __half;

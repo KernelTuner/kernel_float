@@ -18,34 +18,57 @@ struct range_helper<F, V, index_sequence<Is...>> {
 };
 }  // namespace detail
 
-template<typename V, typename F>
-KERNEL_FLOAT_INLINE V range(F fun) {
-    return detail::range_helper<F, V>::call(fun);
+/**
+ * Generate vector of length ``N`` by applying the given function ``fun`` to
+ * each index ``0...N-1``.
+ */
+template<size_t N, typename F, typename T = result_t<F, size_t>>
+KERNEL_FLOAT_INLINE vector_storage<T, N> range(F fun) {
+    return detail::range_helper<F, vector_storage<T, N>>::call(fun);
 }
 
-template<typename V>
-KERNEL_FLOAT_INLINE V range() {
-    return range<V>(ops::cast<size_t, vector_value_type<V>> {});
-}
-
+/**
+ * Generate vector consisting of the numbers ``0...N-1`` of type ``T``.
+ */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector_storage<T, N> range() {
-    return range<vector_storage<T, N>>();
+    return range(ops::cast<size_t, T> {});
 }
 
-template<size_t N>
-KERNEL_FLOAT_INLINE vector_storage<size_t, N> range() {
-    return range<vector_storage<size_t, N>>();
+/**
+ * Generate vector of `N` elements of type `T`
+ *
+ * ```
+ * vector<float, 3> = fill(1.0);
+ * ```
+ */
+template<size_t N = 1, typename T>
+KERNEL_FLOAT_INLINE vector_storage<T, N> fill(T value) {
+    return {value};
 }
 
-template<size_t N, typename F, typename T = result_t<F, size_t>>
-KERNEL_FLOAT_INLINE vector_storage<size_t, N> range(F fun) {
-    return range<vector_storage<T, N>>(fun);
+/**
+ * Generate vector of ``N`` zeros of type ``T``
+ *
+ * ```
+ * vector<float, 3> = zeros();
+ * ```
+ */
+template<size_t N = 1, typename T = bool>
+KERNEL_FLOAT_INLINE vector_storage<T, N> zeros() {
+    return fill<N, T>(T(0));
 }
 
-template<typename T, size_t N, typename F>
-KERNEL_FLOAT_INLINE vector_storage<size_t, N> range(F fun) {
-    return range<vector_storage<T, N>>(fun);
+/**
+ * Generate vector of ``N`` ones of type ``T``
+ *
+ * ```
+ * vector<float, 3> = ones();
+ * ```
+ */
+template<size_t N = 1, typename T = bool>
+KERNEL_FLOAT_INLINE vector_storage<T, N> ones() {
+    return fill<N, T>(T(1));
 }
 
 namespace detail {
@@ -68,6 +91,9 @@ struct iterate_helper<F, V, index_sequence<I, Rest...>> {
 };
 }  // namespace detail
 
+/**
+ * Apply the function ``fun`` for each element from ``input``.
+ */
 template<typename V, typename F>
 KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
     detail::iterate_helper<F, into_vector_type<V>>::call(fun, into_vector(input));
