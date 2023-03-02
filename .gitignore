@@ -8,3 +8,4 @@
 build/
 docs/_doxygen
 cmake-build-debug/
+docs/_build

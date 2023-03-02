@@ -29,10 +29,10 @@ Many mathetical functions (like `log`, `exp`, `sin`) and common operations (such
 
 ## Example
 
-See the documentation for [examples](https://kerneltuner.github.io/kernel_float/example.html) or check out the [examples](https://github.com/KernelTuner/kernel_float/tree/master/examples) directory.
+Check out the [examples](https://github.com/KernelTuner/kernel_float/tree/master/examples) directory for some examples.
 
 
-Below shows a CUDA kernel that adds a `constant` to the `input` array and writes the results to the `output` array.
+Below shows a simple example of a CUDA kernel that adds a `constant` to the `input` array and writes the results to the `output` array.
 Each thread processes two elements.
 Notice how easy it would be change the precision (for example, `double` to `half`) or the vector size (for example, 4 instead of 2 items per thread).
 
@@ -90,7 +90,7 @@ make
 
 ## Documentation
 
-TODO
+See the [documentation](https://kerneltuner.github.io/kernel_float/) for the [API reference](https://kerneltuner.github.io/kernel_float/api.html) of all functionality.
 
 
 ## License
