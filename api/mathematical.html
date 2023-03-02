@@ -17,7 +17,8 @@
         <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" /> 
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Reductions" href="reductions.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -40,8 +41,62 @@
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
-<ul>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../index.html">Kernel Float</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="types.html">Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iteration.html">Iteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unary_operators.html">Unary Operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="binary_operators.html">Binary Operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reductions.html">Reductions</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Mathematical</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#abs">abs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#acos">acos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#acosh">acosh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#asin">asin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#asinh">asinh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#atan">atan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#atanh">atanh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cbrt">cbrt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ceil">ceil</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cos">cos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cosh">cosh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#cospi">cospi</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#erf">erf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#erfc">erfc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#erfcinv">erfcinv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#erfcx">erfcx</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#erfinv">erfinv</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exp">exp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exp10">exp10</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#exp2">exp2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fabs">fabs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#floor">floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#ilogb">ilogb</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lgamma">lgamma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log">log</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#log10">log10</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#logb">logb</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#nearbyint">nearbyint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#normcdf">normcdf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rcbrt">rcbrt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sin">sin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sinh">sinh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sqrt">sqrt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tan">tan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tanh">tanh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tgamma">tgamma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#trunc">trunc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rint">rint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rsqrt">rsqrt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#round">round</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#signbit">signbit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#isinf">isinf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#isnan">isnan</a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
 </ul>
 
@@ -59,6 +114,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
       <li class="breadcrumb-item active">Mathematical</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../_sources/api/mathematical.rst.txt" rel="nofollow"> View page source</a>
@@ -420,7 +476,9 @@
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="reductions.html" class="btn btn-neutral float-left" title="Reductions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 

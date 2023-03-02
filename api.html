@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; Kernel Float  documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Types" href="api/types.html" />
+    <link rel="prev" title="Kernel Float" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            Kernel Float
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="index.html">Kernel Float</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html">Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/iteration.html">Iteration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html">Unary Operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html">Binary Operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html">Reductions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html">Mathematical</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Kernel Float</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/api.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="api/types.html">Types</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#vector">vector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/types.html#aliases">Aliases</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/iteration.html">Iteration</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/iteration.html#range">range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/iteration.html#id1">range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/iteration.html#fill">fill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/iteration.html#zeros">zeros</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/iteration.html#ones">ones</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/iteration.html#for-each">for_each</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/unary_operators.html">Unary Operators</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#map">map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#cast">cast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#broadcast">broadcast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#negate">negate</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#bit-not">bit_not</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#logical-not">logical_not</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/binary_operators.html">Binary Operators</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#zip">zip</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#add">add</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#subtract">subtract</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#divide">divide</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#multiply">multiply</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#equal-to">equal_to</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#not-equal-to">not_equal_to</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#less">less</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#less-equal">less_equal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#greater">greater</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#greater-equal">greater_equal</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#bit-and">bit_and</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#bit-or">bit_or</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#bit-xor">bit_xor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#copysign">copysign</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#hypot">hypot</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#max">max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#min">min</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#nextafter">nextafter</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#modf">modf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#pow">pow</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html#remainder">remainder</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/reductions.html">Reductions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#reduce">reduce</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#sum">sum</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#max">max</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#min">min</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#product">product</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#all">all</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#any">any</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/reductions.html#count">count</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/mathematical.html">Mathematical</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#abs">abs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#acos">acos</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#acosh">acosh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#asin">asin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#asinh">asinh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#atan">atan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#atanh">atanh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#cbrt">cbrt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#ceil">ceil</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#cos">cos</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#cosh">cosh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#cospi">cospi</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#erf">erf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#erfc">erfc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#erfcinv">erfcinv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#erfcx">erfcx</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#erfinv">erfinv</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#exp">exp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#exp10">exp10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#exp2">exp2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#fabs">fabs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#floor">floor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#ilogb">ilogb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#lgamma">lgamma</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#log">log</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#log10">log10</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#logb">logb</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#nearbyint">nearbyint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#normcdf">normcdf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#rcbrt">rcbrt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#sin">sin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#sinh">sinh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#sqrt">sqrt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#tan">tan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#tanh">tanh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#tgamma">tgamma</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#trunc">trunc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#rint">rint</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#rsqrt">rsqrt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#round">round</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#signbit">signbit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#isinf">isinf</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#isnan">isnan</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Kernel Float" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api/types.html" class="btn btn-neutral float-right" title="Types" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Stijn Heldens, Ben van Werkhoven.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
