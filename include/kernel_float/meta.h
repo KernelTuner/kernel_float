@@ -191,7 +191,8 @@ static constexpr bool is_implicit_convertible =
 namespace detail {
 template<typename T>
 KERNEL_FLOAT_INLINE T& declval() {
-    static_assert(false, "should not be called!");
+    while (1)
+        ;
 }
 }  // namespace detail
 
