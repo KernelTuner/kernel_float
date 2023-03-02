@@ -172,13 +172,14 @@ template<size_t... Ns>
 static constexpr size_t common_size = detail::common_size_helper<Ns...>::value;
 
 namespace detail {
-template<typename From, typename To, typename Common = typename common_type<From, To>::type>
+
+template<typename From, typename To, typename Common = To>
 struct is_implicit_convertible_helper {
     static constexpr bool value = false;
 };
 
 template<typename From, typename To>
-struct is_implicit_convertible_helper<From, To, To> {
+struct is_implicit_convertible_helper<From, To, typename common_type<From, To>::type> {
     static constexpr bool value = true;
 };
 }  // namespace detail
@@ -187,8 +188,15 @@ template<typename From, typename To>
 static constexpr bool is_implicit_convertible =
     detail::is_implicit_convertible_helper<decay_t<From>, decay_t<To>>::value;
 
+namespace detail {
+template<typename T>
+KERNEL_FLOAT_INLINE T& declval() {
+    static_assert(false, "should not be called!");
+}
+}  // namespace detail
+
 template<typename F, typename... Args>
-using result_t = decltype((std::declval<F>())(std::declval<Args>()...));
+using result_t = decltype((detail::declval<F>())(detail::declval<Args>()...));
 
 namespace detail {
 template<bool, typename T>

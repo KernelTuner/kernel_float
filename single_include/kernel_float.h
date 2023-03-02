@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-02-28 10:54:08.736648
-// git hash: cbcf189e2fea0c6e0f7ffaa7d00356f1f1b63970
+// date: 2023-03-02 13:06:55.767115
+// git hash: 0affeb504417644b423acef3711cd5724259ea2e
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -216,13 +216,14 @@ template<size_t... Ns>
 static constexpr size_t common_size = detail::common_size_helper<Ns...>::value;
 
 namespace detail {
-template<typename From, typename To, typename Common = typename common_type<From, To>::type>
+
+template<typename From, typename To, typename Common = To>
 struct is_implicit_convertible_helper {
     static constexpr bool value = false;
 };
 
 template<typename From, typename To>
-struct is_implicit_convertible_helper<From, To, To> {
+struct is_implicit_convertible_helper<From, To, typename common_type<From, To>::type> {
     static constexpr bool value = true;
 };
 }  // namespace detail
@@ -231,8 +232,15 @@ template<typename From, typename To>
 static constexpr bool is_implicit_convertible =
     detail::is_implicit_convertible_helper<decay_t<From>, decay_t<To>>::value;
 
+namespace detail {
+template<typename T>
+KERNEL_FLOAT_INLINE T& declval() {
+    static_assert(false, "should not be called!");
+}
+}  // namespace detail
+
 template<typename F, typename... Args>
-using result_t = decltype((std::declval<F>())(std::declval<Args>()...));
+using result_t = decltype((detail::declval<F>())(detail::declval<Args>()...));
 
 namespace detail {
 template<bool, typename T>
@@ -1255,34 +1263,57 @@ struct range_helper<F, V, index_sequence<Is...>> {
 };
 }  // namespace detail
 
-template<typename V, typename F>
-KERNEL_FLOAT_INLINE V range(F fun) {
-    return detail::range_helper<F, V>::call(fun);
+/**
+ * Generate vector of length ``N`` by applying the given function ``fun`` to
+ * each index ``0...N-1``.
+ */
+template<size_t N, typename F, typename T = result_t<F, size_t>>
+KERNEL_FLOAT_INLINE vector_storage<T, N> range(F fun) {
+    return detail::range_helper<F, vector_storage<T, N>>::call(fun);
 }
 
-template<typename V>
-KERNEL_FLOAT_INLINE V range() {
-    return range<V>(ops::cast<size_t, vector_value_type<V>> {});
-}
-
+/**
+ * Generate vector consisting of the numbers ``0...N-1`` of type ``T``.
+ */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector_storage<T, N> range() {
-    return range<vector_storage<T, N>>();
+    return range(ops::cast<size_t, T> {});
 }
 
-template<size_t N>
-KERNEL_FLOAT_INLINE vector_storage<size_t, N> range() {
-    return range<vector_storage<size_t, N>>();
+/**
+ * Generate vector of `N` elements of type `T`
+ *
+ * ```
+ * vector<float, 3> = fill(1.0);
+ * ```
+ */
+template<size_t N = 1, typename T>
+KERNEL_FLOAT_INLINE vector_storage<T, N> fill(T value) {
+    return {value};
 }
 
-template<size_t N, typename F, typename T = result_t<F, size_t>>
-KERNEL_FLOAT_INLINE vector_storage<size_t, N> range(F fun) {
-    return range<vector_storage<T, N>>(fun);
+/**
+ * Generate vector of ``N`` zeros of type ``T``
+ *
+ * ```
+ * vector<float, 3> = zeros();
+ * ```
+ */
+template<size_t N = 1, typename T = bool>
+KERNEL_FLOAT_INLINE vector_storage<T, N> zeros() {
+    return fill<N, T>(T(0));
 }
 
-template<typename T, size_t N, typename F>
-KERNEL_FLOAT_INLINE vector_storage<size_t, N> range(F fun) {
-    return range<vector_storage<T, N>>(fun);
+/**
+ * Generate vector of ``N`` ones of type ``T``
+ *
+ * ```
+ * vector<float, 3> = ones();
+ * ```
+ */
+template<size_t N = 1, typename T = bool>
+KERNEL_FLOAT_INLINE vector_storage<T, N> ones() {
+    return fill<N, T>(T(1));
 }
 
 namespace detail {
@@ -1305,6 +1336,9 @@ struct iterate_helper<F, V, index_sequence<I, Rest...>> {
 };
 }  // namespace detail
 
+/**
+ * Apply the function ``fun`` for each element from ``input``.
+ */
 template<typename V, typename F>
 KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
     detail::iterate_helper<F, into_vector_type<V>>::call(fun, into_vector(input));
@@ -1353,7 +1387,11 @@ struct vector: public Storage {
     using value_type = vector_value_type<Storage>;
     static constexpr size_t const_size = vector_size<Storage>;
 
+    /**
+     * Construct vector where elements are default initialized.
+     */
     vector() = default;
+
     vector(const vector&) = default;
     vector(vector&) = default;
     vector(vector&&) = default;
@@ -1367,9 +1405,16 @@ struct vector: public Storage {
         return *this;
     }
 
+    /**
+     * Construct vector from ``N`` argumens that can be converted to type ``T``.
+     */
     template<typename... Args>
     KERNEL_FLOAT_INLINE vector(Args&&... args) : Storage(args...) {}
 
+    /**
+     * Construct vector from another vector of elements type ``U`` where ``U``
+     * should be convertible to ``T``. If this is not the case, use ``cast``.
+     */
     template<
         typename V,
         typename = enabled_t<
@@ -1385,26 +1430,41 @@ struct vector: public Storage {
         return *this;
     }
 
+    /**
+     * Returns the number of elements.
+     */
     KERNEL_FLOAT_INLINE
     size_t size() const noexcept {
         return const_size;
     }
 
+    /**
+     * Returns a reference to the ``index``-th item.
+     */
     template<typename I>
     KERNEL_FLOAT_INLINE vector_index<Storage, I> operator[](I index) noexcept {
         return {*this, index};
     }
 
+    /**
+     * Returns a reference to the ``index``-th item.
+     */
     template<typename I>
     KERNEL_FLOAT_INLINE value_type operator[](I index) const noexcept {
         return this->get(index);
     }
 
+    /**
+     * Cast the elements of this vector to type ``U``.
+     */
     template<typename U>
     KERNEL_FLOAT_INLINE vector<cast_type<U, Storage>> cast() const noexcept {
         return ::kernel_float::cast<U>(storage());
     }
 
+    /**
+     * Apply the given function to the elements of this vector.
+     */
     template<typename F>
     KERNEL_FLOAT_INLINE vector<map_type<F, Storage>> map(F fun) const noexcept {
         return ::kernel_float::map(fun, storage());
@@ -1426,6 +1486,8 @@ using float64 = double;
 
 template<typename T, size_t N>
 using vec = vector<vector_storage<T, N>>;
+template<typename T>
+using vec1 = vec<T, 1>;
 template<typename T>
 using vec2 = vec<T, 2>;
 template<typename T>
@@ -1690,7 +1752,6 @@ struct map_helper<ops::cast<float, __half>, vector_half2, vector_storage<float, 
         return __float22half2_rn(input);
     }
 };
-
 }  // namespace detail
 
 using half = __half;
@@ -1927,16 +1988,15 @@ KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
 
 }  // namespace kernel_float
 
-#endif
-
-#if KERNEL_FLOAT_FP16_AVAILABLE && KERNEL_FLOAT_BF16_AVAILABLE
+#if KERNEL_FLOAT_FP16_AVAILABLE
 
 
 namespace kernel_float {
 KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
 }
 
-#endif  // KERNEL_FLOAT_FP16_AVAILABLE && KERNEL_FLOAT_BF16_AVAILABLE
+#endif  // KERNEL_FLOAT_FP16_AVAILABLE
+#endif
 
 #endif  //KERNEL_FLOAT_BF16_H
 #ifndef KERNEL_FLOAT_FP8_H
@@ -2156,6 +2216,10 @@ KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(double, 2)
 KERNEL_FLOAT_FP8_CAST_VECTOR_TO(double, 2)
 KERNEL_FLOAT_FP8_CAST_VECTOR_FROM(double, 4)
 KERNEL_FLOAT_FP8_CAST_VECTOR_TO(double, 4)
+
+KERNEL_FLOAT_TYPE_ALIAS(bf16x, __nv_bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
+
 }  // namespace kernel_float
 
 #endif
