@@ -48,6 +48,20 @@ struct reduce_helper<F, vector_compound<T, N>> {
 };
 }  // namespace detail
 
+/**
+ * Reduce the elements of the given vector ``input`` into a single value using
+ * the function ``fun``. This function should be a binary function that takes
+ * two elements and returns one element. The order in which the elements
+ * are reduced is not specified and depends on the reduction function and
+ * the vector type.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 2, 1};
+ * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 8
+ * ```
+ */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, V&& input) {
     return detail::reduce_helper<F, into_vector_type<V>>::call(
@@ -55,36 +69,95 @@ KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, V&& input) {
         into_vector(std::forward<V>(input)));
 }
 
+/**
+ * Find the minimum element in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T min(V&& input) {
     return reduce(ops::min<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Find the maximum element in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T max(V&& input) {
     return reduce(ops::max<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Sum the items in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T sum(V&& input) {
     return reduce(ops::add<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Multiply the items in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 5+0+2+1+0 = 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T product(V&& input) {
     return reduce(ops::multiply<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Check if all elements in the given vector ``input`` are non-zero. An element ``v`` is considered
+ * non-zero if ``bool(v)`` returns ``true``.
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE bool all(V&& input) {
     return reduce(ops::bit_and<bool> {}, cast<bool>(input));
 }
 
+/**
+ * Check if any element in the given vector ``input`` is non-zero. An element ``v`` is considered
+ * non-zero if ``bool(v)`` returns ``true``.
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE bool any(V&& input) {
     return reduce(ops::bit_or<bool> {}, cast<bool>(input));
 }
 
+/**
+ * Count the number of non-zero items in the given vector ``input``. An element ``v`` is considered
+ * non-zero if ``bool(v)`` returns true.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = count(x);  // Returns 3
+ * ```
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE int count(V&& input) {
     return sum(cast<int>(cast<bool>(input)));

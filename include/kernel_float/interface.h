@@ -98,7 +98,7 @@ struct vector: public Storage {
     }
 
     /**
-     * Returns a reference to the ``index``-th item.
+     * Returns the ``index``-th item.
      */
     template<typename I>
     KERNEL_FLOAT_INLINE value_type operator[](I index) const noexcept {

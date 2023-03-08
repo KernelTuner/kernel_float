@@ -224,8 +224,14 @@ template<template<typename, size_t> class F, typename T, size_t N>
 struct device_runner {
     template<typename... Args>
     void operator()(Args... args) {
+        static bool gpu_enabled = true;
+        if (!gpu_enabled) {
+            return;
+        }
+
         cudaError_t code = cudaSetDevice(0);
         if (code != cudaSuccess) {
+            gpu_enabled = false;
             WARN("skipping device code");
             return;
         }

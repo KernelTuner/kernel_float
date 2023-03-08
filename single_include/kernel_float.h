@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-03-02 13:06:55.767115
-// git hash: 0affeb504417644b423acef3711cd5724259ea2e
+// date: 2023-03-08 10:52:26.331077
+// git hash: f2a34ee8c8d6ceca4c7a54d72cf738b0a6d89f6c
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -38,7 +38,7 @@
 #endif
 
 #ifndef KERNEL_FLOAT_FP8_AVAILABLE
-#define KERNEL_FLOAT_FP8_AVAILABLE (1)
+#define KERNEL_FLOAT_FP8_AVAILABLE (0)
 #endif
 
 #endif  //KERNEL_FLOAT_MACROS_H
@@ -235,7 +235,8 @@ static constexpr bool is_implicit_convertible =
 namespace detail {
 template<typename T>
 KERNEL_FLOAT_INLINE T& declval() {
-    static_assert(false, "should not be called!");
+    while (1)
+        ;
 }
 }  // namespace detail
 
@@ -797,6 +798,17 @@ struct map_helper<F, vector_compound<R, N>, vector_compound<T, N>> {
 template<typename F, typename Input>
 using map_type = vector_storage<result_t<F, vector_value_type<Input>>, vector_size<Input>>;
 
+/**
+ * Applies ``fun`` to each element from vector ``input`` and returns a new vector with the results.
+ * This function is the basis for all unary operators like ``sin`` and ``sqrt``.
+ *
+ * Example
+ * =======
+ * ```
+ * vector<int, 3> v = {1, 2, 3};
+ * vector<int, 3> w = map([](auto i) { return i * 2; }); // 2, 4, 6
+ * ```
+ */
 template<typename F, typename Input, typename Output = map_type<F, Input>>
 KERNEL_FLOAT_INLINE Output map(F fun, Input&& input) {
     return detail::map_helper<F, Output, into_vector_type<Input>>::call(fun, into_vector(input));
@@ -907,11 +919,26 @@ struct broadcast_helper<Input, Output, T, N, R, N> {
 };
 }  // namespace detail
 
+/**
+ * Cast the elements of the given vector ``input`` to the given type ``R`` and then widen the
+ * vector to length ``N``. The cast may lead to a loss in precision if ``R`` is a smaller data
+ * type. Widening is only possible if the input vector has size ``1`` or ``N``, other sizes
+ * will lead to a compilation error.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 1> x = {6};
+ * vec<double, 3> y = broadcast<double, 3>(x);
+ * vec<float, 3> z = broadcast<float, 3>(y);
+ * ```
+ */
 template<typename R, size_t N, typename Input, typename Output = vector_storage<R, N>>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
 }
 
+#ifdef DOXYGEN_SHOULD_SKIP_THIS
 template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
@@ -921,10 +948,39 @@ template<typename Output, typename Input>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
 }
+#endif
+
+/**
+ * Widen the given vector ``input`` to length ``N``. Widening is only possible if the input vector
+ * has size ``1`` or ``N``, other sizes will lead to a compilation error.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 1> x = {6};
+ * vec<int, 3> y = resize<3>(x);
+ * ```
+ */
+template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
+KERNEL_FLOAT_INLINE Output resize(Input&& input) noexcept {
+    return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
+}
 
 template<typename R, typename Input>
 using cast_type = vector_storage<R, vector_size<Input>>;
 
+/**
+ * Cast the elements of given vector ``input`` to the given type ``R``. Note that this cast may
+ * lead to a loss in precision if ``R`` is a smaller data type.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 3> x = {1.0f, 2.0f, 3.0f};
+ * vec<double, 3> y = cast<double>(x);
+ * vec<int, 3> z = cast<int>(x);
+ * ```
+ */
 template<typename R, typename Input, typename Output = cast_type<R, Input>>
 KERNEL_FLOAT_INLINE Output cast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
@@ -1062,6 +1118,16 @@ using zip_type = vector_storage<
     result_t<F, vector_value_type<L>, vector_value_type<R>>,
     common_vector_size<L, R>>;
 
+/**
+ * Applies ``fun`` to each pair of two elements from ``left`` and ``right`` and returns a new
+ * vector with the results.
+ *
+ * If ``left`` and ``right`` are not the same size, they will first be broadcast into a
+ * common size using ``resize``.
+ *
+ * Note that this function does **not** cast the input vectors to a common element type. See
+ * ``zip_common`` for that functionality.
+ */
 template<typename F, typename Left, typename Right, typename Output = zip_type<F, Left, Right>>
 KERNEL_FLOAT_INLINE Output zip(F fun, Left&& left, Right&& right) {
     static constexpr size_t N = vector_size<Output>;
@@ -1076,6 +1142,24 @@ using zip_common_type = vector_storage<
     result_t<F, common_vector_value_type<L, R>, common_vector_value_type<L, R>>,
     common_vector_size<L, R>>;
 
+/**
+ * Applies ``fun`` to each pair of two elements from ``left`` and ``right`` and returns a new
+ * vector with the results.
+ *
+ * If ``left`` and ``right`` are not the same size, they will first be broadcast into a
+ * common size using ``resize``.
+ *
+ * If ``left`` and ``right`` are not of the same type, they will first be case into a common
+ * data type. For example, zipping ``float`` and ``double`` first cast vectors to ``double``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 5> x = {1, 2, 3, 4};
+ * vec<long, 1> = {8};
+ * vec<long, 5> = zip_common([](auto a, auto b){ return a + b; }, x, y); // [9, 10, 11, 12]
+ * ```
+ */
 template<
     typename F,
     typename Left,
@@ -1266,6 +1350,13 @@ struct range_helper<F, V, index_sequence<Is...>> {
 /**
  * Generate vector of length ``N`` by applying the given function ``fun`` to
  * each index ``0...N-1``.
+ *
+ * Example
+ * =======
+ * ```
+ * // returns [0, 2, 4]
+ * vector<float, 3> vec = range<3>([](auto i) { return float(i * 2); });
+ * ```
  */
 template<size_t N, typename F, typename T = result_t<F, size_t>>
 KERNEL_FLOAT_INLINE vector_storage<T, N> range(F fun) {
@@ -1274,6 +1365,13 @@ KERNEL_FLOAT_INLINE vector_storage<T, N> range(F fun) {
 
 /**
  * Generate vector consisting of the numbers ``0...N-1`` of type ``T``.
+ *
+ * Example
+ * =======
+ * ```
+ * // Returns [0, 1, 2]
+ * vector<float, 3> vec = range<float, 3>();
+ * ```
  */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector_storage<T, N> range() {
@@ -1281,10 +1379,21 @@ KERNEL_FLOAT_INLINE vector_storage<T, N> range() {
 }
 
 /**
+ * Generate vector having same size and type as ``V``, but filled with the numbers ``0..N-1``.
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> range_like(V&& vector) {
+    return range<vector_value_type<T>, vector_size<V>>();
+}
+
+/**
  * Generate vector of `N` elements of type `T`
  *
+ * Example
+ * =======
  * ```
- * vector<float, 3> = fill(1.0);
+ * // Returns [1.0, 1.0, 1.0]
+ * vector<float, 3> = fill(1.0f);
  * ```
  */
 template<size_t N = 1, typename T>
@@ -1293,9 +1402,20 @@ KERNEL_FLOAT_INLINE vector_storage<T, N> fill(T value) {
 }
 
 /**
+ * Generate vector having same size and type as ``V``, but filled with the given ``value``.
+ */
+template<typename V, typename T = vector_value_type<V>>
+KERNEL_FLOAT_INLINE into_vector_type<V> fill_like(V&& vector, T value) {
+    return {value};
+}
+
+/**
  * Generate vector of ``N`` zeros of type ``T``
  *
+ * Example
+ * =======
  * ```
+ * // Returns [0.0, 0.0, 0.0]
  * vector<float, 3> = zeros();
  * ```
  */
@@ -1305,15 +1425,36 @@ KERNEL_FLOAT_INLINE vector_storage<T, N> zeros() {
 }
 
 /**
+ * Generate vector having same size and type as ``V``, but filled with zeros.
+ *
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> zeros_like(V&& vector) {
+    return zeros<vector_size<V>, vector_value_type<V>>();
+}
+
+/**
  * Generate vector of ``N`` ones of type ``T``
  *
+ * Example
+ * =======
  * ```
+ * // Returns [1.0, 1.0, 1.0]
  * vector<float, 3> = ones();
  * ```
  */
 template<size_t N = 1, typename T = bool>
 KERNEL_FLOAT_INLINE vector_storage<T, N> ones() {
     return fill<N, T>(T(1));
+}
+
+/**
+ * Generate vector having same size and type as ``V``, but filled with ones.
+ *
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> ones_like(V&& vector) {
+    return ones<vector_size<V>, vector_value_type<V>>();
 }
 
 namespace detail {
@@ -1338,6 +1479,14 @@ struct iterate_helper<F, V, index_sequence<I, Rest...>> {
 
 /**
  * Apply the function ``fun`` for each element from ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * for_each(range<3>(), [&](auto i) {
+ *    printf("element: %d\n", i);
+ * });
+ * ```
  */
 template<typename V, typename F>
 KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
@@ -1447,7 +1596,7 @@ struct vector: public Storage {
     }
 
     /**
-     * Returns a reference to the ``index``-th item.
+     * Returns the ``index``-th item.
      */
     template<typename I>
     KERNEL_FLOAT_INLINE value_type operator[](I index) const noexcept {
@@ -2274,6 +2423,20 @@ struct reduce_helper<F, vector_compound<T, N>> {
 };
 }  // namespace detail
 
+/**
+ * Reduce the elements of the given vector ``input`` into a single value using
+ * the function ``fun``. This function should be a binary function that takes
+ * two elements and returns one element. The order in which the elements
+ * are reduced is not specified and depends on the reduction function and
+ * the vector type.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 2, 1};
+ * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 8
+ * ```
+ */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, V&& input) {
     return detail::reduce_helper<F, into_vector_type<V>>::call(
@@ -2281,36 +2444,95 @@ KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, V&& input) {
         into_vector(std::forward<V>(input)));
 }
 
+/**
+ * Find the minimum element in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T min(V&& input) {
     return reduce(ops::min<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Find the maximum element in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T max(V&& input) {
     return reduce(ops::max<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Sum the items in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T sum(V&& input) {
     return reduce(ops::add<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Multiply the items in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 5+0+2+1+0 = 8
+ * ```
+ */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T product(V&& input) {
     return reduce(ops::multiply<T> {}, std::forward<V>(input));
 }
 
+/**
+ * Check if all elements in the given vector ``input`` are non-zero. An element ``v`` is considered
+ * non-zero if ``bool(v)`` returns ``true``.
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE bool all(V&& input) {
     return reduce(ops::bit_and<bool> {}, cast<bool>(input));
 }
 
+/**
+ * Check if any element in the given vector ``input`` is non-zero. An element ``v`` is considered
+ * non-zero if ``bool(v)`` returns ``true``.
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE bool any(V&& input) {
     return reduce(ops::bit_or<bool> {}, cast<bool>(input));
 }
 
+/**
+ * Count the number of non-zero items in the given vector ``input``. An element ``v`` is considered
+ * non-zero if ``bool(v)`` returns true.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = count(x);  // Returns 3
+ * ```
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE int count(V&& input) {
     return sum(cast<int>(cast<bool>(input)));

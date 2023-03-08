@@ -52,6 +52,16 @@ using zip_type = vector_storage<
     result_t<F, vector_value_type<L>, vector_value_type<R>>,
     common_vector_size<L, R>>;
 
+/**
+ * Applies ``fun`` to each pair of two elements from ``left`` and ``right`` and returns a new
+ * vector with the results.
+ *
+ * If ``left`` and ``right`` are not the same size, they will first be broadcast into a
+ * common size using ``resize``.
+ *
+ * Note that this function does **not** cast the input vectors to a common element type. See
+ * ``zip_common`` for that functionality.
+ */
 template<typename F, typename Left, typename Right, typename Output = zip_type<F, Left, Right>>
 KERNEL_FLOAT_INLINE Output zip(F fun, Left&& left, Right&& right) {
     static constexpr size_t N = vector_size<Output>;
@@ -66,6 +76,24 @@ using zip_common_type = vector_storage<
     result_t<F, common_vector_value_type<L, R>, common_vector_value_type<L, R>>,
     common_vector_size<L, R>>;
 
+/**
+ * Applies ``fun`` to each pair of two elements from ``left`` and ``right`` and returns a new
+ * vector with the results.
+ *
+ * If ``left`` and ``right`` are not the same size, they will first be broadcast into a
+ * common size using ``resize``.
+ *
+ * If ``left`` and ``right`` are not of the same type, they will first be case into a common
+ * data type. For example, zipping ``float`` and ``double`` first cast vectors to ``double``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 5> x = {1, 2, 3, 4};
+ * vec<long, 1> = {8};
+ * vec<long, 5> = zip_common([](auto a, auto b){ return a + b; }, x, y); // [9, 10, 11, 12]
+ * ```
+ */
 template<
     typename F,
     typename Left,

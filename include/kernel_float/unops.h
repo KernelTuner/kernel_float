@@ -39,6 +39,17 @@ struct map_helper<F, vector_compound<R, N>, vector_compound<T, N>> {
 template<typename F, typename Input>
 using map_type = vector_storage<result_t<F, vector_value_type<Input>>, vector_size<Input>>;
 
+/**
+ * Applies ``fun`` to each element from vector ``input`` and returns a new vector with the results.
+ * This function is the basis for all unary operators like ``sin`` and ``sqrt``.
+ *
+ * Example
+ * =======
+ * ```
+ * vector<int, 3> v = {1, 2, 3};
+ * vector<int, 3> w = map([](auto i) { return i * 2; }); // 2, 4, 6
+ * ```
+ */
 template<typename F, typename Input, typename Output = map_type<F, Input>>
 KERNEL_FLOAT_INLINE Output map(F fun, Input&& input) {
     return detail::map_helper<F, Output, into_vector_type<Input>>::call(fun, into_vector(input));
@@ -149,11 +160,26 @@ struct broadcast_helper<Input, Output, T, N, R, N> {
 };
 }  // namespace detail
 
+/**
+ * Cast the elements of the given vector ``input`` to the given type ``R`` and then widen the
+ * vector to length ``N``. The cast may lead to a loss in precision if ``R`` is a smaller data
+ * type. Widening is only possible if the input vector has size ``1`` or ``N``, other sizes
+ * will lead to a compilation error.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 1> x = {6};
+ * vec<double, 3> y = broadcast<double, 3>(x);
+ * vec<float, 3> z = broadcast<float, 3>(y);
+ * ```
+ */
 template<typename R, size_t N, typename Input, typename Output = vector_storage<R, N>>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
 }
 
+#ifdef DOXYGEN_SHOULD_SKIP_THIS
 template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
@@ -163,10 +189,39 @@ template<typename Output, typename Input>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
 }
+#endif
+
+/**
+ * Widen the given vector ``input`` to length ``N``. Widening is only possible if the input vector
+ * has size ``1`` or ``N``, other sizes will lead to a compilation error.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 1> x = {6};
+ * vec<int, 3> y = resize<3>(x);
+ * ```
+ */
+template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
+KERNEL_FLOAT_INLINE Output resize(Input&& input) noexcept {
+    return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
+}
 
 template<typename R, typename Input>
 using cast_type = vector_storage<R, vector_size<Input>>;
 
+/**
+ * Cast the elements of given vector ``input`` to the given type ``R``. Note that this cast may
+ * lead to a loss in precision if ``R`` is a smaller data type.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 3> x = {1.0f, 2.0f, 3.0f};
+ * vec<double, 3> y = cast<double>(x);
+ * vec<int, 3> z = cast<int>(x);
+ * ```
+ */
 template<typename R, typename Input, typename Output = cast_type<R, Input>>
 KERNEL_FLOAT_INLINE Output cast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
