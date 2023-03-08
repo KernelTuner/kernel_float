@@ -25,6 +25,10 @@ zip
 ---
 .. doxygenfunction:: kernel_float::zip
 
+zip_common
+----------
+.. doxygenfunction:: kernel_float::zip_common
+
 cast
 ----
 .. doxygenfunction:: kernel_float::cast
@@ -32,6 +36,10 @@ cast
 broadcast
 ---------
 .. doxygenfunction:: kernel_float::broadcast
+
+resize
+------
+.. doxygenfunction:: kernel_float::resize
 
 for_each
 --------
