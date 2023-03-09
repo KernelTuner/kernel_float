@@ -82,11 +82,13 @@
 <a class="reference external image-reference" href="https://img.shields.io/github/license/KernelTuner/kernel_float"><img alt="GitHub" src="https://img.shields.io/github/license/KernelTuner/kernel_float" /></a>
 <a class="reference external image-reference" href="https://img.shields.io/github/v/tag/KernelTuner/kernel_float"><img alt="GitHub tag (latest by date)" src="https://img.shields.io/github/v/tag/KernelTuner/kernel_float" /></a>
 <a class="reference external image-reference" href="https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social" /></a>
-<p><em>Kernel Float</em> is a header-only library for CUDA that simplifies working with vector and reduced precision types in GPU code.</p>
-<p>CUDA offers several reduced precision floating-point types (<code class="docutils literal notranslate"><span class="pre">__half</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_bfloat16</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e4m3</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e5m2</span></code>)
+<p><em>Kernel Float</em> is a header-only library for CUDA that simplifies working with vector types and reduced precision floating-point arithmetic in GPU code.</p>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Permalink to this heading"></a></h2>
+<p>CUDA natively offers several reduced precision floating-point types (<code class="docutils literal notranslate"><span class="pre">__half</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_bfloat16</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e4m3</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e5m2</span></code>)
 and vector types (e.g., <code class="docutils literal notranslate"><span class="pre">__half2</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8x4_e4m3</span></code>, <code class="docutils literal notranslate"><span class="pre">float3</span></code>).
 However, working with these types is cumbersome:
-mathematical operations require intrinsics (e.g., <code class="docutils literal notranslate"><span class="pre">__hadd2(x,</span> <span class="pre">y)</span></code> adds two <code class="docutils literal notranslate"><span class="pre">__half2</span></code>),
+mathematical operations require intrinsics (e.g., <code class="docutils literal notranslate"><span class="pre">__hadd2</span></code> performs addition for <code class="docutils literal notranslate"><span class="pre">__half2</span></code>),
 type conversion is awkward (e.g., <code class="docutils literal notranslate"><span class="pre">__nv_cvt_halfraw2_to_fp8x2</span></code> converts float16 to float8),
 and some functionality is missing (e.g., one cannot convert a <code class="docutils literal notranslate"><span class="pre">__half</span></code> to <code class="docutils literal notranslate"><span class="pre">__nv_bfloat16</span></code>).</p>
 <p><em>Kernel Float</em> resolves this by offering a single data type <code class="docutils literal notranslate"><span class="pre">kernel_float::vec&lt;T,</span> <span class="pre">N&gt;</span></code>
@@ -94,6 +96,8 @@ that stores <code class="docutils literal notranslate"><span class="pre">N</span
 Internally, the data is stored using the most optimal type available, for example, <code class="docutils literal notranslate"><span class="pre">vec&lt;half,</span> <span class="pre">2&gt;</span></code> stores a <code class="docutils literal notranslate"><span class="pre">__half2</span></code> and <code class="docutils literal notranslate"><span class="pre">vec&lt;fp8_e5m2,</span> <span class="pre">4&gt;</span></code> uses a <code class="docutils literal notranslate"><span class="pre">__nv_fp8x4_e5m2</span></code>.
 Operator overloading (like <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">&amp;&amp;</span></code>) has been implemented such that the most optimal intrinsic for the available types is selected automatically.
 Many mathetical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>) and common operations (such as <code class="docutils literal notranslate"><span class="pre">sum</span></code>, <code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">for_each</span></code>) are also available.</p>
+<p>By using this library, developers can avoid the complexity of working with reduced precision floating-point types in CUDA and focus on their applications.</p>
+</section>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
 <p>In a nutshell, <em>Kernel Float</em> offers the following features:</p>
@@ -102,7 +106,7 @@ Many mathetical functions (like <code class="docutils literal notranslate"><span
 <li><p>Operator overloading to simplify programming.</p></li>
 <li><p>Support for half (16 bit) and quarter (8 bit) floating-point precision.</p></li>
 <li><p>Easy integration as a single header file.</p></li>
-<li><p>Compatible with C++17.</p></li>
+<li><p>Written for C++17.</p></li>
 <li><p>Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).</p></li>
 </ul>
 </section>
