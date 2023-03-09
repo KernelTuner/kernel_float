@@ -11,6 +11,7 @@
 #include "kernel_float/meta.h"
 #include "kernel_float/reduce.h"
 #include "kernel_float/storage.h"
+#include "kernel_float/swizzle.h"
 #include "kernel_float/unops.h"
 
 #endif

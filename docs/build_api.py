@@ -94,6 +94,15 @@ groups = {
             "resize",
             "for_each",
         ],
+        "Shuffling": [
+            "concat",
+            "swizzle",
+            "first",
+            "last",
+            "reversed",
+            "rotate_left",
+            "rotate_right",
+        ],
         "Unary Operators": [
             "fill",
             "fill_like",

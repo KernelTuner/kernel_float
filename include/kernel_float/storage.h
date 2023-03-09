@@ -79,16 +79,6 @@ struct vector_accessor {
     }
 };
 
-template<typename Output, typename Input, typename Indices, typename = void>
-struct vector_swizzle;
-
-template<typename Output, typename Input, size_t... Is>
-struct vector_swizzle<Output, Input, index_sequence<Is...>> {
-    KERNEL_FLOAT_INLINE static Output call(const Input& storage) {
-        return Output {storage.get(const_index<Is> {})...};
-    }
-};
-
 template<typename T>
 struct vector_empty {
     KERNEL_FLOAT_INLINE vector_empty(T value = {}) {}

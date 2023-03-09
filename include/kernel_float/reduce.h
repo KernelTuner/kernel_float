@@ -59,7 +59,7 @@ struct reduce_helper<F, vector_compound<T, N>> {
  * =======
  * ```
  * vec<int, 3> x = {5, 2, 1};
- * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 8
+ * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 5+2+1=8
  * ```
  */
 template<typename F, typename V>
@@ -76,7 +76,7 @@ KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, V&& input) {
  * =======
  * ```
  * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 8
+ * int y = min(x);  // Returns 0
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>
@@ -91,7 +91,7 @@ KERNEL_FLOAT_INLINE T min(V&& input) {
  * =======
  * ```
  * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 8
+ * int y = max(x);  // Returns 5
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>
@@ -121,7 +121,7 @@ KERNEL_FLOAT_INLINE T sum(V&& input) {
  * =======
  * ```
  * vec<int, 5> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 5+0+2+1+0 = 8
+ * int y = sum(x);  // Returns 5*0*2*1*0 = 0
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>
@@ -131,7 +131,7 @@ KERNEL_FLOAT_INLINE T product(V&& input) {
 
 /**
  * Check if all elements in the given vector ``input`` are non-zero. An element ``v`` is considered
- * non-zero if ``bool(v)`` returns ``true``.
+ * non-zero if ``bool(v)==true``.
  */
 template<typename V>
 KERNEL_FLOAT_INLINE bool all(V&& input) {
@@ -140,7 +140,7 @@ KERNEL_FLOAT_INLINE bool all(V&& input) {
 
 /**
  * Check if any element in the given vector ``input`` is non-zero. An element ``v`` is considered
- * non-zero if ``bool(v)`` returns ``true``.
+ * non-zero if ``bool(v)==true``.
  */
 template<typename V>
 KERNEL_FLOAT_INLINE bool any(V&& input) {
@@ -149,13 +149,13 @@ KERNEL_FLOAT_INLINE bool any(V&& input) {
 
 /**
  * Count the number of non-zero items in the given vector ``input``. An element ``v`` is considered
- * non-zero if ``bool(v)`` returns true.
+ * non-zero if ``bool(v)==true``.
  *
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = count(x);  // Returns 3
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
+ * int y = count(x);  // Returns 3 (5, 2, 1 are non-zero)
  * ```
  */
 template<typename V>

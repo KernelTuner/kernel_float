@@ -18,18 +18,18 @@ template<size_t... Is>
 struct index_sequence {};
 
 namespace detail {
-template<size_t N, size_t... Is>
-struct make_index_sequence_helper: make_index_sequence_helper<N - 1, N - 1, Is...> {};
+template<size_t N, size_t X, size_t... Is>
+struct make_index_sequence_helper: make_index_sequence_helper<N - 1, X + N - 1, Is...> {};
 
-template<size_t... Is>
-struct make_index_sequence_helper<0, Is...> {
+template<size_t... Is, size_t X>
+struct make_index_sequence_helper<0, X, Is...> {
     using type = index_sequence<Is...>;
 };
 
 }  // namespace detail
 
-template<size_t N>
-using make_index_sequence = typename detail::make_index_sequence_helper<N>::type;
+template<size_t N, size_t Offset = 0>
+using make_index_sequence = typename detail::make_index_sequence_helper<N, Offset>::type;
 
 namespace detail {
 template<typename T>
