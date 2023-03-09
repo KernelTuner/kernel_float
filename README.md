@@ -9,12 +9,15 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social)
 
 
-_Kernel Float_ is a header-only library for CUDA that simplifies working with vector and reduced precision types in GPU code.
+_Kernel Float_ is a header-only library for CUDA that simplifies working with vector types and reduced precision floating-point arithmetic in GPU code.
 
-CUDA offers several reduced precision floating-point types (`__half`, `__nv_bfloat16`, `__nv_fp8_e4m3`, `__nv_fp8_e5m2`)
+
+## Summary
+
+CUDA natively offers several reduced precision floating-point types (`__half`, `__nv_bfloat16`, `__nv_fp8_e4m3`, `__nv_fp8_e5m2`)
 and vector types (e.g., `__half2`, `__nv_fp8x4_e4m3`, `float3`).
 However, working with these types is cumbersome:
-mathematical operations require intrinsics (e.g., `__hadd2(x, y)` adds two `__half2`),
+mathematical operations require intrinsics (e.g., `__hadd2` performs addition for `__half2`),
 type conversion is awkward (e.g., `__nv_cvt_halfraw2_to_fp8x2` converts float16 to float8),
 and some functionality is missing (e.g., one cannot convert a `__half` to `__nv_bfloat16`).
 
@@ -23,6 +26,8 @@ that stores `N` elements of type `T`.
 Internally, the data is stored using the most optimal type available, for example, `vec<half, 2>` stores a `__half2` and `vec<fp8_e5m2, 4>` uses a `__nv_fp8x4_e5m2`.
 Operator overloading (like `+`, `*`, `&&`) has been implemented such that the most optimal intrinsic for the available types is selected automatically.
 Many mathetical functions (like `log`, `exp`, `sin`) and common operations (such as `sum`, `range`, `for_each`) are also available.
+
+By using this library, developers can avoid the complexity of working with reduced precision floating-point types in CUDA and focus on their applications.
 
 
 ## Features
@@ -33,7 +38,7 @@ In a nutshell, _Kernel Float_ offers the following features:
 * Operator overloading to simplify programming.
 * Support for half (16 bit) and quarter (8 bit) floating-point precision.
 * Easy integration as a single header file.
-* Compatible with C++17.
+* Written for C++17.
 * Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).
 
 
