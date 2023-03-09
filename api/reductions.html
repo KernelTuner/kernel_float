@@ -18,7 +18,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Mathematical" href="mathematical.html" />
+    <link rel="next" title="Shuffling" href="shuffling.html" />
     <link rel="prev" title="Binary Operators" href="binary_operators.html" /> 
 </head>
 
@@ -59,9 +59,11 @@
 <li class="toctree-l3"><a class="reference internal" href="#count">count</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="shuffling.html">Shuffling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mathematical.html">Mathematical</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
 </ul>
 
@@ -117,7 +119,7 @@
 <section id="namespacekernel__float_1autotoc_md9">
 <h3>Example<a class="headerlink" href="#namespacekernel__float_1autotoc_md9" title="Permalink to this heading"></a></h3>
 <div class="highlight-default notranslate" id="namespacekernel__float_1autotoc_md9"><div class="highlight"><pre><span></span><span class="n">vec</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span> <span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">};</span>
-<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">8</span>
+<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">5</span>
 </pre></div>
 </div>
 </section>
@@ -133,7 +135,7 @@
 <section id="namespacekernel__float_1autotoc_md8">
 <h3>Example<a class="headerlink" href="#namespacekernel__float_1autotoc_md8" title="Permalink to this heading"></a></h3>
 <div class="highlight-default notranslate" id="namespacekernel__float_1autotoc_md8"><div class="highlight"><pre><span></span><span class="n">vec</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span> <span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">};</span>
-<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">8</span>
+<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">0</span>
 </pre></div>
 </div>
 </section>
@@ -149,7 +151,7 @@
 <section id="namespacekernel__float_1autotoc_md11">
 <h3>Example<a class="headerlink" href="#namespacekernel__float_1autotoc_md11" title="Permalink to this heading"></a></h3>
 <div class="highlight-default notranslate" id="namespacekernel__float_1autotoc_md11"><div class="highlight"><pre><span></span><span class="n">vec</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="mi">5</span><span class="o">&gt;</span> <span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">};</span>
-<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">5</span><span class="o">+</span><span class="mi">0</span><span class="o">+</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="o">+</span><span class="mi">0</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">5</span><span class="o">*</span><span class="mi">0</span><span class="o">*</span><span class="mi">2</span><span class="o">*</span><span class="mi">1</span><span class="o">*</span><span class="mi">0</span> <span class="o">=</span> <span class="mi">0</span>
 </pre></div>
 </div>
 </section>
@@ -161,7 +163,7 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float3allEbRR1V">
 <span id="_CPPv3I0EN12kernel_float3allERR1V"></span><span id="_CPPv2I0EN12kernel_float3allERR1V"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">V</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1aabe17c51ee0ad94e953feeae92b83021"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">all</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN12kernel_float3allEbRR1V" title="kernel_float::all::V"><span class="n"><span class="pre">V</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">input</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN12kernel_float3allEbRR1V" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Check if all elements in the given vector <code class="docutils literal notranslate"><span class="pre">input</span></code> are non-zero. An element <code class="docutils literal notranslate"><span class="pre">v</span></code> is considered non-zero if <code class="docutils literal notranslate"><span class="pre">bool(v)</span></code> returns <code class="docutils literal notranslate"><span class="pre">true</span></code>. </p>
+<dd><p>Check if all elements in the given vector <code class="docutils literal notranslate"><span class="pre">input</span></code> are non-zero. An element <code class="docutils literal notranslate"><span class="pre">v</span></code> is considered non-zero if <code class="docutils literal notranslate"><span class="pre">bool(v)==true</span></code>. </p>
 </dd></dl>
 
 </section>
@@ -170,7 +172,7 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float3anyEbRR1V">
 <span id="_CPPv3I0EN12kernel_float3anyERR1V"></span><span id="_CPPv2I0EN12kernel_float3anyERR1V"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">V</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1ad78689b13d289967dc5db2ec4b45fc98"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">any</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN12kernel_float3anyEbRR1V" title="kernel_float::any::V"><span class="n"><span class="pre">V</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">input</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN12kernel_float3anyEbRR1V" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Check if any element in the given vector <code class="docutils literal notranslate"><span class="pre">input</span></code> is non-zero. An element <code class="docutils literal notranslate"><span class="pre">v</span></code> is considered non-zero if <code class="docutils literal notranslate"><span class="pre">bool(v)</span></code> returns <code class="docutils literal notranslate"><span class="pre">true</span></code>. </p>
+<dd><p>Check if any element in the given vector <code class="docutils literal notranslate"><span class="pre">input</span></code> is non-zero. An element <code class="docutils literal notranslate"><span class="pre">v</span></code> is considered non-zero if <code class="docutils literal notranslate"><span class="pre">bool(v)==true</span></code>. </p>
 </dd></dl>
 
 </section>
@@ -179,11 +181,11 @@
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float5countEiRR1V">
 <span id="_CPPv3I0EN12kernel_float5countERR1V"></span><span id="_CPPv2I0EN12kernel_float5countERR1V"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">V</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1ab2794644a0d66918af4a411503d94ab2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">count</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN12kernel_float5countEiRR1V" title="kernel_float::count::V"><span class="n"><span class="pre">V</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">input</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN12kernel_float5countEiRR1V" title="Permalink to this definition"></a><br /></dt>
-<dd><p>Count the number of non-zero items in the given vector <code class="docutils literal notranslate"><span class="pre">input</span></code>. An element <code class="docutils literal notranslate"><span class="pre">v</span></code> is considered non-zero if <code class="docutils literal notranslate"><span class="pre">bool(v)</span></code> returns true.</p>
+<dd><p>Count the number of non-zero items in the given vector <code class="docutils literal notranslate"><span class="pre">input</span></code>. An element <code class="docutils literal notranslate"><span class="pre">v</span></code> is considered non-zero if <code class="docutils literal notranslate"><span class="pre">bool(v)==true</span></code>.</p>
 <section id="namespacekernel__float_1autotoc_md12">
 <h3>Example<a class="headerlink" href="#namespacekernel__float_1autotoc_md12" title="Permalink to this heading"></a></h3>
-<div class="highlight-default notranslate" id="namespacekernel__float_1autotoc_md12"><div class="highlight"><pre><span></span><span class="n">vec</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="mi">3</span><span class="o">&gt;</span> <span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">};</span>
-<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="n">count</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">3</span>
+<div class="highlight-default notranslate" id="namespacekernel__float_1autotoc_md12"><div class="highlight"><pre><span></span><span class="n">vec</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="mi">5</span><span class="o">&gt;</span> <span class="n">x</span> <span class="o">=</span> <span class="p">{</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">};</span>
+<span class="nb">int</span> <span class="n">y</span> <span class="o">=</span> <span class="n">count</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>  <span class="o">//</span> <span class="n">Returns</span> <span class="mi">3</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span> <span class="n">are</span> <span class="n">non</span><span class="o">-</span><span class="n">zero</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -197,7 +199,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="binary_operators.html" class="btn btn-neutral float-left" title="Binary Operators" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="mathematical.html" class="btn btn-neutral float-right" title="Mathematical" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="shuffling.html" class="btn btn-neutral float-right" title="Shuffling" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
