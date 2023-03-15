@@ -54,7 +54,7 @@ KERNEL_FLOAT_INLINE vector_storage<T, N> range() {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> range_like(V&& vector) {
-    return range<vector_value_type<T>, vector_size<V>>();
+    return range<vector_value_type<V>, vector_size<V>>();
 }
 
 /**

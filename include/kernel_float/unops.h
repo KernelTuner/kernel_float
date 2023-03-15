@@ -179,7 +179,7 @@ KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
 }
 
-#ifdef DOXYGEN_SHOULD_SKIP_THIS
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));

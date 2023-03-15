@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-03-08 10:52:26.331077
-// git hash: f2a34ee8c8d6ceca4c7a54d72cf738b0a6d89f6c
+// date: 2023-03-15 17:03:09.598745
+// git hash: c25243b1f428852df23c74367c1782c9127ab416
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -62,18 +62,18 @@ template<size_t... Is>
 struct index_sequence {};
 
 namespace detail {
-template<size_t N, size_t... Is>
-struct make_index_sequence_helper: make_index_sequence_helper<N - 1, N - 1, Is...> {};
+template<size_t N, size_t X, size_t... Is>
+struct make_index_sequence_helper: make_index_sequence_helper<N - 1, X + N - 1, Is...> {};
 
-template<size_t... Is>
-struct make_index_sequence_helper<0, Is...> {
+template<size_t... Is, size_t X>
+struct make_index_sequence_helper<0, X, Is...> {
     using type = index_sequence<Is...>;
 };
 
 }  // namespace detail
 
-template<size_t N>
-using make_index_sequence = typename detail::make_index_sequence_helper<N>::type;
+template<size_t N, size_t Offset = 0>
+using make_index_sequence = typename detail::make_index_sequence_helper<N, Offset>::type;
 
 namespace detail {
 template<typename T>
@@ -337,16 +337,6 @@ struct vector_accessor {
     template<typename Value>
     KERNEL_FLOAT_INLINE static void set(S& storage, Value&& value) {
         storage.set(I, value);
-    }
-};
-
-template<typename Output, typename Input, typename Indices, typename = void>
-struct vector_swizzle;
-
-template<typename Output, typename Input, size_t... Is>
-struct vector_swizzle<Output, Input, index_sequence<Is...>> {
-    KERNEL_FLOAT_INLINE static Output call(const Input& storage) {
-        return Output {storage.get(const_index<Is> {})...};
     }
 };
 
@@ -757,6 +747,226 @@ struct vector_traits<bool>: vector_traits<vector_scalar<bool>> {};
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_STORAGE_H
+#ifndef KERNEL_FLOAT_SWIZZLE_H
+#define KERNEL_FLOAT_SWIZZLE_H
+
+
+
+namespace kernel_float {
+
+template<typename Output, typename Input, typename Indices, typename = void>
+struct vector_swizzle;
+
+template<typename Output, typename Input, size_t... Is>
+struct vector_swizzle<Output, Input, index_sequence<Is...>> {
+    KERNEL_FLOAT_INLINE static Output call(const Input& storage) {
+        return Output {storage.get(const_index<Is> {})...};
+    }
+};
+
+/**
+ * "Swizzles" the vector. Returns a new vector where the elements are provided by the given indices.
+ *
+ * # Example
+ * ```
+ * vec<int, 6> x = {0, 1, 2, 3, 4, 5, 6};
+ * vec<int, 3> a = swizzle<0, 1, 2>(x);  // 0, 1, 2
+ * vec<int, 3> b = swizzle<2, 1, 0>(x);  // 2, 1, 0
+ * vec<int, 3> c = swizzle<1, 1, 1>(x);  // 1, 1, 1
+ * vec<int, 4> d = swizzle<0, 2, 4, 6>(x);  // 0, 2, 4, 6
+ * ```
+ */
+template<size_t... Is, typename V>
+KERNEL_FLOAT_INLINE vector_storage<vector_value_type<V>, sizeof...(Is)>
+swizzle(V&& input, index_sequence<Is...> _ = {}) {
+    using Input = into_vector_type<V>;
+    using Output = vector_storage<vector_value_type<V>, sizeof...(Is)>;
+
+    return vector_swizzle<Output, Input, index_sequence<Is...>>::call(
+        into_vector(std::forward<V>(input)));
+}
+
+/**
+ * Takes the first ``N`` elements from the given vector and returns a new vector of length ``N``.
+ *
+ * # Example
+ * ```
+ * vec<int, 6> x = {1, 2, 3, 4, 5, 6};
+ * vec<int, 6> y = first<3>(x);  // 1, 2, 3
+ * int z = first(x);  // 1
+ * ```
+ */
+template<size_t N = 1, typename V>
+KERNEL_FLOAT_INLINE vector_storage<vector_value_type<V>, N> first(V&& input) {
+    static_assert(N <= vector_size<V>, "N cannot exceed vector size");
+    using Indices = make_index_sequence<N>;
+    return swizzle(std::forward<V>(input), Indices {});
+}
+
+/**
+ * Takes the last ``N`` elements from the given vector and returns a new vector of length ``N``.
+ *
+ * # Example
+ * ```
+ * vec<int, 6> x = {1, 2, 3, 4, 5, 6};
+ * vec<int, 6> y = last<3>(x);  // 4, 5, 6
+ * int z = last(x);  // 6
+ * ```
+ */
+template<size_t N = 1, typename V>
+KERNEL_FLOAT_INLINE vector_storage<vector_value_type<V>, N> last(V&& input) {
+    static_assert(N <= vector_size<V>, "N cannot exceed vector size");
+    using Indices = make_index_sequence<N, (vector_size<V> - N)>;
+    return swizzle(std::forward<V>(input), Indices {});
+}
+
+namespace detail {
+template<size_t N, size_t... Is>
+struct reverse_index_sequence_helper: reverse_index_sequence_helper<N - 1, Is..., N - 1> {};
+
+template<size_t... Is>
+struct reverse_index_sequence_helper<0, Is...> {
+    using type = index_sequence<Is...>;
+};
+}  // namespace detail
+
+/**
+ * Reverses the elements in the given vector.
+ *
+ * # Example
+ * ```
+ * vec<int, 6> x = {1, 2, 3, 4, 5, 6};
+ * vec<int, 6> y = reversed(x);  // 6, 5, 4, 3, 2, 1
+ * ```
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> reversed(V&& input) {
+    using Input = into_vector_type<V>;
+    using Output = Input;
+    using Indices = typename detail::reverse_index_sequence_helper<vector_size<V>>::type;
+
+    return swizzle(std::forward<V>(input), Indices {});
+}
+
+namespace detail {
+template<typename I, typename J>
+struct concat_index_sequence_helper {};
+
+template<size_t... Is, size_t... Js>
+struct concat_index_sequence_helper<index_sequence<Is...>, index_sequence<Js...>> {
+    using type = index_sequence<Is..., Js...>;
+};
+}  // namespace detail
+
+/**
+ * Rotate the given vector ``K`` steps to the right. In other words, this move the front element to the back
+ * ``K`` times. This is the inverse of ``rotate_left``.
+ *
+ * # Example
+ * ```
+ * vec<int, 6> x = {1, 2, 3, 4, 5, 6};
+ * vec<int, 6> y = rotate_right<2>(x);  // 5, 6, 1, 2, 3, 4
+ * ```
+ */
+template<size_t K = 1, typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> rotate_right(V&& input) {
+    static constexpr size_t N = vector_size<V>;
+    static constexpr size_t I = (N > 0) ? (K % N) : 0;
+
+    using First = index_sequence<I, N - I>;
+    using Second = index_sequence<N - I>;
+    using Indices = typename detail::concat_index_sequence_helper<First, Second>::type;
+
+    return swizzle(std::forward<V>(input), Indices {});
+}
+
+/**
+ * Rotate the given vector ``K`` steps to the left. In other words, this move the back element to the front
+ * ``K`` times. This is the inverse of ``rotate_right``.
+ *
+ * # Example
+ * ```
+ * vec<int, 6> x = {1, 2, 3, 4, 5, 6};
+ * vec<int, 6> y = rotate_left<4>(x);  // 5, 6, 1, 2, 3, 4
+ * ```
+ */
+template<size_t K = 1, typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> rotate_left(V&& input) {
+    static constexpr size_t N = vector_size<V>;
+    static constexpr size_t K_rev = N > 0 ? (N - K % N) : 0;
+
+    return rotate_right<K_rev>(std::forward<V>(input));
+}
+
+namespace detail {
+template<
+    typename U,
+    typename V,
+    typename Is = make_index_sequence<vector_size<U>>,
+    typename Js = make_index_sequence<vector_size<V>>>
+struct concat_helper;
+
+template<typename U, typename V, size_t... Is, size_t... Js>
+struct concat_helper<U, V, index_sequence<Is...>, index_sequence<Js...>> {
+    using type = vector_storage<
+        common_t<vector_value_type<U>, vector_value_type<V>>,
+        vector_size<U> + vector_size<V>>;
+
+    KERNEL_FLOAT_INLINE static type call(U&& left, V&& right) {
+        return type {left.get(const_index<Is> {})..., right.get(const_index<Js> {})...};
+    }
+};
+
+template<typename... Ts>
+struct recur_concat_helper;
+
+template<typename U>
+struct recur_concat_helper<U> {
+    using type = U;
+
+    KERNEL_FLOAT_INLINE static U call(U&& input) {
+        return input;
+    }
+};
+
+template<typename U, typename V, typename... Rest>
+struct recur_concat_helper<U, V, Rest...> {
+    using recur_helper = recur_concat_helper<typename concat_helper<U, V>::type, Rest...>;
+    using type = typename recur_helper::type;
+
+    KERNEL_FLOAT_INLINE static type call(U&& left, V&& right, Rest&&... rest) {
+        return recur_helper::call(
+            concat_helper<U, V>::call(std::forward<U>(left), std::forward<V>(right)),
+            std::forward<Rest>(rest)...);
+    }
+};
+}  // namespace detail
+
+template<typename... Vs>
+using concat_type = typename detail::recur_concat_helper<into_vector_type<Vs>...>::type;
+
+/**
+ * Concatenate the given vectors into one large vector. For example, given vectors of size 3, size 2 and size 5,
+ * this function returns a new vector of size 3+2+5=8. If the vectors are not of the same element type, they
+ * will first be cast into a common data type.
+ *
+ * # Examples
+ * ```
+ * vec<int, 3> x = {1, 2, 3};
+ * int y = 4;
+ * vec<int, 4> z = {5, 6, 7, 8};
+ * vec<int, 8> xyz = concat(x, y, z);  // 1, 2, 3, 4, 5, 6, 7, 8
+ * ```
+ */
+template<typename... Vs>
+KERNEL_FLOAT_INLINE concat_type<Vs...> concat(Vs&&... inputs) {
+    return detail::recur_concat_helper<into_vector_type<Vs>...>::call(
+        into_vector<Vs>(std::forward<Vs>(inputs))...);
+}
+
+}  // namespace kernel_float
+
+#endif  //KERNEL_FLOAT_SWIZZLE_H
 #ifndef KERNEL_FLOAT_UNOPS_H
 #define KERNEL_FLOAT_UNOPS_H
 
@@ -938,7 +1148,7 @@ KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
 }
 
-#ifdef DOXYGEN_SHOULD_SKIP_THIS
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
 KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
     return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
@@ -1383,7 +1593,7 @@ KERNEL_FLOAT_INLINE vector_storage<T, N> range() {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> range_like(V&& vector) {
-    return range<vector_value_type<T>, vector_size<V>>();
+    return range<vector_value_type<V>, vector_size<V>>();
 }
 
 /**
@@ -2434,7 +2644,7 @@ struct reduce_helper<F, vector_compound<T, N>> {
  * =======
  * ```
  * vec<int, 3> x = {5, 2, 1};
- * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 8
+ * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 5+2+1=8
  * ```
  */
 template<typename F, typename V>
@@ -2451,7 +2661,7 @@ KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, V&& input) {
  * =======
  * ```
  * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 8
+ * int y = min(x);  // Returns 0
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>
@@ -2466,7 +2676,7 @@ KERNEL_FLOAT_INLINE T min(V&& input) {
  * =======
  * ```
  * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 8
+ * int y = max(x);  // Returns 5
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>
@@ -2496,7 +2706,7 @@ KERNEL_FLOAT_INLINE T sum(V&& input) {
  * =======
  * ```
  * vec<int, 5> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 5+0+2+1+0 = 8
+ * int y = sum(x);  // Returns 5*0*2*1*0 = 0
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>
@@ -2506,7 +2716,7 @@ KERNEL_FLOAT_INLINE T product(V&& input) {
 
 /**
  * Check if all elements in the given vector ``input`` are non-zero. An element ``v`` is considered
- * non-zero if ``bool(v)`` returns ``true``.
+ * non-zero if ``bool(v)==true``.
  */
 template<typename V>
 KERNEL_FLOAT_INLINE bool all(V&& input) {
@@ -2515,7 +2725,7 @@ KERNEL_FLOAT_INLINE bool all(V&& input) {
 
 /**
  * Check if any element in the given vector ``input`` is non-zero. An element ``v`` is considered
- * non-zero if ``bool(v)`` returns ``true``.
+ * non-zero if ``bool(v)==true``.
  */
 template<typename V>
 KERNEL_FLOAT_INLINE bool any(V&& input) {
@@ -2524,13 +2734,13 @@ KERNEL_FLOAT_INLINE bool any(V&& input) {
 
 /**
  * Count the number of non-zero items in the given vector ``input``. An element ``v`` is considered
- * non-zero if ``bool(v)`` returns true.
+ * non-zero if ``bool(v)==true``.
  *
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = count(x);  // Returns 3
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
+ * int y = count(x);  // Returns 3 (5, 2, 1 are non-zero)
  * ```
  */
 template<typename V>

@@ -29,7 +29,7 @@ struct vector_swizzle<Output, Input, index_sequence<Is...>> {
  */
 template<size_t... Is, typename V>
 KERNEL_FLOAT_INLINE vector_storage<vector_value_type<V>, sizeof...(Is)>
-swizzle(V&& input, index_sequence < Is... >= {}) {
+swizzle(V&& input, index_sequence<Is...> _ = {}) {
     using Input = into_vector_type<V>;
     using Output = vector_storage<vector_value_type<V>, sizeof...(Is)>;
 
@@ -176,7 +176,7 @@ struct recur_concat_helper<U> {
     using type = U;
 
     KERNEL_FLOAT_INLINE static U call(U&& input) {
-        return output;
+        return input;
     }
 };
 

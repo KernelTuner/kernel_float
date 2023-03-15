@@ -19,7 +19,7 @@ struct index_sequence {};
 
 namespace detail {
 template<size_t N, size_t X, size_t... Is>
-struct make_index_sequence_helper: make_index_sequence_helper<N - 1, X + N - 1, Is...> {};
+struct make_index_sequence_helper: make_index_sequence_helper<N - 1, X, X + N - 1, Is...> {};
 
 template<size_t... Is, size_t X>
 struct make_index_sequence_helper<0, X, Is...> {
