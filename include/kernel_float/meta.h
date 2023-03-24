@@ -15,21 +15,45 @@ struct const_index {
 };
 
 template<size_t... Is>
-struct index_sequence {};
+struct index_sequence {
+    static constexpr size_t size = sizeof...(Is);
+};
 
 namespace detail {
-template<size_t N, size_t X, size_t... Is>
-struct make_index_sequence_helper: make_index_sequence_helper<N - 1, X, X + N - 1, Is...> {};
+template<size_t N>
+struct make_index_sequence_helper {};
 
-template<size_t... Is, size_t X>
-struct make_index_sequence_helper<0, X, Is...> {
-    using type = index_sequence<Is...>;
-};
+// Benchmarks show that it is much faster to predefine all possible index sequences instead of doing something
+// recursive with variadic templates.
+#define KERNEL_FLOAT_INDEX_SEQ(N, ...)            \
+    template<>                                    \
+    struct make_index_sequence_helper<N> {        \
+        using type = index_sequence<__VA_ARGS__>; \
+    };
+
+KERNEL_FLOAT_INDEX_SEQ(0)
+KERNEL_FLOAT_INDEX_SEQ(1, 0)
+KERNEL_FLOAT_INDEX_SEQ(2, 0, 1)
+KERNEL_FLOAT_INDEX_SEQ(3, 0, 1, 2)
+KERNEL_FLOAT_INDEX_SEQ(4, 0, 1, 2, 3)
+KERNEL_FLOAT_INDEX_SEQ(5, 0, 1, 2, 3, 4)
+KERNEL_FLOAT_INDEX_SEQ(6, 0, 1, 2, 3, 4, 5)
+KERNEL_FLOAT_INDEX_SEQ(7, 0, 1, 2, 3, 4, 5, 6)
+KERNEL_FLOAT_INDEX_SEQ(8, 0, 1, 2, 3, 4, 5, 6, 7)
+KERNEL_FLOAT_INDEX_SEQ(9, 0, 1, 2, 3, 4, 5, 6, 7, 8)
+KERNEL_FLOAT_INDEX_SEQ(10, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9)
+KERNEL_FLOAT_INDEX_SEQ(11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+KERNEL_FLOAT_INDEX_SEQ(12, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+KERNEL_FLOAT_INDEX_SEQ(13, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+KERNEL_FLOAT_INDEX_SEQ(14, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13)
+KERNEL_FLOAT_INDEX_SEQ(15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14)
+KERNEL_FLOAT_INDEX_SEQ(16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+KERNEL_FLOAT_INDEX_SEQ(17, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)
 
 }  // namespace detail
 
-template<size_t N, size_t Offset = 0>
-using make_index_sequence = typename detail::make_index_sequence_helper<N, Offset>::type;
+template<size_t N>
+using make_index_sequence = typename detail::make_index_sequence_helper<N>::type;
 
 namespace detail {
 template<typename T>
@@ -125,9 +149,14 @@ struct common_type_helper<T> {
     using type = T;
 };
 
-template<typename T, typename U, typename... Rest>
-struct common_type_helper<T, U, Rest...>:
-    common_type_helper<typename common_type<T, U>::type, Rest...> {};
+template<typename T, typename U>
+struct common_type_helper<T, U> {
+    using type = typename common_type<T, U>::type;
+};
+
+template<typename T, typename U, typename R, typename... Rest>
+struct common_type_helper<T, U, R, Rest...>:
+    common_type_helper<typename common_type<T, U>::type, R, Rest...> {};
 }  // namespace detail
 
 template<typename... Ts>

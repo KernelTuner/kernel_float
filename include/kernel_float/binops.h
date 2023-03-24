@@ -15,28 +15,25 @@ struct zip_helper {
     template<size_t... Is>
     KERNEL_FLOAT_INLINE static Output
     call_with_indices(F fun, const Left& left, const Right& right, index_sequence<Is...> = {}) {
-        return Output {fun(left.get(const_index<Is> {}), right.get(const_index<Is> {}))...};
+        return vector_traits<Output>::create(fun(vector_get<Is>(left), vector_get<Is>(right))...);
     }
 };
 
-template<typename F, typename T, typename L, typename R, size_t N>
-struct zip_helper<F, vector_compound<T, N>, vector_compound<L, N>, vector_compound<R, N>> {
-    KERNEL_FLOAT_INLINE static vector_compound<T, N>
-    call(F fun, const vector_compound<L, N>& left, const vector_compound<R, N>& right) {
-        static constexpr size_t low_size = vector_compound<T, N>::low_size;
-        static constexpr size_t high_size = vector_compound<T, N>::high_size;
+template<typename F, typename V, size_t N>
+struct zip_helper<F, nested_array<V, N>, nested_array<V, N>, nested_array<V, N>> {
+    KERNEL_FLOAT_INLINE static nested_array<V, N>
+    call(F fun, const nested_array<V, N>& left, const nested_array<V, N>& right) {
+        return call(fun, left, right, make_index_sequence<nested_array<V, N>::num_packets> {});
+    }
 
-        return {
-            zip_helper<
-                F,
-                vector_storage<T, low_size>,
-                vector_storage<L, low_size>,
-                vector_storage<R, low_size>>::call(fun, left.low(), right.low()),
-            zip_helper<
-                F,
-                vector_storage<T, high_size>,
-                vector_storage<L, high_size>,
-                vector_storage<R, high_size>>::call(fun, left.high(), right.high())};
+  private:
+    template<size_t... Is>
+    KERNEL_FLOAT_INLINE static nested_array<V, N> call(
+        F fun,
+        const nested_array<V, N>& left,
+        const nested_array<V, N>& right,
+        index_sequence<Is...>) {
+        return {zip_helper<F, V, V, V>::call(fun, left[Is], right[Is])...};
     }
 };
 };  // namespace detail
@@ -48,7 +45,7 @@ template<typename... Ts>
 static constexpr size_t common_vector_size = common_size<vector_size<Ts>...>;
 
 template<typename F, typename L, typename R>
-using zip_type = vector_storage<
+using zip_type = default_storage_type<
     result_t<F, vector_value_type<L>, vector_value_type<R>>,
     common_vector_size<L, R>>;
 
@@ -63,16 +60,19 @@ using zip_type = vector_storage<
  * ``zip_common`` for that functionality.
  */
 template<typename F, typename Left, typename Right, typename Output = zip_type<F, Left, Right>>
-KERNEL_FLOAT_INLINE Output zip(F fun, Left&& left, Right&& right) {
+KERNEL_FLOAT_INLINE vector<Output> zip(F fun, Left&& left, Right&& right) {
     static constexpr size_t N = vector_size<Output>;
-    return detail::zip_helper<F, Output, into_vector_type<Left>, into_vector_type<Right>>::call(
+    using LeftInput = default_storage_type<vector_value_type<Left>, N>;
+    using RightInput = default_storage_type<vector_value_type<Right>, N>;
+
+    return detail::zip_helper<F, Output, LeftInput, RightInput>::call(
         fun,
-        broadcast<N>(std::forward<Left>(left)),
-        broadcast<N>(std::forward<Right>(right)));
+        broadcast<LeftInput, Left>(std::forward<Left>(left)),
+        broadcast<RightInput, Right>(std::forward<Right>(right)));
 }
 
 template<typename F, typename L, typename R>
-using zip_common_type = vector_storage<
+using zip_common_type = default_storage_type<
     result_t<F, common_vector_value_type<L, R>, common_vector_value_type<L, R>>,
     common_vector_size<L, R>>;
 
@@ -99,38 +99,50 @@ template<
     typename Left,
     typename Right,
     typename Output = zip_common_type<F, Left, Right>>
-KERNEL_FLOAT_INLINE Output zip_common(F fun, Left&& left, Right&& right) {
+KERNEL_FLOAT_INLINE vector<Output> zip_common(F fun, Left&& left, Right&& right) {
     static constexpr size_t N = vector_size<Output>;
     using C = common_t<vector_value_type<Left>, vector_value_type<Right>>;
+    using Input = default_storage_type<C, N>;
 
-    return detail::zip_helper<F, Output, vector_storage<C, N>, vector_storage<C, N>>::call(
+    return detail::zip_helper<F, Output, Input, Input>::call(
         fun,
-        broadcast<C, N>(std::forward<Left>(left)),
-        broadcast<C, N>(std::forward<Right>(right)));
+        broadcast<Input, Left>(std::forward<Left>(left)),
+        broadcast<Input, Right>(std::forward<Right>(right)));
 }
 
-#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \
-    namespace ops {                                                                        \
-    template<typename T>                                                                   \
-    struct NAME {                                                                          \
-        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                                \
-            return T(EXPR);                                                                \
-        }                                                                                  \
-    };                                                                                     \
-    }                                                                                      \
-    template<typename L, typename R, typename C = common_vector_value_type<L, R>>          \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
-        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
+#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                                  \
+    namespace ops {                                                                             \
+    template<typename T>                                                                        \
+    struct NAME {                                                                               \
+        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                                     \
+            return T(EXPR);                                                                     \
+        }                                                                                       \
+    };                                                                                          \
+    }                                                                                           \
+    template<typename L, typename R, typename C = common_vector_value_type<L, R>>               \
+    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> NAME(L&& left, R&& right) { \
+        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right));      \
     }
 
-#define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                                \
-    KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                                            \
-    template<                                                                                  \
-        typename L,                                                                            \
-        typename R,                                                                            \
-        typename C = enabled_t<is_vector<L> || is_vector<R>, common_vector_value_type<L, R>>>  \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> operator OP(L&& left, R&& right) { \
-        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right));     \
+#define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                   \
+    KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                               \
+    template<typename L, typename R, typename C = common_vector_value_type<L, R>> \
+    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> operator OP(  \
+        const vector<L>& left,                                                    \
+        const vector<R>& right) {                                                 \
+        return zip_common(ops::NAME<C> {}, left, right);                          \
+    }                                                                             \
+    template<typename L, typename R, typename C = common_vector_value_type<L, R>> \
+    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> operator OP(  \
+        const vector<L>& left,                                                    \
+        const R& right) {                                                         \
+        return zip_common(ops::NAME<C> {}, left, right);                          \
+    }                                                                             \
+    template<typename L, typename R, typename C = common_vector_value_type<L, R>> \
+    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> operator OP(  \
+        const L& left,                                                            \
+        const vector<R>& right) {                                                 \
+        return zip_common(ops::NAME<C> {}, left, right);                          \
     }
 
 KERNEL_FLOAT_DEFINE_BINARY_OP(add, +)
@@ -153,7 +165,6 @@ KERNEL_FLOAT_DEFINE_BINARY_OP(bit_xor, ^)
 // clang-format off
 template<template<typename T> typename F, typename L, typename R>
 static constexpr bool vector_assign_allowed =
-    is_vector<L> &&
     common_vector_size<L, R> == vector_size<L> &&
     is_implicit_convertible<
         result_t<
@@ -170,9 +181,9 @@ static constexpr bool vector_assign_allowed =
         typename L,                                                                           \
         typename R,                                                                           \
         typename T = enabled_t<vector_assign_allowed<ops::NAME, L, R>, vector_value_type<L>>> \
-    KERNEL_FLOAT_INLINE L& operator OP(L& lhs, R&& rhs) {                                     \
+    KERNEL_FLOAT_INLINE vector<L>& operator OP(vector<L>& lhs, const R& rhs) {                \
         using F = ops::NAME<T>;                                                               \
-        lhs = zip_common<F, L&, R, into_vector_type<L>>(F {}, lhs, std::forward<R>(rhs));     \
+        lhs = zip_common<F, const L&, const R&, L>(F {}, lhs.storage(), rhs);                 \
         return lhs;                                                                           \
     }
 

@@ -1,142 +1,230 @@
 #ifndef KERNEL_FLOAT_INTERFACE_H
 #define KERNEL_FLOAT_INTERFACE_H
 
-#include "binops.h"
-#include "iterate.h"
-#include "unops.h"
+#include "storage.h"
 
 namespace kernel_float {
-template<typename Storage, typename Index>
-struct vector_index {
-    using value_type = vector_value_type<Storage>;
 
-    KERNEL_FLOAT_INLINE vector_index(Storage& storage, Index index) :
-        storage_(storage),
-        index_(index) {}
+template<typename Output, typename Input>
+KERNEL_FLOAT_INLINE vector<Output> broadcast(Input&& input);
 
-    KERNEL_FLOAT_INLINE vector_index& operator=(value_type value) {
-        storage_.set(index_, value);
+template<typename V, typename I>
+struct index_proxy {
+    using value_type = typename vector_traits<V>::value_type;
+
+    KERNEL_FLOAT_INLINE
+    index_proxy(V& storage, I index) : storage_(storage), index_(index) {}
+
+    KERNEL_FLOAT_INLINE
+    index_proxy& operator=(value_type value) {
+        vector_traits<V>::set(storage_, index_, value);
         return *this;
     }
 
-    KERNEL_FLOAT_INLINE operator value_type() const {
-        return storage_.get(index_);
-    }
-
-    KERNEL_FLOAT_INLINE value_type operator()() const {
-        return storage_.get(index_);
+    KERNEL_FLOAT_INLINE
+    operator value_type() const {
+        return vector_traits<V>::get(storage_, index_);
     }
 
   private:
-    Storage& storage_;
-    Index index_;
+    V& storage_;
+    I index_;
 };
 
-template<typename Storage>
-struct vector: public Storage {
-    using storage_type = Storage;
-    using value_type = vector_value_type<Storage>;
-    static constexpr size_t const_size = vector_size<Storage>;
+template<typename V, size_t I>
+struct index_proxy<V, const_index<I>> {
+    using value_type = typename vector_traits<V>::value_type;
 
-    /**
-     * Construct vector where elements are default initialized.
-     */
-    vector() = default;
+    KERNEL_FLOAT_INLINE
+    index_proxy(V& storage, const_index<I>) : storage_(storage) {}
+
+    KERNEL_FLOAT_INLINE
+    index_proxy& operator=(value_type value) {
+        vector_index<V, I>::set(storage_, value);
+        return *this;
+    }
+
+    KERNEL_FLOAT_INLINE
+    operator value_type() const {
+        return vector_index<V, I>::get(storage_);
+    }
+
+  private:
+    V& storage_;
+};
+
+template<typename V>
+struct vector {
+    using storage_type = V;
+    using traits_type = vector_traits<V>;
+    using value_type = typename traits_type::value_type;
+    static constexpr size_t const_size = traits_type::size;
 
     vector(const vector&) = default;
     vector(vector&) = default;
     vector(vector&&) = default;
-    KERNEL_FLOAT_INLINE vector(const Storage& storage) : Storage(storage) {}
 
     vector& operator=(const vector&) = default;
     vector& operator=(vector&) = default;
     vector& operator=(vector&&) = default;
-    KERNEL_FLOAT_INLINE vector& operator=(const Storage& s) {
-        storage() = s;
-        return *this;
-    }
 
-    /**
-     * Construct vector from ``N`` argumens that can be converted to type ``T``.
-     */
-    template<typename... Args>
-    KERNEL_FLOAT_INLINE vector(Args&&... args) : Storage(args...) {}
-
-    /**
-     * Construct vector from another vector of elements type ``U`` where ``U``
-     * should be convertible to ``T``. If this is not the case, use ``cast``.
-     */
-    template<
-        typename V,
-        typename = enabled_t<
-            (vector_size<V> == const_size || vector_size<V> == 1)
-            && is_implicit_convertible<vector_value_type<V>, value_type>>>
-    KERNEL_FLOAT_INLINE vector(V&& that) : Storage(broadcast<Storage>(std::forward<V>(that))) {}
-
-    KERNEL_FLOAT_INLINE const Storage& storage() const noexcept {
-        return *this;
-    }
-
-    KERNEL_FLOAT_INLINE Storage& storage() noexcept {
-        return *this;
-    }
-
-    /**
-     * Returns the number of elements.
-     */
     KERNEL_FLOAT_INLINE
-    size_t size() const noexcept {
+    vector() : storage_(traits_type::fill(value_type {})) {}
+
+    KERNEL_FLOAT_INLINE
+    vector(storage_type storage) : storage_(storage) {}
+
+    template<
+        typename U,
+        enabled_t<is_implicit_convertible<vector_value_type<U>, value_type>, int> = 0>
+    KERNEL_FLOAT_INLINE vector(U&& init) : vector(broadcast<V, U>(std::forward<U>(init))) {}
+
+    template<typename... Args, enabled_t<sizeof...(Args) == const_size, int> = 0>
+    KERNEL_FLOAT_INLINE vector(Args&&... args) : storage_(traits_type::create(args...)) {}
+
+    KERNEL_FLOAT_INLINE
+    operator storage_type() const {
+        return storage_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    storage_type& storage() {
+        return storage_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const storage_type& storage() const {
+        return storage_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    value_type get(size_t index) const {
+        return traits_type::get(storage_, index);
+    }
+
+    KERNEL_FLOAT_INLINE
+    void set(size_t index, value_type value) {
+        traits_type::set(storage_, index, value);
+    }
+
+    template<size_t I>
+    KERNEL_FLOAT_INLINE value_type get(const_index<I>) const {
+        return vector_index<V, I>::get(storage_);
+    }
+
+    template<size_t I>
+    KERNEL_FLOAT_INLINE void set(const_index<I>, value_type value) {
+        return vector_index<V, I>::set(storage_, value);
+    }
+
+    KERNEL_FLOAT_INLINE
+    value_type operator[](size_t index) const {
+        return get(index);
+    }
+
+    template<size_t I>
+    KERNEL_FLOAT_INLINE value_type operator[](const_index<I>) const {
+        return get(const_index<I> {});
+    }
+
+    KERNEL_FLOAT_INLINE
+    index_proxy<V, size_t> operator[](size_t index) {
+        return {storage_, index};
+    }
+
+    template<size_t I>
+    KERNEL_FLOAT_INLINE index_proxy<V, const_index<I>> operator[](const_index<I>) {
+        return {storage_, const_index<I> {}};
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t size() {
         return const_size;
     }
 
-    /**
-     * Returns a reference to the ``index``-th item.
-     */
-    template<typename I>
-    KERNEL_FLOAT_INLINE vector_index<Storage, I> operator[](I index) noexcept {
-        return {*this, index};
+  private:
+    storage_type storage_;
+};
+
+template<typename V>
+struct vector_traits<vector<V>> {
+    using value_type = vector_value_type<V>;
+    static constexpr size_t size = vector_size<V>;
+
+    KERNEL_FLOAT_INLINE
+    static vector<V> fill(value_type value) {
+        return vector_traits<V>::fill(value);
     }
 
-    /**
-     * Returns the ``index``-th item.
-     */
-    template<typename I>
-    KERNEL_FLOAT_INLINE value_type operator[](I index) const noexcept {
-        return this->get(index);
+    template<typename... Args>
+    KERNEL_FLOAT_INLINE static vector<V> create(Args... args) {
+        return vector_traits<V>::create(args...);
     }
 
-    /**
-     * Cast the elements of this vector to type ``U``.
-     */
-    template<typename U>
-    KERNEL_FLOAT_INLINE vector<cast_type<U, Storage>> cast() const noexcept {
-        return ::kernel_float::cast<U>(storage());
+    KERNEL_FLOAT_INLINE
+    static value_type get(const vector<V>& self, size_t index) {
+        return vector_traits<V>::get(self.storage(), index);
     }
 
-    /**
-     * Apply the given function to the elements of this vector.
-     */
-    template<typename F>
-    KERNEL_FLOAT_INLINE vector<map_type<F, Storage>> map(F fun) const noexcept {
-        return ::kernel_float::map(fun, storage());
+    KERNEL_FLOAT_INLINE
+    static void set(vector<V>& self, size_t index, value_type value) {
+        vector_traits<V>::set(self.storage(), index, value);
     }
 };
 
-namespace detail {
-template<typename Storage>
-struct is_vector_helper<vector<Storage>> {
-    static constexpr bool value = true;
-};
-}  // namespace detail
+template<typename V, size_t I>
+struct vector_index<vector<V>, I> {
+    using value_type = vector_value_type<V>;
 
-template<typename Storage>
-struct vector_traits<vector<Storage>>: vector_traits<Storage> {};
+    KERNEL_FLOAT_INLINE
+    static value_type get(const vector<V>& self) {
+        return vector_index<V, I>::get(self.storage());
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void set(vector<V>& self, value_type value) {
+        vector_index<V, I>::set(self.storage(), value);
+    }
+};
+
+template<typename V>
+struct into_storage_traits<vector<V>> {
+    using type = V;
+
+    KERNEL_FLOAT_INLINE
+    static constexpr type call(const vector<V>& self) {
+        return self.storage();
+    }
+};
+
+template<typename Output, typename Input, size_t... Is>
+struct vector_swizzle<Output, vector<Input>, index_sequence<Is...>> {
+    KERNEL_FLOAT_INLINE static Output call(const vector<Input>& self) {
+        return vector_swizzle<Output, Input, index_sequence<Is...>>::call(self.storage());
+    }
+};
+
+template<typename T, size_t N>
+using vec = vector<default_storage_type<T, N, Alignment::Packed>>;
+
+template<typename T, size_t N>
+using unaligned_vec = vector<default_storage_type<T, N, Alignment::Minimum>>;
+
+template<typename... Args>
+KERNEL_FLOAT_INLINE vec<common_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
+    using value_type = common_t<Args...>;
+    using vector_type = default_storage_type<value_type, sizeof...(Args), Alignment::Packed>;
+    return vector_traits<vector_type>::create(value_type(args)...);
+}
+
+template<typename V>
+KERNEL_FLOAT_INLINE vector<into_storage_type<V>> into_vec(V&& input) {
+    return into_storage(input);
+}
 
 using float32 = float;
 using float64 = double;
 
-template<typename T, size_t N>
-using vec = vector<vector_storage<T, N>>;
 template<typename T>
 using vec1 = vec<T, 1>;
 template<typename T>
@@ -154,12 +242,9 @@ using vec7 = vec<T, 7>;
 template<typename T>
 using vec8 = vec<T, 8>;
 
-template<typename T, size_t N>
-using unaligned_vec = vector<vector_array<T, N>>;
-
 #define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)             \
     template<size_t N>                               \
-    using NAME##X = vec<T, N>;                       \
+    using NAME##N = vec<T, N>;                       \
     using NAME##1 = vec<T, 1>;                       \
     using NAME##2 = vec<T, 2>;                       \
     using NAME##3 = vec<T, 3>;                       \
@@ -198,11 +283,6 @@ KERNEL_FLOAT_TYPE_ALIAS(float32x, float)
 KERNEL_FLOAT_TYPE_ALIAS(double, double)
 KERNEL_FLOAT_TYPE_ALIAS(f64x, double)
 KERNEL_FLOAT_TYPE_ALIAS(float64x, double)
-
-template<typename... Ts>
-KERNEL_FLOAT_INLINE vec<common_t<Ts...>, sizeof...(Ts)> make_vec(Ts... items) {
-    return vector_storage<common_t<Ts...>, sizeof...(Ts)> {items...};
-}
 
 }  // namespace kernel_float
 

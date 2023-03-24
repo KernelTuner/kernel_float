@@ -1,6 +1,7 @@
 #ifndef KERNEL_FLOAT_UNOPS_H
 #define KERNEL_FLOAT_UNOPS_H
 
+#include "cast.h"
 #include "storage.h"
 
 namespace kernel_float {
@@ -14,30 +15,27 @@ struct map_helper {
   private:
     template<size_t... Is>
     KERNEL_FLOAT_INLINE static Output call(F fun, const Input& input, index_sequence<Is...>) {
-        return Output {fun(input.get(const_index<Is> {}))...};
+        return vector_traits<Output>::create(fun(vector_get<Is>(input))...);
     }
 };
 
-template<typename F, typename R, typename T, size_t N>
-struct map_helper<F, vector_compound<R, N>, vector_compound<T, N>> {
-    KERNEL_FLOAT_INLINE static vector_compound<R, N>
-    call(F fun, const vector_compound<T, N>& input) {
-        static constexpr size_t low_size = vector_compound<T, N>::low_size;
-        static constexpr size_t high_size = vector_compound<T, N>::high_size;
+template<typename F, typename V, size_t N>
+struct map_helper<F, nested_array<V, N>, nested_array<V, N>> {
+    KERNEL_FLOAT_INLINE static nested_array<V, N> call(F fun, const nested_array<V, N>& input) {
+        return call(fun, input, make_index_sequence<nested_array<V, N>::num_packets> {});
+    }
 
-        return {
-            map_helper<F, vector_storage<R, low_size>, vector_storage<T, low_size>>::call(
-                fun,
-                input.low()),
-            map_helper<F, vector_storage<R, high_size>, vector_storage<T, high_size>>::call(
-                fun,
-                input.high())};
+  private:
+    template<size_t... Is>
+    KERNEL_FLOAT_INLINE static nested_array<V, N>
+    call(F fun, const nested_array<V, N>& input, index_sequence<Is...>) {
+        return {map_helper<F, V, V>::call(fun, input[Is])...};
     }
 };
 }  // namespace detail
 
 template<typename F, typename Input>
-using map_type = vector_storage<result_t<F, vector_value_type<Input>>, vector_size<Input>>;
+using map_type = default_storage_type<result_t<F, vector_value_type<Input>>, vector_size<Input>>;
 
 /**
  * Applies ``fun`` to each element from vector ``input`` and returns a new vector with the results.
@@ -51,201 +49,29 @@ using map_type = vector_storage<result_t<F, vector_value_type<Input>>, vector_si
  * ```
  */
 template<typename F, typename Input, typename Output = map_type<F, Input>>
-KERNEL_FLOAT_INLINE Output map(F fun, Input&& input) {
-    return detail::map_helper<F, Output, into_vector_type<Input>>::call(fun, into_vector(input));
+KERNEL_FLOAT_INLINE Output map(F fun, const Input& input) {
+    return detail::map_helper<F, Output, into_storage_type<Input>>::call(fun, into_storage(input));
 }
 
-namespace ops {
-template<typename T, typename R>
-struct cast {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return R(input);
-    }
-};
-
-template<typename T>
-struct cast<T, T> {
-    KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
-        return input;
-    }
-};
-}  // namespace ops
-
-namespace detail {
-template<
-    typename Input,
-    typename Output,
-    typename T = vector_value_type<Input>,
-    size_t N = vector_size<Input>,
-    typename R = vector_value_type<Output>,
-    size_t M = vector_size<Output>>
-struct broadcast_helper;
-
-template<typename Vector, typename T, size_t N>
-struct broadcast_helper<Vector, Vector, T, N, T, N> {
-    KERNEL_FLOAT_INLINE static Vector call(Vector input) {
-        return input;
-    }
-};
-
-template<typename Vector, typename T>
-struct broadcast_helper<Vector, Vector, T, 1, T, 1> {
-    KERNEL_FLOAT_INLINE static Vector call(Vector input) {
-        return input;
-    }
-};
-
-template<typename Vector, typename T, size_t N>
-struct broadcast_helper<Vector, Vector&, T, N, T, N> {
-    KERNEL_FLOAT_INLINE static Vector call(const Vector& input) {
-        return input;
-    }
-};
-
-template<typename Vector, typename T, size_t N>
-struct broadcast_helper<Vector, const Vector&, T, N, T, N> {
-    KERNEL_FLOAT_INLINE static Vector call(const Vector& input) {
-        return input;
-    }
-};
-
-template<typename Input, typename Output, typename T, size_t N>
-struct broadcast_helper<Input, Output, T, N, T, N> {
-    KERNEL_FLOAT_INLINE static Output call(Input&& input) {
-        using F = ops::cast<T, T>;
-        return map_helper<F, Output, into_vector_type<Input>>::call(
-            F {},
-            into_vector(std::forward<Input>(input)));
-    }
-};
-
-template<typename Output, typename Input, typename T, size_t N>
-struct broadcast_helper<Input, Output, T, 1, T, N> {
-    KERNEL_FLOAT_INLINE static Output call(Input&& input) {
-        return Output {into_vector(std::forward<Input>(input)).get(const_index<0> {})};
-    }
-};
-
-template<typename Output, typename Input, typename T>
-struct broadcast_helper<Input, Output, T, 1, T, 1> {
-    KERNEL_FLOAT_INLINE static Output call(Input&& input) {
-        return Output {into_vector(std::forward<Input>(input)).get(const_index<0> {})};
-    }
-};
-
-template<typename Output, typename Input, typename T, typename R>
-struct broadcast_helper<Input, Output, T, 1, R, 1> {
-    KERNEL_FLOAT_INLINE static Output call(Input&& input) {
-        return Output {
-            ops::cast<T, R> {}(into_vector(std::forward<Input>(input)).get(const_index<0> {}))};
-    }
-};
-
-template<typename Output, typename Input, typename T, typename R, size_t N>
-struct broadcast_helper<Input, Output, T, 1, R, N> {
-    KERNEL_FLOAT_INLINE static Output call(Input&& input) {
-        return Output {
-            ops::cast<T, R> {}(into_vector(std::forward<Input>(input)).get(const_index<0> {}))};
-    }
-};
-
-template<typename Output, typename Input, typename T, typename R, size_t N>
-struct broadcast_helper<Input, Output, T, N, R, N> {
-    KERNEL_FLOAT_INLINE static Output call(Input&& input) {
-        using F = ops::cast<T, R>;
-        return map_helper<F, Output, into_vector_type<Input>>::call(
-            F {},
-            into_vector(std::forward<Input>(input)));
-    }
-};
-}  // namespace detail
-
-/**
- * Cast the elements of the given vector ``input`` to the given type ``R`` and then widen the
- * vector to length ``N``. The cast may lead to a loss in precision if ``R`` is a smaller data
- * type. Widening is only possible if the input vector has size ``1`` or ``N``, other sizes
- * will lead to a compilation error.
- *
- * Example
- * =======
- * ```
- * vec<int, 1> x = {6};
- * vec<double, 3> y = broadcast<double, 3>(x);
- * vec<float, 3> z = broadcast<float, 3>(y);
- * ```
- */
-template<typename R, size_t N, typename Input, typename Output = vector_storage<R, N>>
-KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
-    return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
-}
-
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
-template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
-KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
-    return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
-}
-
-template<typename Output, typename Input>
-KERNEL_FLOAT_INLINE Output broadcast(Input&& input) noexcept {
-    return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
-}
-#endif
-
-/**
- * Widen the given vector ``input`` to length ``N``. Widening is only possible if the input vector
- * has size ``1`` or ``N``, other sizes will lead to a compilation error.
- *
- * Example
- * =======
- * ```
- * vec<int, 1> x = {6};
- * vec<int, 3> y = resize<3>(x);
- * ```
- */
-template<size_t N, typename Input, typename Output = vector_storage<vector_value_type<Input>, N>>
-KERNEL_FLOAT_INLINE Output resize(Input&& input) noexcept {
-    return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
-}
-
-template<typename R, typename Input>
-using cast_type = vector_storage<R, vector_size<Input>>;
-
-/**
- * Cast the elements of given vector ``input`` to the given type ``R``. Note that this cast may
- * lead to a loss in precision if ``R`` is a smaller data type.
- *
- * Example
- * =======
- * ```
- * vec<float, 3> x = {1.0f, 2.0f, 3.0f};
- * vec<double, 3> y = cast<double>(x);
- * vec<int, 3> z = cast<int>(x);
- * ```
- */
-template<typename R, typename Input, typename Output = cast_type<R, Input>>
-KERNEL_FLOAT_INLINE Output cast(Input&& input) noexcept {
-    return detail::broadcast_helper<Input, Output>::call(std::forward<Input>(input));
-}
-
-#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                   \
-    namespace ops {                                                             \
-    template<typename T>                                                        \
-    struct NAME {                                                               \
-        KERNEL_FLOAT_INLINE T operator()(T input) {                             \
-            return T(EXPR);                                                     \
-        }                                                                       \
-    };                                                                          \
-    }                                                                           \
-    template<typename V>                                                        \
-    KERNEL_FLOAT_INLINE into_vector_type<V> NAME(V&& input) {                   \
-        return map(ops::NAME<vector_value_type<V>> {}, std::forward<V>(input)); \
+#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                            \
+    namespace ops {                                                                      \
+    template<typename T>                                                                 \
+    struct NAME {                                                                        \
+        KERNEL_FLOAT_INLINE T operator()(T input) {                                      \
+            return T(EXPR);                                                              \
+        }                                                                                \
+    };                                                                                   \
+    }                                                                                    \
+    template<typename V>                                                                 \
+    KERNEL_FLOAT_INLINE vector<into_storage_type<V>> NAME(const V& input) {              \
+        return map<ops::NAME<vector_value_type<V>>, V, into_storage_type<V>>({}, input); \
     }
 
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                                        \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                                   \
-    template<typename V>                                                                    \
-    KERNEL_FLOAT_INLINE enabled_t<is_vector<V>, into_vector_type<V>> operator OP(V&& vec) { \
-        return NAME(std::forward<V>(vec));                                                  \
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                  \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                             \
+    template<typename V>                                              \
+    KERNEL_FLOAT_INLINE vector<V> operator OP(const vector<V>& vec) { \
+        return NAME(vec);                                             \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)

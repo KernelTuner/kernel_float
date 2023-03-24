@@ -13,85 +13,83 @@ KERNEL_FLOAT_DEFINE_COMMON_TYPE(__half, bool)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, __half)
 
-struct vector_half2 {
-    static_assert(sizeof(__half) * 2 == sizeof(__half2), "invalid size");
-    static_assert(alignof(__half) <= alignof(__half2), "invalid alignment");
+template<>
+struct vector_traits<__half2> {
+    using value_type = __half;
+    static constexpr size_t size = 2;
 
-    KERNEL_FLOAT_INLINE vector_half2(__half v = {}) noexcept : vector_ {v, v} {}
-    KERNEL_FLOAT_INLINE vector_half2(__half x, __half y) noexcept : vector_ {x, y} {}
-    KERNEL_FLOAT_INLINE vector_half2(__half2 xy) noexcept : vector_ {xy} {}
-
-    KERNEL_FLOAT_INLINE operator __half2() const noexcept {
-        return vector_;
+    KERNEL_FLOAT_INLINE
+    static __half2 fill(__half value) {
+#if KERNEL_FLOAT_ON_DEVICE
+        return __half2half2(value);
+#else
+        return {value, value};
+#endif
     }
 
-    KERNEL_FLOAT_INLINE __half get(const_index<0>) const {
-        return vector_.x;
+    KERNEL_FLOAT_INLINE
+    static __half2 create(__half low, __half high) {
+#if KERNEL_FLOAT_ON_DEVICE
+        return __halves2half2(low, high);
+#else
+        return {low, high};
+#endif
     }
 
-    KERNEL_FLOAT_INLINE __half get(const_index<1>) const {
-        return vector_.y;
-    }
-
-    KERNEL_FLOAT_INLINE void set(const_index<0>, __half v) {
-        *this = vector_half2(v, get(const_index<1> {}));
-    }
-
-    KERNEL_FLOAT_INLINE void set(const_index<1>, __half v) {
-        *this = vector_half2(get(const_index<0> {}), v);
-    }
-
-    KERNEL_FLOAT_INLINE __half get(size_t index) const {
+    KERNEL_FLOAT_INLINE
+    static __half get(__half2 self, size_t index) {
+#if KERNEL_FLOAT_ON_DEVICE
         if (index == 0) {
-            return get(const_index<0> {});
+            return __low2half(self);
         } else {
-            return get(const_index<1> {});
+            return __high2half(self);
+        }
+#else
+        if (index == 0) {
+            return self.x;
+        } else {
+            return self.y;
+        }
+#endif
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void set(__half2& self, size_t index, __half value) {
+        if (index == 0) {
+            self.x = value;
+        } else {
+            self.y = value;
         }
     }
-
-    KERNEL_FLOAT_INLINE void set(size_t index, __half value) const {
-        if (index == 0) {
-            set(const_index<0> {}, value);
-        } else {
-            set(const_index<1> {}, value);
-        }
-    }
-
-  private:
-    __half2 vector_;
 };
 
-template<>
-struct vector_traits<vector_half2>: default_vector_traits<vector_half2, __half, 2> {};
+template<size_t N>
+struct default_storage<__half, N, Alignment::Maximum, enabled_t<(N >= 2)>> {
+    using type = nested_array<__half2, N>;
+};
 
-template<>
-struct vector_traits<__half>: vector_traits<vector_scalar<__half>> {};
-
-template<>
-struct vector_traits<__half2>: vector_traits<vector_half2> {};
-
-template<>
-struct default_vector_storage<__half, 2> {
-    using type = vector_half2;
+template<size_t N>
+struct default_storage<__half, N, Alignment::Packed, enabled_t<(N >= 2 && N % 2 == 0)>> {
+    using type = nested_array<__half2, N>;
 };
 
 #if KERNEL_FLOAT_ON_DEVICE
-#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                                      \
-    namespace ops {                                                                        \
-    template<>                                                                             \
-    struct NAME<__half> {                                                                  \
-        KERNEL_FLOAT_INLINE __half operator()(__half input) {                              \
-            return FUN1(input);                                                            \
-        }                                                                                  \
-    };                                                                                     \
-    }                                                                                      \
-    namespace detail {                                                                     \
-    template<>                                                                             \
-    struct map_helper<ops::NAME<__half>, vector_half2, vector_half2> {                     \
-        KERNEL_FLOAT_INLINE static __half2 call(ops::NAME<__half>, const __half2& input) { \
-            return FUN2(input);                                                            \
-        }                                                                                  \
-    };                                                                                     \
+#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                               \
+    namespace ops {                                                                 \
+    template<>                                                                      \
+    struct NAME<__half> {                                                           \
+        KERNEL_FLOAT_INLINE __half operator()(__half input) {                       \
+            return FUN1(input);                                                     \
+        }                                                                           \
+    };                                                                              \
+    }                                                                               \
+    namespace detail {                                                              \
+    template<>                                                                      \
+    struct map_helper<ops::NAME<__half>, __half2, __half2> {                        \
+        KERNEL_FLOAT_INLINE static __half2 call(ops::NAME<__half>, __half2 input) { \
+            return FUN2(input);                                                     \
+        }                                                                           \
+    };                                                                              \
     }
 
 KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2);
@@ -109,23 +107,22 @@ KERNEL_FLOAT_FP16_UNARY_FUN(sin, ::hsin, ::h2sin);
 KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt);
 KERNEL_FLOAT_FP16_UNARY_FUN(trunc, ::htrunc, ::h2trunc);
 
-#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                               \
-    namespace ops {                                                                  \
-    template<>                                                                       \
-    struct NAME<__half> {                                                            \
-        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const {     \
-            return FUN1(left, right);                                                \
-        }                                                                            \
-    };                                                                               \
-    }                                                                                \
-    namespace detail {                                                               \
-    template<>                                                                       \
-    struct zip_helper<ops::NAME<__half>, vector_half2, vector_half2, vector_half2> { \
-        KERNEL_FLOAT_INLINE static __half2                                           \
-        call(ops::NAME<__half>, const __half2& left, const __half2& right) {         \
-            return FUN2(left, right);                                                \
-        }                                                                            \
-    };                                                                               \
+#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                            \
+    namespace ops {                                                                               \
+    template<>                                                                                    \
+    struct NAME<__half> {                                                                         \
+        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const {                  \
+            return FUN1(left, right);                                                             \
+        }                                                                                         \
+    };                                                                                            \
+    }                                                                                             \
+    namespace detail {                                                                            \
+    template<>                                                                                    \
+    struct zip_helper<ops::NAME<__half>, __half2, __half2, __half2> {                             \
+        KERNEL_FLOAT_INLINE static __half2 call(ops::NAME<__half>, __half2 left, __half2 right) { \
+            return FUN2(left, right);                                                             \
+        }                                                                                         \
+    };                                                                                            \
     }
 
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)
@@ -178,29 +175,11 @@ KERNEL_FLOAT_FP16_CAST(unsigned short, __ushort2half_rn(input), __half2ushort_rz
 KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__half2ull_rz(input)));
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
 
-namespace detail {
-template<>
-struct map_helper<ops::cast<__half, float>, vector_storage<float, 2>, vector_half2> {
-    KERNEL_FLOAT_INLINE static vector_storage<float, 2>
-    call(ops::cast<__half, float>, __half2 input) noexcept {
-        return __half22float2(input);
-    }
-};
-
-template<>
-struct map_helper<ops::cast<float, __half>, vector_half2, vector_storage<float, 2>> {
-    KERNEL_FLOAT_INLINE static vector_half2
-    call(ops::cast<float, __half>, const vector_storage<float, 2>& input) noexcept {
-        return __float22half2_rn(input);
-    }
-};
-}  // namespace detail
-
 using half = __half;
 using float16 = __half;
-KERNEL_FLOAT_TYPE_ALIAS(half, __half)
-KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
-KERNEL_FLOAT_TYPE_ALIAS(f16x, __half)
+//KERNEL_FLOAT_TYPE_ALIAS(half, __half)
+//KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
+//KERNEL_FLOAT_TYPE_ALIAS(f16x, __half)
 
 }  // namespace kernel_float
 

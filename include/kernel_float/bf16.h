@@ -6,94 +6,95 @@
 #if KERNEL_FLOAT_BF16_AVAILABLE
 #include <cuda_bf16.h>
 
+#include "binops.h"
+#include "cast.h"
 #include "interface.h"
+#include "storage.h"
+#include "unops.h"
 
 namespace kernel_float {
+KERNEL_FLOAT_DEFINE_COMMON_TYPE(__nv_bfloat16, bool)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, __nv_bfloat16)
 KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, __nv_bfloat16)
 
-struct vector_bfloat16x2 {
-    static_assert(sizeof(__nv_bfloat16) * 2 == sizeof(__nv_bfloat162), "invalid size");
-    static_assert(alignof(__nv_bfloat16) <= alignof(__nv_bfloat162), "invalid alignment");
+template<>
+struct vector_traits<__nv_bfloat162> {
+    using value_type = __nv_bfloat16;
+    static constexpr size_t size = 2;
 
-    KERNEL_FLOAT_INLINE vector_bfloat16x2(__nv_bfloat16 v = {}) noexcept : vector_ {v, v} {}
-    KERNEL_FLOAT_INLINE vector_bfloat16x2(__nv_bfloat16 x, __nv_bfloat16 y) noexcept :
-        vector_ {x, y} {}
-    KERNEL_FLOAT_INLINE vector_bfloat16x2(__nv_bfloat162 xy) noexcept : vector_ {xy} {}
-
-    KERNEL_FLOAT_INLINE operator __nv_bfloat162() const noexcept {
-        return vector_;
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat162 fill(__nv_bfloat16 value) {
+#if KERNEL_FLOAT_ON_DEVICE
+        return __bfloat162bfloat162(value);
+#else
+        return {value, value};
+#endif
     }
 
-    KERNEL_FLOAT_INLINE __nv_bfloat16 get(const_index<0>) const {
-        return vector_.x;
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat162 create(__nv_bfloat16 low, __nv_bfloat16 high) {
+#if KERNEL_FLOAT_ON_DEVICE
+        return __halves2bfloat162(low, high);
+#else
+        return {low, high};
+#endif
     }
 
-    KERNEL_FLOAT_INLINE __nv_bfloat16 get(const_index<1>) const {
-        return vector_.y;
-    }
-
-    KERNEL_FLOAT_INLINE void set(const_index<0>, __nv_bfloat16 v) {
-        *this = vector_bfloat16x2(v, get(const_index<1> {}));
-    }
-
-    KERNEL_FLOAT_INLINE void set(const_index<1>, __nv_bfloat16 v) {
-        *this = vector_bfloat16x2(get(const_index<0> {}), v);
-    }
-
-    KERNEL_FLOAT_INLINE __nv_bfloat16 get(size_t index) const {
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat16 get(__nv_bfloat162 self, size_t index) {
+#if KERNEL_FLOAT_ON_DEVICE
         if (index == 0) {
-            return get(const_index<0> {});
+            return __low2bfloat16(self);
         } else {
-            return get(const_index<1> {});
+            return __high2bfloat16(self);
+        }
+#else
+        if (index == 0) {
+            return self.x;
+        } else {
+            return self.y;
+        }
+#endif
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void set(__nv_bfloat162& self, size_t index, __nv_bfloat16 value) {
+        if (index == 0) {
+            self.x = value;
+        } else {
+            self.y = value;
         }
     }
-
-    KERNEL_FLOAT_INLINE void set(size_t index, __nv_bfloat16 value) const {
-        if (index == 0) {
-            set(const_index<0> {}, value);
-        } else {
-            set(const_index<1> {}, value);
-        }
-    }
-
-  private:
-    __nv_bfloat162 vector_;
 };
 
-template<>
-struct vector_traits<vector_bfloat16x2>:
-    default_vector_traits<vector_bfloat16x2, __nv_bfloat16, 2> {};
+template<size_t N>
+struct default_storage<__nv_bfloat16, N, Alignment::Maximum, enabled_t<(N >= 2)>> {
+    using type = nested_array<__nv_bfloat162, N>;
+};
 
-template<>
-struct vector_traits<__nv_bfloat16>: vector_traits<vector_scalar<__nv_bfloat16>> {};
-
-template<>
-struct vector_traits<__nv_bfloat162>: vector_traits<vector_bfloat16x2> {};
-
-template<>
-struct default_vector_storage<__nv_bfloat16, 2> {
-    using type = vector_bfloat16x2;
+template<size_t N>
+struct default_storage<__nv_bfloat16, N, Alignment::Packed, enabled_t<(N >= 2 && N % 2 == 0)>> {
+    using type = nested_array<__nv_bfloat162, N>;
 };
 
 #if KERNEL_FLOAT_ON_DEVICE
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                                   \
-    namespace ops {                                                                     \
-    template<>                                                                          \
-    struct NAME<__nv_bfloat16> {                                                        \
-        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) {             \
-            return FUN1(input);                                                         \
-        }                                                                               \
-    };                                                                                  \
-    }                                                                                   \
-    namespace detail {                                                                  \
-    template<>                                                                          \
-    struct map_helper<ops::NAME<__nv_bfloat16>, vector_bfloat16x2, vector_bfloat16x2> { \
-        KERNEL_FLOAT_INLINE static __nv_bfloat162                                       \
-        call(ops::NAME<__nv_bfloat16>, const __nv_bfloat162& input) {                   \
-            return FUN2(input);                                                         \
-        }                                                                               \
-    };                                                                                  \
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                             \
+    namespace ops {                                                               \
+    template<>                                                                    \
+    struct NAME<__nv_bfloat16> {                                                  \
+        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) {       \
+            return FUN1(input);                                                   \
+        }                                                                         \
+    };                                                                            \
+    }                                                                             \
+    namespace detail {                                                            \
+    template<>                                                                    \
+    struct map_helper<ops::NAME<__nv_bfloat16>, __nv_bfloat162, __nv_bfloat162> { \
+        KERNEL_FLOAT_INLINE static __nv_bfloat162                                 \
+        call(ops::NAME<__nv_bfloat16>, __nv_bfloat162 input) {                    \
+            return FUN2(input);                                                   \
+        }                                                                         \
+    };                                                                            \
     }
 
 KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2);
@@ -123,13 +124,9 @@ KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc);
     }                                                                                             \
     namespace detail {                                                                            \
     template<>                                                                                    \
-    struct zip_helper<                                                                            \
-        ops::NAME<__nv_bfloat16>,                                                                 \
-        vector_bfloat16x2,                                                                        \
-        vector_bfloat16x2,                                                                        \
-        vector_bfloat16x2> {                                                                      \
+    struct zip_helper<ops::NAME<__nv_bfloat16>, __nv_bfloat162, __nv_bfloat162, __nv_bfloat162> { \
         KERNEL_FLOAT_INLINE static __nv_bfloat162                                                 \
-        call(ops::NAME<__nv_bfloat16>, const __nv_bfloat162& left, const __nv_bfloat162& right) { \
+        call(ops::NAME<__nv_bfloat16>, __nv_bfloat162 left, __nv_bfloat162 right) {               \
             return FUN2(left, right);                                                             \
         }                                                                                         \
     };                                                                                            \
@@ -197,27 +194,10 @@ KERNEL_FLOAT_BF16_CAST(
     (unsigned long)(__bfloat162ull_rz(input)));
 KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
 
-namespace detail {
-template<>
-struct map_helper<ops::cast<__nv_bfloat16, float>, vector_storage<float, 2>, vector_bfloat16x2> {
-    KERNEL_FLOAT_INLINE static vector_storage<float, 2>
-    call(ops::cast<__nv_bfloat16, float>, __nv_bfloat162 input) noexcept {
-        return __bfloat1622float2(input);
-    }
-};
-
-template<>
-struct map_helper<ops::cast<float, __nv_bfloat16>, vector_bfloat16x2, vector_storage<float, 2>> {
-    KERNEL_FLOAT_INLINE static vector_bfloat16x2
-    call(ops::cast<float, __nv_bfloat16>, const vector_storage<float, 2>& input) noexcept {
-        return __float22bfloat162_rn(input);
-    }
-};
-}  // namespace detail
-
 using bfloat16 = __nv_bfloat16;
-KERNEL_FLOAT_TYPE_ALIAS(bf16x, __nv_bfloat16)
-KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
+//KERNEL_FLOAT_TYPE_ALIAS(half, __nv_bfloat16)
+//KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
+//KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
 
 }  // namespace kernel_float
 

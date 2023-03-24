@@ -13,7 +13,7 @@ struct range_helper;
 template<typename F, typename V, size_t... Is>
 struct range_helper<F, V, index_sequence<Is...>> {
     KERNEL_FLOAT_INLINE static V call(F fun) {
-        return V {fun(const_index<Is> {})...};
+        return vector_traits<V>::create(fun(const_index<Is> {})...);
     }
 };
 }  // namespace detail
@@ -29,9 +29,13 @@ struct range_helper<F, V, index_sequence<Is...>> {
  * vector<float, 3> vec = range<3>([](auto i) { return float(i * 2); });
  * ```
  */
-template<size_t N, typename F, typename T = result_t<F, size_t>>
-KERNEL_FLOAT_INLINE vector_storage<T, N> range(F fun) {
-    return detail::range_helper<F, vector_storage<T, N>>::call(fun);
+template<
+    size_t N,
+    typename F,
+    typename T = result_t<F, size_t>,
+    typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> range(F fun) {
+    return detail::range_helper<F, Output>::call(fun);
 }
 
 /**
@@ -44,17 +48,19 @@ KERNEL_FLOAT_INLINE vector_storage<T, N> range(F fun) {
  * vector<float, 3> vec = range<float, 3>();
  * ```
  */
-template<typename T, size_t N>
-KERNEL_FLOAT_INLINE vector_storage<T, N> range() {
-    return range(ops::cast<size_t, T> {});
+template<typename T, size_t N, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> range() {
+    using F = ops::cast<size_t, T>;
+    return detail::range_helper<F, Output>::call(F {});
 }
 
 /**
  * Generate vector having same size and type as ``V``, but filled with the numbers ``0..N-1``.
  */
-template<typename V>
-KERNEL_FLOAT_INLINE into_vector_type<V> range_like(V&& vector) {
-    return range<vector_value_type<V>, vector_size<V>>();
+template<typename Input, typename Output = into_storage_type<Input>>
+KERNEL_FLOAT_INLINE vector<Output> range_like(const Input&) {
+    using F = ops::cast<size_t, vector_value_type<Input>>;
+    return detail::range_helper<F, Output>::call(F {});
 }
 
 /**
@@ -67,17 +73,17 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(V&& vector) {
  * vector<float, 3> = fill(1.0f);
  * ```
  */
-template<size_t N = 1, typename T>
-KERNEL_FLOAT_INLINE vector_storage<T, N> fill(T value) {
-    return {value};
+template<size_t N = 1, typename T, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> fill(T value) {
+    return vector_traits<Output>::fill(value);
 }
 
 /**
  * Generate vector having same size and type as ``V``, but filled with the given ``value``.
  */
-template<typename V, typename T = vector_value_type<V>>
-KERNEL_FLOAT_INLINE into_vector_type<V> fill_like(V&& vector, T value) {
-    return {value};
+template<typename Output>
+KERNEL_FLOAT_INLINE vector<Output> fill_like(const Output&, vector_value_type<Output> value) {
+    return vector_traits<Output>::fill(value);
 }
 
 /**
@@ -90,18 +96,18 @@ KERNEL_FLOAT_INLINE into_vector_type<V> fill_like(V&& vector, T value) {
  * vector<float, 3> = zeros();
  * ```
  */
-template<size_t N = 1, typename T = bool>
-KERNEL_FLOAT_INLINE vector_storage<T, N> zeros() {
-    return fill<N, T>(T(0));
+template<size_t N = 1, typename T = bool, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> zeros() {
+    return vector_traits<Output>::fill(T(0));
 }
 
 /**
  * Generate vector having same size and type as ``V``, but filled with zeros.
  *
  */
-template<typename V>
-KERNEL_FLOAT_INLINE into_vector_type<V> zeros_like(V&& vector) {
-    return zeros<vector_size<V>, vector_value_type<V>>();
+template<typename Output>
+KERNEL_FLOAT_INLINE vector<Output> zeros_like(const Output& output = {}) {
+    return vector_traits<Output>::fill(0);
 }
 
 /**
@@ -114,18 +120,18 @@ KERNEL_FLOAT_INLINE into_vector_type<V> zeros_like(V&& vector) {
  * vector<float, 3> = ones();
  * ```
  */
-template<size_t N = 1, typename T = bool>
-KERNEL_FLOAT_INLINE vector_storage<T, N> ones() {
-    return fill<N, T>(T(1));
+template<size_t N = 1, typename T = bool, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> ones() {
+    return vector_traits<Output>::fill(T(1));
 }
 
 /**
  * Generate vector having same size and type as ``V``, but filled with ones.
  *
  */
-template<typename V>
-KERNEL_FLOAT_INLINE into_vector_type<V> ones_like(V&& vector) {
-    return ones<vector_size<V>, vector_value_type<V>>();
+template<typename Output>
+KERNEL_FLOAT_INLINE vector<Output> ones_like(const Output& output = {}) {
+    return vector_traits<Output>::fill(1);
 }
 
 namespace detail {
@@ -142,7 +148,7 @@ template<typename F, typename V, size_t I, size_t... Rest>
 struct iterate_helper<F, V, index_sequence<I, Rest...>> {
     KERNEL_FLOAT_INLINE
     static void call(F fun, const V& input) {
-        fun(input.get(const_index<I> {}));
+        fun(vector_get<I>(input));
         iterate_helper<F, V, index_sequence<Rest...>>::call(fun, input);
     }
 };
@@ -160,8 +166,8 @@ struct iterate_helper<F, V, index_sequence<I, Rest...>> {
  * ```
  */
 template<typename V, typename F>
-KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
-    detail::iterate_helper<F, into_vector_type<V>>::call(fun, into_vector(input));
+KERNEL_FLOAT_INLINE void for_each(const V& input, F fun) {
+    detail::iterate_helper<F, into_storage_type<V>>::call(fun, into_storage(input));
 }
 
 }  // namespace kernel_float

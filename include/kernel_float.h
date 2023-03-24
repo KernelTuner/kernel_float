@@ -3,6 +3,7 @@
 
 #include "kernel_float/bf16.h"
 #include "kernel_float/binops.h"
+#include "kernel_float/cast.h"
 #include "kernel_float/fp16.h"
 #include "kernel_float/fp8.h"
 #include "kernel_float/interface.h"

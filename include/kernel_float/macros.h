@@ -24,15 +24,20 @@
 #endif
 
 #ifndef KERNEL_FLOAT_FP16_AVAILABLE
-#define KERNEL_FLOAT_FP16_AVAILABLE (KERNEL_FLOAT_CUDA)
+#define KERNEL_FLOAT_FP16_AVAILABLE (1)
 #endif
 
 #ifndef KERNEL_FLOAT_BF16_AVAILABLE
-#define KERNEL_FLOAT_BF16_AVAILABLE (KERNEL_FLOAT_CUDA)
+#define KERNEL_FLOAT_BF16_AVAILABLE (1)
 #endif
 
 #ifndef KERNEL_FLOAT_FP8_AVAILABLE
 #define KERNEL_FLOAT_FP8_AVAILABLE (0)
 #endif
+
+#define KERNEL_FLOAT_ASSERT(expr) \
+    do {                          \
+    } while (0)
+#define KERNEL_FLOAT_UNREACHABLE __builtin_unreachable()
 
 #endif  //KERNEL_FLOAT_MACROS_H

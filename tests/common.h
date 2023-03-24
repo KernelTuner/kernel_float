@@ -33,25 +33,28 @@ template<typename... Ts>
 __host__ __device__ void ignore(Ts...) {}
 
 template<typename T>
-__host__ __device__ bool bitwise_equal(T left, T right) {
-    union {
-        T item;
-        char bytes[sizeof(T)];
-    } a, b;
-
-    a.item = left;
-    b.item = right;
-
-    for (int i = 0; i < sizeof(T); i++) {
-        if (a.bytes[i] != b.bytes[i]) {
-            for (int j = 0; j < sizeof(T); j++) {
-                printf("byte %d] %d != %d\n", j, a.bytes[j], b.bytes[j]);
-            }
-            return false;
-        }
+struct equals_helper {
+    __host__ __device__ static bool call(T left, T right) {
+        return left == right;
     }
+};
 
-    return true;
+template<>
+struct equals_helper<double> {
+    __host__ __device__ static bool call(double left, double right) {
+        return (isnan(left) && isnan(right)) || (isinf(left) && isinf(right)) || left == right;
+    }
+};
+
+template<>
+struct equals_helper<float>: equals_helper<double> {};
+
+template<>
+struct equals_helper<__half>: equals_helper<double> {};
+
+template<typename T>
+__host__ __device__ bool equals(T left, T right) {
+    return equals_helper<T>::call(left, right);
 }
 
 template<typename... Ts>

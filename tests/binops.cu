@@ -13,33 +13,33 @@ struct arithmetic_test<T, N, std::index_sequence<Is...>> {
 
         // binary operator
         c = a + b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) + b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) + b.get(Is)) && ...);
 
         c = a - b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) - b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) - b.get(Is)) && ...);
 
         c = a * b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) * b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) * b.get(Is)) && ...);
 
         c = a / b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) / b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) / b.get(Is)) && ...);
 
         // assignment operator
         c = a;
         c += b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) + b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) + b.get(Is)) && ...);
 
         c = a;
         c -= b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) - b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) - b.get(Is)) && ...);
 
         c = a;
         c *= b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) * b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) * b.get(Is)) && ...);
 
         c = a;
         c /= b;
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) / b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) / b.get(Is)) && ...);
     }
 };
 
@@ -52,10 +52,10 @@ struct minmax_test<T, N, std::index_sequence<Is...>> {
         kf::vec<T, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
 
         c = kf::min(a, b);
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) < b.get(Is) ? a.get(Is) : b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) < b.get(Is) ? a.get(Is) : b.get(Is)) && ...);
 
         c = kf::max(a, b);
-        ASSERT(bitwise_equal(c.get(Is), a.get(Is) > b.get(Is) ? a.get(Is) : b.get(Is)) && ...);
+        ASSERT(equals(c.get(Is), a.get(Is) > b.get(Is) ? a.get(Is) : b.get(Is)) && ...);
     }
 };
 
@@ -65,10 +65,10 @@ struct minmax_test<float, N, std::index_sequence<Is...>> {
         kf::vec<float, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
 
         c = kf::min(a, b);
-        ASSERT(bitwise_equal(c.get(Is), fminf(a.get(Is), b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), fminf(a.get(Is), b.get(Is))) && ...);
 
         c = kf::max(a, b);
-        ASSERT(bitwise_equal(c.get(Is), fmaxf(a.get(Is), b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), fmaxf(a.get(Is), b.get(Is))) && ...);
     }
 };
 
@@ -78,10 +78,10 @@ struct minmax_test<double, N, std::index_sequence<Is...>> {
         kf::vec<double, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
 
         c = kf::min(a, b);
-        ASSERT(bitwise_equal(c.get(Is), fmin(a.get(Is), b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), fmin(a.get(Is), b.get(Is))) && ...);
 
         c = kf::max(a, b);
-        ASSERT(bitwise_equal(c.get(Is), fmax(a.get(Is), b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), fmax(a.get(Is), b.get(Is))) && ...);
     }
 };
 
@@ -96,22 +96,22 @@ struct relational_test<T, N, std::index_sequence<Is...>> {
         kf::vec<T, N> c;
 
         c = a == b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) == b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) == b.get(Is))) && ...);
 
         c = a != b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) != b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) != b.get(Is))) && ...);
 
         c = a < b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) < b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) < b.get(Is))) && ...);
 
         c = a <= b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) <= b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) <= b.get(Is))) && ...);
 
         c = a > b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) > b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) > b.get(Is))) && ...);
 
         c = a >= b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) >= b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) >= b.get(Is))) && ...);
     }
 };
 
@@ -121,17 +121,17 @@ struct bitwise_test;
 template<typename T, size_t N, size_t... Is>
 struct bitwise_test<T, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a {gen.next(Is)...};
-        kf::vec<T, N> b {gen.next(Is)...};
+        kf::vec<T, N> a = {gen.next(Is)...};
+        kf::vec<T, N> b = {gen.next(Is)...};
 
         kf::vec<T, N> c = a | b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) | b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) | b.get(Is))) && ...);
 
         c = a & b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) & b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) & b.get(Is))) && ...);
 
         c = a ^ b;
-        ASSERT(bitwise_equal(c.get(Is), T(a.get(Is) ^ b.get(Is))) && ...);
+        ASSERT(equals(c.get(Is), T(a.get(Is) ^ b.get(Is))) && ...);
     }
 };
 
