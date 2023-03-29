@@ -1,7 +1,12 @@
 #ifndef KERNEL_FLOAT_INTERFACE_H
 #define KERNEL_FLOAT_INTERFACE_H
 
+#include "binops.h"
+#include "iterate.h"
+#include "reduce.h"
 #include "storage.h"
+#include "swizzle.h"
+#include "unops.h"
 
 namespace kernel_float {
 
