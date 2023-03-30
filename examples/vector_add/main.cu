@@ -17,9 +17,9 @@ void cuda_check(cudaError_t code) {
 template<int N>
 __global__ void my_kernel(
     int length,
-    const kf::unaligned_halfX<N>* input,
+    const kf::unaligned_vec<__half, N>* input,
     double constant,
-    kf::unaligned_floatX<N>* output) {
+    kf::unaligned_vec<float, N>* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
