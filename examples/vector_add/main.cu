@@ -6,6 +6,8 @@
 #include "kernel_float.h"
 namespace kf = kernel_float;
 
+using x = kf::half;
+
 void cuda_check(cudaError_t code) {
     if (code != cudaSuccess) {
         throw std::runtime_error(std::string("CUDA error: ") + cudaGetErrorString(code));
@@ -13,12 +15,15 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N>
-__global__ void
-my_kernel(int length, const kf::halfX<N>* input, double constant, kf::floatX<N>* output) {
+__global__ void my_kernel(
+    int length,
+    const kf::unaligned_halfX<N>* input,
+    double constant,
+    kf::unaligned_floatX<N>* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        output[i] = kf::cast<float>(input[i] * constant);
+        output[i] = kf::cast<float>((input[i] * input[i]) * constant);
     }
 }
 
@@ -36,8 +41,8 @@ void run_kernel(int n) {
     }
 
     // Allocate device memory
-    kf::vec<__half, items_per_thread>* input_dev;
-    kf::vec<float, items_per_thread>* output_dev;
+    kf::unaligned_vec<__half, items_per_thread>* input_dev;
+    kf::unaligned_vec<float, items_per_thread>* output_dev;
     cuda_check(cudaMalloc(&input_dev, sizeof(__half) * n));
     cuda_check(cudaMalloc(&output_dev, sizeof(float) * n));
 
@@ -75,6 +80,7 @@ int main() {
 
     run_kernel<1>(n);
     run_kernel<2>(n);
+    run_kernel<3>(n);
     run_kernel<4>(n);
     run_kernel<8>(n);
 

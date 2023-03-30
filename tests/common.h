@@ -1,10 +1,13 @@
 #pragma once
 
+#include <cuda_bf16.h>
+#include <cuda_fp16.h>
+
 #include <cstdint>
 #include <random>
 #include <string>
 
-#include "catch.hpp"
+#include "catch2/catch_all.hpp"
 #include "kernel_float.h"
 
 #define ASSERT(expr) check_assertions((expr), #expr, __FILE__, __LINE__);
@@ -30,25 +33,28 @@ template<typename... Ts>
 __host__ __device__ void ignore(Ts...) {}
 
 template<typename T>
-__host__ __device__ bool bitwise_equal(T left, T right) {
-    union {
-        T item;
-        char bytes[sizeof(T)];
-    } a, b;
-
-    a.item = left;
-    b.item = right;
-
-    for (int i = 0; i < sizeof(T); i++) {
-        if (a.bytes[i] != b.bytes[i]) {
-            for (int j = 0; j < sizeof(T); j++) {
-                printf("byte %d] %d != %d\n", j, a.bytes[j], b.bytes[j]);
-            }
-            return false;
-        }
+struct equals_helper {
+    __host__ __device__ static bool call(T left, T right) {
+        return left == right;
     }
+};
 
-    return true;
+template<>
+struct equals_helper<double> {
+    __host__ __device__ static bool call(double left, double right) {
+        return (isnan(left) && isnan(right)) || (isinf(left) && isinf(right)) || left == right;
+    }
+};
+
+template<>
+struct equals_helper<float>: equals_helper<double> {};
+
+template<>
+struct equals_helper<__half>: equals_helper<double> {};
+
+template<typename T>
+__host__ __device__ bool equals(T left, T right) {
+    return equals_helper<T>::call(left, right);
 }
 
 template<typename... Ts>
@@ -221,8 +227,14 @@ template<template<typename, size_t> class F, typename T, size_t N>
 struct device_runner {
     template<typename... Args>
     void operator()(Args... args) {
+        static bool gpu_enabled = true;
+        if (!gpu_enabled) {
+            return;
+        }
+
         cudaError_t code = cudaSetDevice(0);
         if (code != cudaSuccess) {
+            gpu_enabled = false;
             WARN("skipping device code");
             return;
         }

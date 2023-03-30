@@ -2,89 +2,172 @@
 #define KERNEL_FLOAT_ITERATE_H
 
 #include "storage.h"
+#include "unops.h"
 
 namespace kernel_float {
 
 namespace detail {
-template<typename F, size_t N>
-struct range_helper {
-    using return_type = result_t<F, size_t>;
-    KERNEL_FLOAT_INLINE
-    static vec<return_type, N> call(F fun) {
-        return call(fun, make_index_sequence<N> {});
-    }
+template<typename F, typename V, typename Indices = make_index_sequence<vector_size<V>>>
+struct range_helper;
 
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static vec<return_type, N> call(F fun, index_sequence<Is...>) {
-        return vec_storage<return_type, N>(fun(constant_index<Is> {})...);
+template<typename F, typename V, size_t... Is>
+struct range_helper<F, V, index_sequence<Is...>> {
+    KERNEL_FLOAT_INLINE static V call(F fun) {
+        return vector_traits<V>::create(fun(const_index<Is> {})...);
     }
 };
 }  // namespace detail
 
-template<size_t N, typename F, typename T = result_t<F, size_t>>
-KERNEL_FLOAT_INLINE vec<T, N> range(F fun) {
-    return detail::range_helper<F, N>::call(fun);
+/**
+ * Generate vector of length ``N`` by applying the given function ``fun`` to
+ * each index ``0...N-1``.
+ *
+ * Example
+ * =======
+ * ```
+ * // returns [0, 2, 4]
+ * vector<float, 3> vec = range<3>([](auto i) { return float(i * 2); });
+ * ```
+ */
+template<
+    size_t N,
+    typename F,
+    typename T = result_t<F, size_t>,
+    typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> range(F fun) {
+    return detail::range_helper<F, Output>::call(fun);
 }
 
-template<typename T, size_t N>
-KERNEL_FLOAT_INLINE vec<T, N> range() {
-    return range<N>(ops::cast<size_t, T> {});
+/**
+ * Generate vector consisting of the numbers ``0...N-1`` of type ``T``.
+ *
+ * Example
+ * =======
+ * ```
+ * // Returns [0, 1, 2]
+ * vector<float, 3> vec = range<float, 3>();
+ * ```
+ */
+template<typename T, size_t N, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> range() {
+    using F = ops::cast<size_t, T>;
+    return detail::range_helper<F, Output>::call(F {});
 }
 
-template<size_t N>
-KERNEL_FLOAT_INLINE vec<size_t, N> range() {
-    return range<size_t, N>();
+/**
+ * Generate vector having same size and type as ``V``, but filled with the numbers ``0..N-1``.
+ */
+template<typename Input, typename Output = into_storage_type<Input>>
+KERNEL_FLOAT_INLINE vector<Output> range_like(const Input&) {
+    using F = ops::cast<size_t, vector_value_type<Input>>;
+    return detail::range_helper<F, Output>::call(F {});
+}
+
+/**
+ * Generate vector of `N` elements of type `T`
+ *
+ * Example
+ * =======
+ * ```
+ * // Returns [1.0, 1.0, 1.0]
+ * vector<float, 3> = fill(1.0f);
+ * ```
+ */
+template<size_t N = 1, typename T, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> fill(T value) {
+    return vector_traits<Output>::fill(value);
+}
+
+/**
+ * Generate vector having same size and type as ``V``, but filled with the given ``value``.
+ */
+template<typename Output>
+KERNEL_FLOAT_INLINE vector<Output> fill_like(const Output&, vector_value_type<Output> value) {
+    return vector_traits<Output>::fill(value);
+}
+
+/**
+ * Generate vector of ``N`` zeros of type ``T``
+ *
+ * Example
+ * =======
+ * ```
+ * // Returns [0.0, 0.0, 0.0]
+ * vector<float, 3> = zeros();
+ * ```
+ */
+template<size_t N = 1, typename T = bool, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> zeros() {
+    return vector_traits<Output>::fill(T(0));
+}
+
+/**
+ * Generate vector having same size and type as ``V``, but filled with zeros.
+ *
+ */
+template<typename Output>
+KERNEL_FLOAT_INLINE vector<Output> zeros_like(const Output& output = {}) {
+    return vector_traits<Output>::fill(0);
+}
+
+/**
+ * Generate vector of ``N`` ones of type ``T``
+ *
+ * Example
+ * =======
+ * ```
+ * // Returns [1.0, 1.0, 1.0]
+ * vector<float, 3> = ones();
+ * ```
+ */
+template<size_t N = 1, typename T = bool, typename Output = default_storage_type<T, N>>
+KERNEL_FLOAT_INLINE vector<Output> ones() {
+    return vector_traits<Output>::fill(T(1));
+}
+
+/**
+ * Generate vector having same size and type as ``V``, but filled with ones.
+ *
+ */
+template<typename Output>
+KERNEL_FLOAT_INLINE vector<Output> ones_like(const Output& output = {}) {
+    return vector_traits<Output>::fill(1);
 }
 
 namespace detail {
-template<typename F, typename T, size_t N>
-struct iterate_helper {
-    KERNEL_FLOAT_INLINE
-    static void call(F fun, vec<T, N>& input) {
-        call(fun, input, make_index_sequence<N> {});
-    }
+template<typename F, typename V, typename Indices = make_index_sequence<vector_size<V>>>
+struct iterate_helper;
 
-  private:
-    template<size_t First, size_t... Rest>
-    KERNEL_FLOAT_INLINE static void
-    call(F fun, vec<T, N>& input, index_sequence<First, Rest...> = make_index_sequence<N> {}) {
-        fun(input.get(constant_index<First> {}));
-        call(fun, input, index_sequence<Rest...> {});
-    }
+template<typename F, typename V>
+struct iterate_helper<F, V, index_sequence<>> {
     KERNEL_FLOAT_INLINE
-    static void call(F fun, vec<T, N>& input, index_sequence<>) {}
+    static void call(F fun, const V& input) {}
 };
 
-template<typename F, typename T, size_t N>
-struct iterate_helper<F, const T, N> {
+template<typename F, typename V, size_t I, size_t... Rest>
+struct iterate_helper<F, V, index_sequence<I, Rest...>> {
     KERNEL_FLOAT_INLINE
-    static void call(F fun, const vec<T, N>& input) {
-        call(fun, input, make_index_sequence<N> {});
+    static void call(F fun, const V& input) {
+        fun(vector_get<I>(input));
+        iterate_helper<F, V, index_sequence<Rest...>>::call(fun, input);
     }
-
-  private:
-    template<size_t First, size_t... Rest>
-    KERNEL_FLOAT_INLINE static void call(
-        F fun,
-        const vec<T, N>& input,
-        index_sequence<First, Rest...> = make_index_sequence<N> {}) {
-        fun(input.get(constant_index<First> {}));
-        call(fun, input, index_sequence<Rest...> {});
-    }
-
-    static void call(F fun, const vec<T, N>& input, index_sequence<>) {}
 };
 }  // namespace detail
 
-template<typename T, size_t N, typename F>
-KERNEL_FLOAT_INLINE void for_each(const vec<T, N>& input, F fun) {
-    return detail::iterate_helper<F, const T, N>::call(fun, input);
-}
-
-template<typename T, size_t N, typename F>
-KERNEL_FLOAT_INLINE void for_each(vec<T, N>& input, F fun) {
-    return detail::iterate_helper<F, T, N>::call(fun, input);
+/**
+ * Apply the function ``fun`` for each element from ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * for_each(range<3>(), [&](auto i) {
+ *    printf("element: %d\n", i);
+ * });
+ * ```
+ */
+template<typename V, typename F>
+KERNEL_FLOAT_INLINE void for_each(const V& input, F fun) {
+    detail::iterate_helper<F, into_storage_type<V>>::call(fun, into_storage(input));
 }
 
 }  // namespace kernel_float

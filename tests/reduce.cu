@@ -1,4 +1,3 @@
-#include "catch.hpp"
 #include "common.h"
 #include "kernel_float.h"
 

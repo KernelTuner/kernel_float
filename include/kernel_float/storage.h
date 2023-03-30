@@ -1,354 +1,498 @@
-#ifndef KERNEL_FLOAT_STORAGE_H
-#define KERNEL_FLOAT_STORAGE_H
+#ifndef KERNEL_FLOAT_STORAGE
+#define KERNEL_FLOAT_STORAGE
 
-#include "core.h"
+#include "meta.h"
 
 namespace kernel_float {
-namespace detail {
 
-template<typename ToIndices, typename FromIndices>
-struct assign_helper;
+template<typename V>
+struct vector_traits {
+    using value_type = V;
+    static constexpr size_t size = 1;
 
-template<size_t I, size_t J, size_t... Is, size_t... Js>
-struct assign_helper<index_sequence<I, Is...>, index_sequence<J, Js...>> {
-    template<typename To, typename From>
-    KERNEL_FLOAT_INLINE static void call(To& to, const From& from) {
-        to.set(I, from.get(J));
-        assign_helper<index_sequence<Is...>, index_sequence<Js...>>::call(to, from);
+    KERNEL_FLOAT_INLINE
+    static V fill(value_type value) {
+        return value;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static V create(value_type value) {
+        return value;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static value_type get(const V& self, size_t index) {
+        KERNEL_FLOAT_ASSERT(index == 0);
+        return self;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void set(V& self, size_t index, value_type value) {
+        KERNEL_FLOAT_ASSERT(index == 0);
+        self = value;
     }
 };
 
-template<>
-struct assign_helper<index_sequence<>, index_sequence<>> {
-    template<typename To, typename From>
-    KERNEL_FLOAT_INLINE static void call(To& to, const From& from) {}
+template<typename V>
+struct into_storage_traits {
+    using type = V;
+
+    KERNEL_FLOAT_INLINE
+    static constexpr type call(V self) {
+        return self;
+    }
 };
 
-#define KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(T, N)                                      \
-    template<size_t... Is>                                                              \
-    KERNEL_FLOAT_INLINE vec<T, sizeof...(Is)> get(index_sequence<Is...>) const {        \
-        return {this->get(constant_index<Is> {})...};                                   \
-    }                                                                                   \
-    template<size_t... Is>                                                              \
-    KERNEL_FLOAT_INLINE void set(index_sequence<Is...>, vec<T, sizeof...(Is)> values) { \
-        assign_helper<index_sequence<Is...>, make_index_sequence<sizeof...(Is)>>::call( \
-            *this,                                                                      \
-            values);                                                                    \
+template<typename V>
+struct into_storage_traits<V&>: into_storage_traits<V> {};
+
+template<typename V>
+struct into_storage_traits<const V&>: into_storage_traits<V> {};
+
+template<typename V>
+struct into_storage_traits<V&&>: into_storage_traits<V> {};
+
+template<typename V>
+using into_storage_type = typename into_storage_traits<V>::type;
+
+template<typename V>
+KERNEL_FLOAT_INLINE into_storage_type<V> into_storage(V&& input) {
+    return into_storage_traits<V>::call(input);
+}
+
+template<typename V>
+static constexpr size_t vector_size = vector_traits<into_storage_type<V>>::size;
+
+template<typename V>
+using vector_value_type = typename vector_traits<into_storage_type<V>>::value_type;
+
+template<typename V, size_t I>
+struct vector_index {
+    using value_type = vector_value_type<V>;
+
+    KERNEL_FLOAT_INLINE
+    static value_type get(const V& self) {
+        return vector_traits<V>::get(self, I);
     }
 
-#define KERNEL_FLOAT_STORAGE_ACCESSORS(T, N)                   \
-    template<size_t I>                                         \
-    KERNEL_FLOAT_INLINE T get(constant_index<I>) const {       \
-        return this->get(size_t(I));                           \
-    }                                                          \
-    template<size_t I>                                         \
-    KERNEL_FLOAT_INLINE void set(constant_index<I>, T value) { \
-        this->set(size_t(I), value);                           \
-    }                                                          \
-    KERNEL_FLOAT_STORAGE_MULTI_ACCESSORS(T, N)
-
-#define KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(FIELD, T, N) \
-    KERNEL_FLOAT_INLINE T get(size_t index) const {       \
-        return FIELD[index];                              \
-    }                                                     \
-    KERNEL_FLOAT_INLINE void set(size_t index, T value) { \
-        FIELD[index] = value;                             \
-    }                                                     \
-    KERNEL_FLOAT_STORAGE_ACCESSORS(T, N)
-
-template<typename T, size_t N>
-struct vec_storage;
-
-template<typename T>
-struct vec_storage<T, 1> {
-    KERNEL_FLOAT_INLINE vec_storage(T value) noexcept : value_(value) {}
-
-    KERNEL_FLOAT_INLINE operator T() const noexcept {
-        return value_;
+    KERNEL_FLOAT_INLINE
+    static void set(V& self, value_type value) {
+        return vector_traits<V>::set(self, I, value);
     }
-
-    KERNEL_FLOAT_INLINE T get(size_t index) const {
-        return value_;
-    }
-
-    KERNEL_FLOAT_INLINE void set(size_t index, T value) {
-        value_ = value;
-    }
-
-    KERNEL_FLOAT_STORAGE_ACCESSORS(T, 1)
-
-  private:
-    T value_;
 };
 
-template<typename T>
-struct vec_storage<T, 2> {
-    KERNEL_FLOAT_INLINE vec_storage(T x, T y) noexcept : values_ {x, y} {}
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(values_, T, 2)
+template<typename V>
+KERNEL_FLOAT_INLINE vector_value_type<V> vector_get(const V& self, size_t index) {
+    return vector_traits<V>::get(self, index);
+}
 
-  private:
-    T values_[2];
+template<size_t I, typename V>
+KERNEL_FLOAT_INLINE vector_value_type<V> vector_get(const V& self, const_index<I> = {}) {
+    return vector_index<V, I>::get(self);
+}
+
+template<typename Output, typename Input, typename Indices, typename = void>
+struct vector_swizzle;
+
+template<typename Output, typename Input, size_t... Is>
+struct vector_swizzle<Output, Input, index_sequence<Is...>> {
+    KERNEL_FLOAT_INLINE static Output call(const Input& storage) {
+        return vector_traits<Output>::create(vector_get<Is>(storage)...);
+    }
 };
 
-template<typename T>
-struct vec_storage<T, 3> {
-    KERNEL_FLOAT_INLINE vec_storage(T x, T y, T z) noexcept : values_ {x, y, z} {}
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(values_, T, 3)
+template<typename V>
+struct vector;
 
-  private:
-    T values_[3];
+template<typename T, size_t N, size_t alignment = alignof(T)>
+struct alignas(alignment) array {
+    T items_[N];
+
+    KERNEL_FLOAT_INLINE
+    T& operator[](size_t i) {
+        KERNEL_FLOAT_ASSERT(i < N);
+        return items_[i];
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T& operator[](size_t i) const {
+        KERNEL_FLOAT_ASSERT(i < N);
+        return items_[i];
+    }
 };
 
-template<typename T>
-struct vec_storage<T, 4> {
-    KERNEL_FLOAT_INLINE vec_storage(T x, T y, T z, T w) noexcept : low_ {x, y}, high_ {z, w} {}
-    KERNEL_FLOAT_INLINE vec_storage(vec_storage<T, 2> low, vec_storage<T, 2> high) noexcept :
-        low_ {low},
-        high_ {high} {}
+template<typename T, size_t N, size_t A>
+struct vector_traits<array<T, N, A>> {
+    using self_type = array<T, N, A>;
+    using value_type = T;
+    static constexpr size_t size = N;
 
-    KERNEL_FLOAT_INLINE T get(size_t index) const {
-        if (index < 2) {
-            return low_.get(index);
-        } else {
-            return high_.get(index - 2);
+    template<typename... Args>
+    KERNEL_FLOAT_INLINE static self_type create(Args&&... args) {
+        return {args...};
+    }
+
+    KERNEL_FLOAT_INLINE
+    static self_type fill(value_type value) {
+        self_type result;
+        for (size_t i = 0; i < N; i++) {
+            result[i] = value;
         }
-    }
-    KERNEL_FLOAT_INLINE void set(size_t index, T value) {
-        if (index < 2) {
-            low_.set(index, value);
-        } else {
-            high_.set(index - 2, value);
-        }
+        return result;
     }
 
-    KERNEL_FLOAT_STORAGE_ACCESSORS(T, 4)
-
-    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<0, 1>) const {
-        return low_;
+    KERNEL_FLOAT_INLINE
+    static value_type get(const self_type& self, size_t index) {
+        KERNEL_FLOAT_ASSERT(index < N);
+        return self[index];
     }
 
-    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<2, 3>) const {
-        return high_;
+    KERNEL_FLOAT_INLINE
+    static void set(self_type& self, size_t index, value_type value) {
+        KERNEL_FLOAT_ASSERT(index < N);
+        self[index] = value;
     }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1>, vec_storage<T, 2> values) {
-        low_ = values;
-    }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<2, 3>, vec_storage<T, 2> values) {
-        high_ = values;
-    }
-
-  private:
-    vec_storage<T, 2> high_;
-    vec_storage<T, 2> low_;
 };
 
-template<typename T>
-struct vec_storage<T, 5> {
-    KERNEL_FLOAT_INLINE vec_storage(T v0, T v1, T v2, T v3, T v4) noexcept :
-        values_ {v0, v1, v2, v3, v4} {}
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(values_, T, 5)
+template<typename T, size_t A>
+struct array<T, 0, A> {};
 
-  private:
-    T values_[5];
+template<typename T, size_t A>
+struct vector_traits<array<T, 0, A>> {
+    using self_type = array<T, 0, A>;
+    using value_type = T;
+    static constexpr size_t size = 0;
+
+    KERNEL_FLOAT_INLINE
+    static self_type create() {
+        return {};
+    }
+
+    KERNEL_FLOAT_INLINE
+    static self_type fill(value_type value) {
+        return {};
+    }
+
+    KERNEL_FLOAT_INLINE
+    static value_type get(const self_type& self, size_t index) {
+        KERNEL_FLOAT_UNREACHABLE;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void set(self_type& self, size_t index, value_type value) {
+        KERNEL_FLOAT_UNREACHABLE;
+    }
 };
 
-template<typename T>
-struct vec_storage<T, 6> {
-    KERNEL_FLOAT_INLINE vec_storage(T v0, T v1, T v2, T v3, T v4, T v5) noexcept :
-        low_ {v0, v1, v2, v3},
-        high_ {v4, v5} {}
-    KERNEL_FLOAT_INLINE vec_storage(vec_storage<T, 4> low, vec_storage<T, 2> high) noexcept :
-        low_ {low},
-        high_ {high} {}
-
-    KERNEL_FLOAT_STORAGE_ACCESSORS(T, 6)
-
-    KERNEL_FLOAT_INLINE T get(size_t index) const {
-        if (index < 4) {
-            return low_.get(index);
-        } else {
-            return high_.get(index - 4);
-        }
-    }
-    KERNEL_FLOAT_INLINE void set(size_t index, T value) {
-        if (index < 4) {
-            low_.set(index, value);
-        } else {
-            high_.set(index - 4, value);
-        }
-    }
-
-    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<0, 1, 2, 3>) const {
-        return low_;
-    }
-
-    KERNEL_FLOAT_INLINE vec<T, 2> get(index_sequence<4, 5>) const {
-        return high_;
-    }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1, 2, 3>, vec<T, 4> values) {
-        low_ = values;
-    }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<4, 5>, vec<T, 2> values) {
-        high_ = values;
-    }
-
-  private:
-    vec_storage<T, 4> low_;
-    vec_storage<T, 2> high_;
+enum struct Alignment {
+    Minimum,
+    Packed,
+    Maximum,
 };
 
-template<typename T>
-struct vec_storage<T, 7> {
-    KERNEL_FLOAT_INLINE vec_storage(T v0, T v1, T v2, T v3, T v4, T v5, T v6) noexcept :
-        values_ {v0, v1, v2, v3, v4, v5, v6} {}
-    KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(values_, T, 7)
-
-  private:
-    T values_[7];
-};
-
-template<typename T>
-struct vec_storage<T, 8> {
-    KERNEL_FLOAT_INLINE vec_storage(T v0, T v1, T v2, T v3, T v4, T v5, T v6, T v7) noexcept :
-        low_ {v0, v1, v2, v3},
-        high_ {v4, v5, v6, v7} {}
-    KERNEL_FLOAT_INLINE vec_storage(vec_storage<T, 4> low, vec_storage<T, 4> high) noexcept :
-        low_ {low},
-        high_ {high} {}
-    KERNEL_FLOAT_STORAGE_ACCESSORS(T, 8)
-
-    KERNEL_FLOAT_INLINE T get(size_t index) const {
-        if (index < 4) {
-            return low_.get(index);
+constexpr size_t calculate_alignment(Alignment required, size_t min_alignment, size_t total_size) {
+    if (required == Alignment::Packed) {
+        if (total_size <= 1) {
+            return 1;
+        } else if (total_size <= 2) {
+            return 2;
+        } else if (total_size <= 4) {
+            return 4;
+        } else if (total_size <= 8) {
+            return 8;
         } else {
-            return high_.get(index - 4);
+            return 16;
         }
-    }
-    KERNEL_FLOAT_INLINE void set(size_t index, T value) {
-        if (index < 4) {
-            low_.set(index, value);
+    } else if (required == Alignment::Maximum) {
+        if (total_size % 16 == 0) {
+            return 16;
+        } else if (total_size % 8 == 0) {
+            return 8;
+        } else if (total_size % 4 == 0) {
+            return 4;
+        } else if (total_size % 2 == 0) {
+            return 2;
         } else {
-            high_.set(index - 4, value);
+            return 1;
         }
     }
 
-    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<0, 1, 2, 3>) const {
-        return low_;
+    else {
+        return min_alignment;
     }
+}
 
-    KERNEL_FLOAT_INLINE vec<T, 4> get(index_sequence<4, 5, 6, 7>) const {
-        return high_;
-    }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<0, 1, 2, 3>, vec_storage<T, 4> values) {
-        low_ = values;
-    }
-
-    KERNEL_FLOAT_INLINE void set(index_sequence<4, 5, 6, 7>, vec_storage<T, 4> values) {
-        high_ = values;
-    }
-
-  private:
-    vec_storage<T, 4> low_;
-    vec_storage<T, 4> high_;
+template<typename T, size_t N, Alignment A, typename = void>
+struct default_storage {
+    using type = array<T, N, calculate_alignment(A, alignof(T), sizeof(T) * N)>;
 };
 
-};  // namespace detail
+template<typename T, Alignment A>
+struct default_storage<T, 1, A> {
+    using type = T;
+};
 
-#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, I, FIELD)     \
-    KERNEL_FLOAT_INLINE T get(constant_index<I>) const {       \
-        return FIELD;                                          \
-    }                                                          \
-    KERNEL_FLOAT_INLINE void set(constant_index<I>, T value) { \
-        FIELD = value;                                         \
+template<typename T, size_t N, Alignment A = Alignment::Maximum>
+using default_storage_type = typename default_storage<T, N, A>::type;
+
+#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
+    template<>                                             \
+    struct vector_traits<T1> {                             \
+        using value_type = T;                              \
+        static constexpr size_t size = 1;                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T1 create(T x) {                            \
+            return {x};                                    \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T1 fill(T v) {                              \
+            return {v};                                    \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T get(const T1& self, size_t index) {       \
+            switch (index) {                               \
+                case 0:                                    \
+                    return self.x;                         \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static void set(T1& self, size_t index, T value) { \
+            switch (index) {                               \
+                case 0:                                    \
+                    self.x = value;                        \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct vector_traits<T2> {                             \
+        using value_type = T;                              \
+        static constexpr size_t size = 2;                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T2 create(T x, T y) {                       \
+            return {x, y};                                 \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T2 fill(T v) {                              \
+            return {v, v};                                 \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T get(const T2& self, size_t index) {       \
+            switch (index) {                               \
+                case 0:                                    \
+                    return self.x;                         \
+                case 1:                                    \
+                    return self.y;                         \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static void set(T2& self, size_t index, T value) { \
+            switch (index) {                               \
+                case 0:                                    \
+                    self.x = value;                        \
+                case 1:                                    \
+                    self.y = value;                        \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct vector_traits<T3> {                             \
+        using value_type = T;                              \
+        static constexpr size_t size = 3;                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T3 create(T x, T y, T z) {                  \
+            return {x, y, z};                              \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T3 fill(T v) {                              \
+            return {v, v, v};                              \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T get(const T3& self, size_t index) {       \
+            switch (index) {                               \
+                case 0:                                    \
+                    return self.x;                         \
+                case 1:                                    \
+                    return self.y;                         \
+                case 2:                                    \
+                    return self.z;                         \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static void set(T3& self, size_t index, T value) { \
+            switch (index) {                               \
+                case 0:                                    \
+                    self.x = value;                        \
+                    return;                                \
+                case 1:                                    \
+                    self.y = value;                        \
+                    return;                                \
+                case 2:                                    \
+                    self.z = value;                        \
+                    return;                                \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct vector_traits<T4> {                             \
+        using value_type = T;                              \
+        static constexpr size_t size = 4;                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T4 create(T x, T y, T z, T w) {             \
+            return {x, y, z, w};                           \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T4 fill(T v) {                              \
+            return {v, v, v, v};                           \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static T get(const T4& self, size_t index) {       \
+            switch (index) {                               \
+                case 0:                                    \
+                    return self.x;                         \
+                case 1:                                    \
+                    return self.y;                         \
+                case 2:                                    \
+                    return self.z;                         \
+                case 3:                                    \
+                    return self.w;                         \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static void set(T4& self, size_t index, T value) { \
+            switch (index) {                               \
+                case 0:                                    \
+                    self.x = value;                        \
+                    return;                                \
+                case 1:                                    \
+                    self.y = value;                        \
+                    return;                                \
+                case 2:                                    \
+                    self.z = value;                        \
+                    return;                                \
+                case 3:                                    \
+                    self.w = value;                        \
+                    return;                                \
+                default:                                   \
+                    KERNEL_FLOAT_UNREACHABLE;              \
+            }                                              \
+        }                                                  \
+    };
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(int, int1, int2, int3, int4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long, long1, long2, long3, long4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long long, longlong1, longlong2, longlong3, longlong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned char, uchar1, uchar2, uchar3, uchar4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned short, ushort1, ushort2, ushort3, ushort4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned int, uint1, uint2, uint3, uint4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long, ulong1, ulong2, ulong3, ulong4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulonglong3, ulonglong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
+
+template<typename V, size_t N>
+struct nested_array {
+    static constexpr size_t num_packets = N / vector_size<V>;
+
+    V packets[num_packets];
+
+    KERNEL_FLOAT_INLINE
+    V& operator[](size_t i) {
+        KERNEL_FLOAT_ASSERT(i < num_packets);
+        return packets[i];
     }
 
-#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T2, T3, T4)                                            \
-    namespace detail {                                                                            \
-    template<>                                                                                    \
-    struct vec_storage<T, 2> {                                                                    \
-        KERNEL_FLOAT_INLINE vec_storage(T x, T y) noexcept : vector_ {make_##T2(x, y)} {}         \
-        KERNEL_FLOAT_INLINE vec_storage(T2 xy) noexcept : vector_ {xy} {}                         \
-        KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(array_, T, 2)                                        \
-        KERNEL_FLOAT_INLINE operator T2() const noexcept {                                        \
-            return vector_;                                                                       \
-        }                                                                                         \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 0, vector_.x)                                    \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 1, vector_.y)                                    \
-      private:                                                                                    \
-        static_assert(sizeof(T) * 2 == sizeof(T2), "invalid size");                               \
-        union {                                                                                   \
-            T2 vector_;                                                                           \
-            T array_[2];                                                                          \
-        };                                                                                        \
-    };                                                                                            \
-    template<>                                                                                    \
-    struct vec_storage<T, 3> {                                                                    \
-        KERNEL_FLOAT_INLINE vec_storage(T x, T y, T z) noexcept : vector_ {make_##T3(x, y, z)} {} \
-        KERNEL_FLOAT_INLINE vec_storage(T3 xyz) noexcept : vector_ {xyz} {}                       \
-        KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(array_, T, 3)                                        \
-        KERNEL_FLOAT_INLINE operator T3() const noexcept {                                        \
-            return vector_;                                                                       \
-        }                                                                                         \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 0, vector_.x)                                    \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 1, vector_.y)                                    \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 2, vector_.z)                                    \
-      private:                                                                                    \
-        static_assert(sizeof(T) * 3 == sizeof(T3), "invalid size");                               \
-        union {                                                                                   \
-            T3 vector_;                                                                           \
-            T array_[3];                                                                          \
-        };                                                                                        \
-    };                                                                                            \
-    template<>                                                                                    \
-    struct vec_storage<T, 4> {                                                                    \
-        KERNEL_FLOAT_INLINE vec_storage(T x, T y, T z, T w) noexcept :                            \
-            vector_ {make_##T4(x, y, z, w)} {}                                                    \
-        KERNEL_FLOAT_INLINE vec_storage(T2 xy, T2 zw) noexcept :                                  \
-            vec_storage {xy.x, xy.y, zw.x, zw.y} {}                                               \
-        KERNEL_FLOAT_INLINE vec_storage(T4 xyzw) noexcept : vector_ {xyzw} {}                     \
-        KERNEL_FLOAT_STORAGE_ACCESSORS_ARRAY(array_, T, 4)                                        \
-        KERNEL_FLOAT_INLINE operator T4() const noexcept {                                        \
-            return vector_;                                                                       \
-        }                                                                                         \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 0, vector_.x)                                    \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 1, vector_.y)                                    \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 2, vector_.z)                                    \
-        KERNEL_FLOAT_DEFINE_VECTOR_TYPE_FIELD(T, 3, vector_.w)                                    \
-      private:                                                                                    \
-        static_assert(sizeof(T) * 4 == sizeof(T4), "invalid size");                               \
-        union {                                                                                   \
-            T4 vector_;                                                                           \
-            T array_[4];                                                                          \
-        };                                                                                        \
-    };                                                                                            \
-    }                                                                                             \
-    KERNEL_FLOAT_INTO_VEC(T, T, 1)                                                                \
-    KERNEL_FLOAT_INTO_VEC(T2, T, 2)                                                               \
-    KERNEL_FLOAT_INTO_VEC(T3, T, 3)                                                               \
-    KERNEL_FLOAT_INTO_VEC(T4, T, 4)
+    KERNEL_FLOAT_INLINE
+    const V& operator[](size_t i) const {
+        KERNEL_FLOAT_ASSERT(i < num_packets);
+        return packets[i];
+    }
+};
 
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char2, char3, char4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short2, short3, short4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(int, int2, int3, int4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long, long2, long3, long4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long long, longlong2, longlong3, longlong4)
+template<typename V, size_t N>
+struct vector_traits<nested_array<V, N>> {
+    using self_type = nested_array<V, N>;
+    using value_type = vector_value_type<V>;
+    static constexpr size_t size = N;
 
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned char, uchar2, uchar3, uchar4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned short, ushort2, ushort3, ushort4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned int, uint2, uint3, uint4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long, ulong2, ulong3, ulong4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong2, ulonglong3, ulonglong4)
+    template<typename... Args>
+    KERNEL_FLOAT_INLINE static self_type create(Args&&... args) {
+        value_type items[N] = {args...};
+        self_type output;
 
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float2, float3, float4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double2, double3, double4)
+        size_t i = 0;
+        for (; i + vector_size<V> - 1 < N; i += vector_size<V>) {
+            // How to generalize this?
+            output.packets[i / vector_size<V>] = vector_traits<V>::create(items[i], items[i + 1]);
+        }
 
-KERNEL_FLOAT_INTO_VEC(bool, bool, 1)
+        for (; i < N; i++) {
+            vector_traits<V>::set(output.packets[i / vector_size<V>], i % vector_size<V>, items[i]);
+        }
+
+        return output;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static self_type fill(value_type value) {
+        self_type output;
+
+        for (size_t i = 0; i < self_type::num_packets; i++) {
+            output.packets[i] = vector_traits<V>::fill(value);
+        }
+
+        return output;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static value_type get(const self_type& self, size_t index) {
+        KERNEL_FLOAT_ASSERT(index < N);
+        return vector_traits<V>::get(self.packets[index / vector_size<V>], index % vector_size<V>);
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void set(self_type& self, size_t index, value_type value) {
+        KERNEL_FLOAT_ASSERT(index < N);
+        vector_traits<V>::set(self.packets[index / vector_size<V>], index % vector_size<V>, value);
+    }
+};
 
 };  // namespace kernel_float
 
-#endif  //KERNEL_FLOAT_STORAGE_H
+#endif

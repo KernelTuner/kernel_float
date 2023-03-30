@@ -7,3 +7,7 @@
 .idea
 build/
 docs/_doxygen
+cmake-build-debug/
+docs/_build
+docs/api/*.rst
+*.swp

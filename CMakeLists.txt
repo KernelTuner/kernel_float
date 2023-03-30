@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.20)
 
 set (PROJECT_NAME kernel_float)
 project(${PROJECT_NAME} CXX CUDA)

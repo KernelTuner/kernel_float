@@ -1,4 +1,3 @@
-#include "catch.hpp"
 #include "common.h"
 #include "kernel_float.h"
 
@@ -13,7 +12,21 @@ struct cast_test<A, B, N, std::index_sequence<Is...>> {
         kf::vec<A, N> a {gen.next(Is)...};
         kf::vec<B, N> b = kf::cast<B>(a);
 
-        ASSERT(bitwise_equal(B(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(B(a.get(Is)), b.get(Is)) && ...);
+    }
+};
+
+template<size_t N, size_t... Is>
+struct cast_test<bool, __half, N, std::index_sequence<Is...>> {
+    __host__ __device__ void operator()(generator<bool> gen) {
+        kf::vec<bool, N> a {gen.next(Is)...};
+        kf::vec<__half, N> b = kf::cast<__half>(a);
+
+        for (size_t i = 0; i < N; i++) {
+            printf("%d/%d] %f %d\n", int(i), int(N), (double)(b.get(i)), int(a[i]));
+        }
+
+        ASSERT(equals(__half(a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -22,7 +35,7 @@ struct cast_test<__half, long, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<__half> gen) {
         kf::vec<__half, N> a {gen.next(Is)...};
         kf::vec<long, N> b = kf::cast<long>(a);
-        ASSERT(bitwise_equal((long)(long long)a.get(Is), b.get(Is)) && ...);
+        ASSERT(equals((long)(long long)a.get(Is), b.get(Is)) && ...);
     }
 };
 
@@ -31,7 +44,7 @@ struct cast_test<long, __half, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<long> gen) {
         kf::vec<long, N> a {gen.next(Is)...};
         kf::vec<__half, N> b = kf::cast<__half>(a);
-        ASSERT(bitwise_equal(__half((long long)a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(__half((long long)a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -40,7 +53,7 @@ struct cast_test<unsigned long, __half, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<unsigned long> gen) {
         kf::vec<unsigned long, N> a {gen.next(Is)...};
         kf::vec<__half, N> b = kf::cast<__half>(a);
-        ASSERT(bitwise_equal((__half)(unsigned long long)(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals((__half)(unsigned long long)(a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -49,7 +62,7 @@ struct cast_test<__half, char, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<__half> gen) {
         kf::vec<__half, N> a {gen.next(Is)...};
         kf::vec<char, N> b = kf::cast<char>(a);
-        ASSERT(bitwise_equal((char)(int)(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals((char)(int)(a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -58,7 +71,7 @@ struct cast_test<__nv_bfloat16, long, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<__nv_bfloat16> gen) {
         kf::vec<__nv_bfloat16, N> a {gen.next(Is)...};
         kf::vec<long, N> b = kf::cast<long>(a);
-        ASSERT(bitwise_equal((long)(long long)a.get(Is), b.get(Is)) && ...);
+        ASSERT(equals((long)(long long)a.get(Is), b.get(Is)) && ...);
     }
 };
 
@@ -67,7 +80,7 @@ struct cast_test<long, __nv_bfloat16, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<long> gen) {
         kf::vec<long, N> a {gen.next(Is)...};
         kf::vec<__nv_bfloat16, N> b = kf::cast<__nv_bfloat16>(a);
-        ASSERT(bitwise_equal(__nv_bfloat16((long long)a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(__nv_bfloat16((long long)a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -76,7 +89,7 @@ struct cast_test<unsigned long, __nv_bfloat16, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<unsigned long> gen) {
         kf::vec<unsigned long, N> a {gen.next(Is)...};
         kf::vec<__nv_bfloat16, N> b = kf::cast<__nv_bfloat16>(a);
-        ASSERT(bitwise_equal((__nv_bfloat16)(unsigned long long)(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals((__nv_bfloat16)(unsigned long long)(a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -85,7 +98,7 @@ struct cast_test<__nv_bfloat16, char, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<__nv_bfloat16> gen) {
         kf::vec<__nv_bfloat16, N> a {gen.next(Is)...};
         kf::vec<char, N> b = kf::cast<char>(a);
-        ASSERT(bitwise_equal((char)(int)(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals((char)(int)(a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -94,7 +107,7 @@ struct cast_test<__nv_bfloat16, __half, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<__nv_bfloat16> gen) {
         kf::vec<__nv_bfloat16, N> a {gen.next(Is)...};
         kf::vec<__half, N> b = kf::cast<__half>(a);
-        ASSERT(bitwise_equal((__half)(float)(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals((__half)(float)(a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -103,7 +116,7 @@ struct cast_test<__half, __nv_bfloat16, N, std::index_sequence<Is...>> {
     __host__ __device__ void operator()(generator<__half> gen) {
         kf::vec<__half, N> a {gen.next(Is)...};
         kf::vec<__nv_bfloat16, N> b = kf::cast<__nv_bfloat16>(a);
-        ASSERT(bitwise_equal((__nv_bfloat16)(float)(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals((__nv_bfloat16)(float)(a.get(Is)), b.get(Is)) && ...);
     }
 };
 

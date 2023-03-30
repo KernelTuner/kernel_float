@@ -1,4 +1,3 @@
-#include "catch.hpp"
 #include "common.h"
 #include "kernel_float.h"
 
@@ -34,20 +33,20 @@ struct float_test<T, N, std::index_sequence<Is...>> {
         kf::vec<T, N> b;
 
         b = -a;
-        ASSERT(bitwise_equal(-a.get(Is), b.get(Is)) && ...);
+        ASSERT(equals(-a.get(Is), b.get(Is)) && ...);
 
         // just some examples
         b = kf::cos(a);
-        ASSERT(bitwise_equal(cos(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(cos(a.get(Is)), b.get(Is)) && ...);
 
         b = kf::floor(a);
-        ASSERT(bitwise_equal(floor(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(floor(a.get(Is)), b.get(Is)) && ...);
 
         b = kf::abs(a);
-        ASSERT(bitwise_equal(abs(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(abs(a.get(Is)), b.get(Is)) && ...);
 
         b = kf::sqrt(a);
-        ASSERT(bitwise_equal(sqrt(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(sqrt(a.get(Is)), b.get(Is)) && ...);
     }
 };
 
@@ -59,20 +58,20 @@ struct float_test<__half, N, std::index_sequence<Is...>> {
         kf::vec<T, N> b;
 
         b = -a;
-        ASSERT(bitwise_equal(__hneg(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(__hneg(a.get(Is)), b.get(Is)) && ...);
 
         // just some examples
         b = kf::cos(a);
-        ASSERT(bitwise_equal(hcos(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(hcos(a.get(Is)), b.get(Is)) && ...);
 
         b = kf::floor(a);
-        ASSERT(bitwise_equal(hfloor(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(hfloor(a.get(Is)), b.get(Is)) && ...);
 
         b = kf::abs(a);
-        ASSERT(bitwise_equal(__habs(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(__habs(a.get(Is)), b.get(Is)) && ...);
 
         b = kf::sqrt(a);
-        ASSERT(bitwise_equal(hsqrt(a.get(Is)), b.get(Is)) && ...);
+        ASSERT(equals(hsqrt(a.get(Is)), b.get(Is)) && ...);
     }
 };
 

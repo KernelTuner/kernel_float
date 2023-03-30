@@ -1,4 +1,3 @@
-#include "catch.hpp"
 #include "common.h"
 #include "kernel_float.h"
 
@@ -14,33 +13,33 @@ struct basic_test<T, N, std::index_sequence<Is...>> {
         kf::vec<T, N> a = {items[Is]...};
 
         // check if getters work
-        ASSERT(bitwise_equal(a.get(Is), items[Is]) && ...);
-        ASSERT(bitwise_equal(a.get(kf::constant_index<Is> {}), items[Is]) && ...);
-        ASSERT(bitwise_equal<T>(a[Is], items[Is]) && ...);
-        ASSERT(bitwise_equal<T>(a[kf::constant_index<Is> {}], items[Is]) && ...);
+        ASSERT(equals(a.get(Is), items[Is]) && ...);
+        ASSERT(equals(a.get(kf::const_index<Is> {}), items[Is]) && ...);
+        ASSERT(equals<T>(a[Is], items[Is]) && ...);
+        ASSERT(equals<T>(a[kf::const_index<Is> {}], items[Is]) && ...);
 
         // check if setter works
         T new_items[N] = {gen.next(Is)...};
-        (a.set(kf::constant_index<Is> {}, new_items[Is]), ...);
-        ASSERT(bitwise_equal(a.get(Is), new_items[Is]) && ...);
+        (a.set(kf::const_index<Is> {}, new_items[Is]), ...);
+        ASSERT(equals(a.get(Is), new_items[Is]) && ...);
 
         // check if setter works
         T more_new_items[N] = {gen.next(Is)...};
         ((a[Is] = more_new_items[Is]), ...);
-        ASSERT(bitwise_equal(a.get(Is), more_new_items[Is]) && ...);
+        ASSERT(equals(a.get(Is), more_new_items[Is]) && ...);
 
         // check default constructor
         kf::vec<T, N> b;
-        ASSERT(bitwise_equal(b.get(Is), T {}) && ...);
+        ASSERT(equals(b.get(Is), T {}) && ...);
 
         // check broadcast constructor
         T value = gen();
         kf::vec<T, N> c {value};
-        ASSERT(bitwise_equal(c.get(Is), value) && ...);
+        ASSERT(equals(c.get(Is), value) && ...);
 
         // check make_vec
         kf::vec<T, N> d = kf::make_vec(items[Is]...);
-        ASSERT(bitwise_equal(d.get(Is), items[Is]) && ...);
+        ASSERT(equals(d.get(Is), items[Is]) && ...);
     }
 };
 
