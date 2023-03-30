@@ -7,7 +7,7 @@ on:
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  BUILD_TYPE: Release
+  BUILD_TYPE: Debug
 
 jobs:
   build:
@@ -21,8 +21,10 @@ jobs:
       id: cuda-toolkit
       with:
         cuda: '11.7.0'
-    
+
     - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
@@ -37,5 +39,5 @@ jobs:
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ./tests/kernel_float_tests
+      run: ./tests/kernel_float_tests --durations=yes --success --verbosity=high
 
