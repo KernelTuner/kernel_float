@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-03-29 14:26:08.035035
-// git hash: 0d24d7110b4f2f45b8dbc511637a75f7d9aa0f73
+// date: 2023-03-31 15:49:21.313654
+// git hash: 15a7d65de3867323ab1b14f1d624c45ed733d904
 //================================================================================
 
 
@@ -724,7 +724,8 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
 template<typename V, size_t N>
 struct nested_array {
-    static constexpr size_t num_packets = N / vector_size<V>;
+    static constexpr size_t num_packets = (N + vector_size<V> - 1) / vector_size<V>;
+    static_assert(num_packets * vector_size<V> <= N, "internal error");
 
     V packets[num_packets];
 

@@ -428,7 +428,8 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
 template<typename V, size_t N>
 struct nested_array {
-    static constexpr size_t num_packets = N / vector_size<V>;
+    static constexpr size_t num_packets = (N + vector_size<V> - 1) / vector_size<V>;
+    static_assert(num_packets * vector_size<V> >= N, "internal error");
 
     V packets[num_packets];
 
