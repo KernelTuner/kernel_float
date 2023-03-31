@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-03-31 15:49:21.313654
-// git hash: 15a7d65de3867323ab1b14f1d624c45ed733d904
+// date: 2023-03-31 16:04:17.777000
+// git hash: 5a6b682ac483b61ec8a1697bf6adf4e929021574
 //================================================================================
 
 
@@ -487,35 +487,39 @@ enum struct Alignment {
 };
 
 constexpr size_t calculate_alignment(Alignment required, size_t min_alignment, size_t total_size) {
-    if (required == Alignment::Packed) {
+    size_t alignment = 1;
+
+    if (required == Alignment::Maximum) {
         if (total_size <= 1) {
-            return 1;
+            alignment = 1;
         } else if (total_size <= 2) {
-            return 2;
+            alignment = 2;
         } else if (total_size <= 4) {
-            return 4;
+            alignment = 4;
         } else if (total_size <= 8) {
-            return 8;
+            alignment = 8;
         } else {
-            return 16;
+            alignment = 16;
         }
-    } else if (required == Alignment::Maximum) {
+    } else if (required == Alignment::Packed) {
         if (total_size % 16 == 0) {
-            return 16;
+            alignment = 16;
         } else if (total_size % 8 == 0) {
-            return 8;
+            alignment = 8;
         } else if (total_size % 4 == 0) {
-            return 4;
+            alignment = 4;
         } else if (total_size % 2 == 0) {
-            return 2;
+            alignment = 2;
         } else {
-            return 1;
+            alignment = 1;
         }
     }
 
-    else {
-        return min_alignment;
+    if (min_alignment > alignment) {
+        alignment = min_alignment;
     }
+
+    return alignment;
 }
 
 template<typename T, size_t N, Alignment A, typename = void>
@@ -725,7 +729,7 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 template<typename V, size_t N>
 struct nested_array {
     static constexpr size_t num_packets = (N + vector_size<V> - 1) / vector_size<V>;
-    static_assert(num_packets * vector_size<V> <= N, "internal error");
+    static_assert(num_packets * vector_size<V> >= N, "internal error");
 
     V packets[num_packets];
 

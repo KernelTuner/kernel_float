@@ -191,35 +191,39 @@ enum struct Alignment {
 };
 
 constexpr size_t calculate_alignment(Alignment required, size_t min_alignment, size_t total_size) {
-    if (required == Alignment::Packed) {
+    size_t alignment = 1;
+
+    if (required == Alignment::Maximum) {
         if (total_size <= 1) {
-            return 1;
+            alignment = 1;
         } else if (total_size <= 2) {
-            return 2;
+            alignment = 2;
         } else if (total_size <= 4) {
-            return 4;
+            alignment = 4;
         } else if (total_size <= 8) {
-            return 8;
+            alignment = 8;
         } else {
-            return 16;
+            alignment = 16;
         }
-    } else if (required == Alignment::Maximum) {
+    } else if (required == Alignment::Packed) {
         if (total_size % 16 == 0) {
-            return 16;
+            alignment = 16;
         } else if (total_size % 8 == 0) {
-            return 8;
+            alignment = 8;
         } else if (total_size % 4 == 0) {
-            return 4;
+            alignment = 4;
         } else if (total_size % 2 == 0) {
-            return 2;
+            alignment = 2;
         } else {
-            return 1;
+            alignment = 1;
         }
     }
 
-    else {
-        return min_alignment;
+    if (min_alignment > alignment) {
+        alignment = min_alignment;
     }
+
+    return alignment;
 }
 
 template<typename T, size_t N, Alignment A, typename = void>
