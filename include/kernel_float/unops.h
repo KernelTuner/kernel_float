@@ -1,77 +1,58 @@
 #ifndef KERNEL_FLOAT_UNOPS_H
 #define KERNEL_FLOAT_UNOPS_H
 
-#include "cast.h"
-#include "storage.h"
+#include "base.h"
 
 namespace kernel_float {
 namespace detail {
-template<typename F, typename Output, typename Input, typename = void>
+template<typename F, size_t N, typename Output, typename Input, typename = void>
 struct map_helper {
-    KERNEL_FLOAT_INLINE static Output call(F fun, const Input& input) {
-        return call(fun, input, make_index_sequence<vector_size<Input>> {});
+    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
+    call(F fun, const tensor_storage<Input, N>& input) {
+        return call(fun, input, make_index_sequence<N> {});
     }
 
   private:
     template<size_t... Is>
-    KERNEL_FLOAT_INLINE static Output call(F fun, const Input& input, index_sequence<Is...>) {
-        return vector_traits<Output>::create(fun(vector_get<Is>(input))...);
-    }
-};
-
-template<typename F, typename V, size_t N>
-struct map_helper<F, nested_array<V, N>, nested_array<V, N>> {
-    KERNEL_FLOAT_INLINE static nested_array<V, N> call(F fun, const nested_array<V, N>& input) {
-        return call(fun, input, make_index_sequence<nested_array<V, N>::num_packets> {});
-    }
-
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static nested_array<V, N>
-    call(F fun, const nested_array<V, N>& input, index_sequence<Is...>) {
-        return {map_helper<F, V, V>::call(fun, input[Is])...};
+    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
+    call(F fun, const tensor_storage<Input, N>& input, index_sequence<Is...>) {
+        return {fun(input[Is])...};
     }
 };
 }  // namespace detail
 
-template<typename F, typename Input>
-using map_type = default_storage_type<result_t<F, vector_value_type<Input>>, vector_size<Input>>;
+template<typename F, typename V>
+using map_type = tensor<result_t<F, tensor_value_type<V>>, tensor_extents<V>>;
 
-/**
- * Applies ``fun`` to each element from vector ``input`` and returns a new vector with the results.
- * This function is the basis for all unary operators like ``sin`` and ``sqrt``.
- *
- * Example
- * =======
- * ```
- * vector<int, 3> v = {1, 2, 3};
- * vector<int, 3> w = map([](auto i) { return i * 2; }); // 2, 4, 6
- * ```
- */
-template<typename F, typename Input, typename Output = map_type<F, Input>>
-KERNEL_FLOAT_INLINE Output map(F fun, const Input& input) {
-    return detail::map_helper<F, Output, into_storage_type<Input>>::call(fun, into_storage(input));
+template<typename F, typename V>
+KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
+    using Input = tensor_value_type<V>;
+    using Output = result_t<F, Input>;
+    return detail::map_helper<F, tensor_volume<V>, Output, Input>::call(
+        fun,
+        into_tensor(input).storage());
 }
 
-#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                            \
-    namespace ops {                                                                      \
-    template<typename T>                                                                 \
-    struct NAME {                                                                        \
-        KERNEL_FLOAT_INLINE T operator()(T input) {                                      \
-            return T(EXPR);                                                              \
-        }                                                                                \
-    };                                                                                   \
-    }                                                                                    \
-    template<typename V>                                                                 \
-    KERNEL_FLOAT_INLINE vector<into_storage_type<V>> NAME(const V& input) {              \
-        return map<ops::NAME<vector_value_type<V>>, V, into_storage_type<V>>({}, input); \
+#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                      \
+    namespace ops {                                                \
+    template<typename T>                                           \
+    struct NAME {                                                  \
+        KERNEL_FLOAT_INLINE T operator()(T input) {                \
+            return T(EXPR);                                        \
+        }                                                          \
+    };                                                             \
+    }                                                              \
+    template<typename V>                                           \
+    KERNEL_FLOAT_INLINE into_tensor_type<V> NAME(const V& input) { \
+        using F = ops::NAME<tensor_value_type<V>>;                 \
+        return map(F {}, input);                                   \
     }
 
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                  \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                             \
-    template<typename V>                                              \
-    KERNEL_FLOAT_INLINE vector<V> operator OP(const vector<V>& vec) { \
-        return NAME(vec);                                             \
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                        \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                   \
+    template<typename T, typename D>                                        \
+    KERNEL_FLOAT_INLINE tensor<T, D> operator OP(const tensor<T, D>& vec) { \
+        return NAME(vec);                                                   \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
@@ -128,6 +109,42 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN(signbit)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isinf)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isnan)
 
+enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
+
+namespace ops {
+template<typename T, typename R, RoundingMode m = RoundingMode::ANY, typename = void>
+struct cast;
+
+template<typename T, typename R>
+struct cast<T, R, RoundingMode::ANY> {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return R(input);
+    }
+};
+
+template<typename T, RoundingMode m>
+struct cast<T, T, m> {
+    KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
+        return input;
+    }
+};
+}  // namespace ops
+
+namespace detail {
+template<size_t N, typename T>
+struct map_helper<ops::cast<T, T>, N, T, T> {
+    KERNEL_FLOAT_INLINE static tensor_storage<T, N>
+    call(ops::cast<T, T> fun, const tensor_storage<T, N>& input) {
+        return input;
+    }
+};
+}  // namespace detail
+
+template<typename R, RoundingMode Mode = RoundingMode::ANY, typename V>
+KERNEL_FLOAT_INLINE tensor<R, tensor_extents<V>> cast(const V& input) {
+    using F = ops::cast<tensor_value_type<V>, R, Mode>;
+    return map(F {}, input);
+}
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_UNOPS_H

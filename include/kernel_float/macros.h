@@ -6,20 +6,20 @@
 
 #ifdef __CUDA_ARCH__
 #define KERNEL_FLOAT_INLINE    __forceinline__ __device__
-#define KERNEL_FLOAT_ON_DEVICE (1)
-#define KERNEL_FLOAT_ON_HOST   (0)
+#define KERNEL_FLOAT_IS_DEVICE (1)
+#define KERNEL_FLOAT_IS_HOST   (0)
 #define KERNEL_FLOAT_CUDA_ARCH (__CUDA_ARCH__)
 #else
 #define KERNEL_FLOAT_INLINE    __forceinline__ __host__
-#define KERNEL_FLOAT_ON_DEVICE (0)
-#define KERNEL_FLOAT_ON_HOST   (1)
+#define KERNEL_FLOAT_IS_DEVICE (0)
+#define KERNEL_FLOAT_IS_HOST   (1)
 #define KERNEL_FLOAT_CUDA_ARCH (0)
 #endif
 #else
 #define KERNEL_FLOAT_INLINE    inline
 #define KERNEL_FLOAT_CUDA      (0)
-#define KERNEL_FLOAT_ON_HOST   (1)
-#define KERNEL_FLOAT_ON_DEVICE (0)
+#define KERNEL_FLOAT_IS_HOST   (1)
+#define KERNEL_FLOAT_IS_DEVICE (0)
 #define KERNEL_FLOAT_CUDA_ARCH (0)
 #endif
 

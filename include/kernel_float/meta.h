@@ -5,15 +5,6 @@
 
 namespace kernel_float {
 
-template<size_t I>
-struct const_index {
-    static constexpr size_t value = I;
-
-    KERNEL_FLOAT_INLINE constexpr operator size_t() const noexcept {
-        return I;
-    }
-};
-
 template<size_t... Is>
 struct index_sequence {
     static constexpr size_t size = sizeof...(Is);
@@ -85,130 +76,126 @@ struct decay_helper<T&&> {
 template<typename T>
 using decay_t = typename detail::decay_helper<T>::type;
 
-template<typename T, typename U>
-struct common_type;
+template<typename A, typename B>
+struct promote_type;
 
 template<typename T>
-struct common_type<T, T> {
+struct promote_type<T, T> {
     using type = T;
 };
 
-#define KERNEL_FLOAT_DEFINE_COMMON_TYPE(T, U) \
-    template<>                                \
-    struct common_type<T, U> {                \
-        using type = T;                       \
-    };                                        \
-    template<>                                \
-    struct common_type<U, T> {                \
-        using type = T;                       \
+#define KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, U) \
+    template<>                                  \
+    struct promote_type<T, U> {                 \
+        using type = T;                         \
+    };                                          \
+    template<>                                  \
+    struct promote_type<U, T> {                 \
+        using type = T;                         \
     };
 
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(long double, double)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(long double, float)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, float)
-//KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, half)
-//KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, half)
+// T and bool becomes T
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(char, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed char, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed short, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed int, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed long, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed long long, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(unsigned char, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(unsigned short, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(unsigned int, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(unsigned long, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(unsigned long long, bool)
 
-#define KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(T, U)       \
-    KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed T, signed U) \
-    KERNEL_FLOAT_DEFINE_COMMON_TYPE(unsigned T, unsigned U)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, float)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(long double, float)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(long double, double)
 
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long long, long)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long long, int)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long long, short)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long long, char)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long, int)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long, short)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(long, char)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(int, short)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(int, char)
-KERNEL_FLOAT_DEFINE_COMMON_INTEGRAL(short, char)
+#define KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(T)                \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, char)               \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, signed char)        \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, signed short)       \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, signed int)         \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, signed long)        \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, signed long long)   \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, unsigned char)      \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, unsigned short)     \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, unsigned int)       \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, unsigned long)      \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, unsigned long long) \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, bool)
 
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(long double, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(double, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(float, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(float)
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(double)
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(long double)
 
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed long long, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed long, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed int, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed short, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(signed char, bool)
+#define KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(T, U)       \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed T, signed U) \
+    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(unsigned T, unsigned U)
 
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(unsigned long long, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(unsigned long, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(unsigned int, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(unsigned short, bool)
-KERNEL_FLOAT_DEFINE_COMMON_TYPE(unsigned char, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(short, char)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(int, char)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(int, short)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long, char)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long, short)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long, int)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, char)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, short)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, int)
+KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, long)
+
+// half precision
+//    KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(half)
+//    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(half, bool)
+//    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, half)
+//    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, half)
+//    KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(long double, half)
 
 namespace detail {
 template<typename... Ts>
-struct common_type_helper;
+struct multi_promote_type;
 
 template<typename T>
-struct common_type_helper<T> {
+struct multi_promote_type<T> {
     using type = T;
 };
 
-template<typename T, typename U>
-struct common_type_helper<T, U> {
-    using type = typename common_type<T, U>::type;
-};
+template<typename A, typename B>
+struct multi_promote_type<A, B>: promote_type<A, B> {};
 
-template<typename T, typename U, typename R, typename... Rest>
-struct common_type_helper<T, U, R, Rest...>:
-    common_type_helper<typename common_type<T, U>::type, R, Rest...> {};
+template<typename A, typename B, typename C, typename... Rest>
+struct multi_promote_type<A, B, C, Rest...>:
+    multi_promote_type<typename promote_type<A, B>::type, C, Rest...> {};
+
 }  // namespace detail
 
 template<typename... Ts>
-using common_t = typename detail::common_type_helper<decay_t<Ts>...>::type;
+using promote_t = typename detail::multi_promote_type<Ts...>::type;
 
 namespace detail {
-template<size_t...>
-struct common_size_helper;
 
-template<>
-struct common_size_helper<> {
-    static constexpr size_t value = 1;
+template<typename A, typename B>
+struct is_same_helper {
+    static constexpr bool value = false;
 };
 
-template<size_t N>
-struct common_size_helper<N> {
-    static constexpr size_t value = N;
-};
-
-template<size_t N>
-struct common_size_helper<N, N> {
-    static constexpr size_t value = N;
-};
-
-template<size_t N>
-struct common_size_helper<N, 1> {
-    static constexpr size_t value = N;
-};
-
-template<size_t N>
-struct common_size_helper<1, N> {
-    static constexpr size_t value = N;
-};
-
-template<>
-struct common_size_helper<1, 1> {
-    static constexpr size_t value = 1;
+template<typename A>
+struct is_same_helper<A, A> {
+    static constexpr bool value = true;
 };
 }  // namespace detail
 
-template<size_t... Ns>
-static constexpr size_t common_size = detail::common_size_helper<Ns...>::value;
+template<typename A, typename B>
+static constexpr bool is_same = detail::is_same_helper<A, B>::value;
 
 namespace detail {
-
 template<typename From, typename To, typename Common = To>
 struct is_implicit_convertible_helper {
     static constexpr bool value = false;
 };
 
 template<typename From, typename To>
-struct is_implicit_convertible_helper<From, To, typename common_type<From, To>::type> {
+struct is_implicit_convertible_helper<From, To, typename promote_type<From, To>::type> {
     static constexpr bool value = true;
 };
 }  // namespace detail

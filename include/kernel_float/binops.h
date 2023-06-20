@@ -1,148 +1,98 @@
 #ifndef KERNEL_FLOAT_BINOPS_H
 #define KERNEL_FLOAT_BINOPS_H
 
+#include "broadcast.h"
 #include "unops.h"
 
 namespace kernel_float {
 namespace detail {
-template<typename F, typename Output, typename Left, typename Right, typename = void>
+
+template<typename F, size_t N, typename Output, typename Left, typename Right, typename = void>
 struct zip_helper {
-    KERNEL_FLOAT_INLINE static Output call(F fun, const Left& left, const Right& right) {
-        return call_with_indices(fun, left, right, make_index_sequence<vector_size<Output>> {});
+    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
+    call(F fun, const tensor_storage<Left, N>& left, const tensor_storage<Right, N>& right) {
+        return call(fun, left, right, make_index_sequence<N> {});
     }
 
   private:
     template<size_t... Is>
-    KERNEL_FLOAT_INLINE static Output
-    call_with_indices(F fun, const Left& left, const Right& right, index_sequence<Is...> = {}) {
-        return vector_traits<Output>::create(fun(vector_get<Is>(left), vector_get<Is>(right))...);
-    }
-};
-
-template<typename F, typename V, size_t N>
-struct zip_helper<F, nested_array<V, N>, nested_array<V, N>, nested_array<V, N>> {
-    KERNEL_FLOAT_INLINE static nested_array<V, N>
-    call(F fun, const nested_array<V, N>& left, const nested_array<V, N>& right) {
-        return call(fun, left, right, make_index_sequence<nested_array<V, N>::num_packets> {});
-    }
-
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static nested_array<V, N> call(
+    KERNEL_FLOAT_INLINE static tensor_storage<Output, N> call(
         F fun,
-        const nested_array<V, N>& left,
-        const nested_array<V, N>& right,
+        const tensor_storage<Left, N>& left,
+        const tensor_storage<Right, N>& right,
         index_sequence<Is...>) {
-        return {zip_helper<F, V, V, V>::call(fun, left[Is], right[Is])...};
+        return {fun(left[Is], right[Is])...};
     }
 };
-};  // namespace detail
-
-template<typename... Ts>
-using common_vector_value_type = common_t<vector_value_type<Ts>...>;
-
-template<typename... Ts>
-static constexpr size_t common_vector_size = common_size<vector_size<Ts>...>;
+}  // namespace detail
 
 template<typename F, typename L, typename R>
-using zip_type = default_storage_type<
-    result_t<F, vector_value_type<L>, vector_value_type<R>>,
-    common_vector_size<L, R>>;
+using zip_type =
+    tensor<result_t<F, tensor_value_type<L>, tensor_value_type<R>>, broadcast_tensor_extents<L, R>>;
 
-/**
- * Applies ``fun`` to each pair of two elements from ``left`` and ``right`` and returns a new
- * vector with the results.
- *
- * If ``left`` and ``right`` are not the same size, they will first be broadcast into a
- * common size using ``resize``.
- *
- * Note that this function does **not** cast the input vectors to a common element type. See
- * ``zip_common`` for that functionality.
- */
-template<typename F, typename Left, typename Right, typename Output = zip_type<F, Left, Right>>
-KERNEL_FLOAT_INLINE vector<Output> zip(F fun, Left&& left, Right&& right) {
-    static constexpr size_t N = vector_size<Output>;
-    using LeftInput = default_storage_type<vector_value_type<Left>, N>;
-    using RightInput = default_storage_type<vector_value_type<Right>, N>;
+template<typename F, typename L, typename R>
+KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
+    using A = tensor_value_type<L>;
+    using B = tensor_value_type<R>;
+    using C = result_t<F, A, B>;
+    using E = broadcast_tensor_extents<L, R>;
 
-    return detail::zip_helper<F, Output, LeftInput, RightInput>::call(
+    return detail::zip_helper<F, E::volume, C, A, B>::call(
         fun,
-        broadcast<LeftInput, Left>(std::forward<Left>(left)),
-        broadcast<RightInput, Right>(std::forward<Right>(right)));
+        broadcast<E>(left).storage(),
+        broadcast<E>(right).storage());
 }
 
 template<typename F, typename L, typename R>
-using zip_common_type = default_storage_type<
-    result_t<F, common_vector_value_type<L, R>, common_vector_value_type<L, R>>,
-    common_vector_size<L, R>>;
+using zip_common_type = tensor<
+    result_t<F, tensor_promoted_value_type<L, R>, tensor_promoted_value_type<L, R>>,
+    broadcast_tensor_extents<L, R>>;
 
-/**
- * Applies ``fun`` to each pair of two elements from ``left`` and ``right`` and returns a new
- * vector with the results.
- *
- * If ``left`` and ``right`` are not the same size, they will first be broadcast into a
- * common size using ``resize``.
- *
- * If ``left`` and ``right`` are not of the same type, they will first be case into a common
- * data type. For example, zipping ``float`` and ``double`` first cast vectors to ``double``.
- *
- * Example
- * =======
- * ```
- * vec<int, 5> x = {1, 2, 3, 4};
- * vec<long, 1> = {8};
- * vec<long, 5> = zip_common([](auto a, auto b){ return a + b; }, x, y); // [9, 10, 11, 12]
- * ```
- */
-template<
-    typename F,
-    typename Left,
-    typename Right,
-    typename Output = zip_common_type<F, Left, Right>>
-KERNEL_FLOAT_INLINE vector<Output> zip_common(F fun, Left&& left, Right&& right) {
-    static constexpr size_t N = vector_size<Output>;
-    using C = common_t<vector_value_type<Left>, vector_value_type<Right>>;
-    using Input = default_storage_type<C, N>;
-
-    return detail::zip_helper<F, Output, Input, Input>::call(
-        fun,
-        broadcast<Input, Left>(std::forward<Left>(left)),
-        broadcast<Input, Right>(std::forward<Right>(right)));
+template<typename F, typename L, typename R>
+KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {
+    while (1)
+        ;
+    // TODO
 }
 
-#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                                  \
-    namespace ops {                                                                             \
-    template<typename T>                                                                        \
-    struct NAME {                                                                               \
-        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                                     \
-            return T(EXPR);                                                                     \
-        }                                                                                       \
-    };                                                                                          \
-    }                                                                                           \
-    template<typename L, typename R, typename C = common_vector_value_type<L, R>>               \
-    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> NAME(L&& left, R&& right) { \
-        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right));      \
+#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \
+    namespace ops {                                                                        \
+    template<typename T>                                                                   \
+    struct NAME {                                                                          \
+        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                                \
+            return T(EXPR);                                                                \
+        }                                                                                  \
+    };                                                                                     \
+    }                                                                                      \
+    template<typename L, typename R, typename C = tensor_promoted_value_type<L, R>>        \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
+        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
     }
 
-#define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                   \
-    KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                               \
-    template<typename L, typename R, typename C = common_vector_value_type<L, R>> \
-    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> operator OP(  \
-        const vector<L>& left,                                                    \
-        const vector<R>& right) {                                                 \
-        return zip_common(ops::NAME<C> {}, left, right);                          \
-    }                                                                             \
-    template<typename L, typename R, typename C = common_vector_value_type<L, R>> \
-    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> operator OP(  \
-        const vector<L>& left,                                                    \
-        const R& right) {                                                         \
-        return zip_common(ops::NAME<C> {}, left, right);                          \
-    }                                                                             \
-    template<typename L, typename R, typename C = common_vector_value_type<L, R>> \
-    KERNEL_FLOAT_INLINE vector<zip_common_type<ops::NAME<C>, L, R>> operator OP(  \
-        const L& left,                                                            \
-        const vector<R>& right) {                                                 \
-        return zip_common(ops::NAME<C> {}, left, right);                          \
+#define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                                 \
+    KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                                             \
+    template<                                                                                   \
+        typename L,                                                                             \
+        typename R,                                                                             \
+        typename C = tensor_promoted_value_type<L, R>,                                          \
+        typename E1,                                                                            \
+        typename E2>                                                                            \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> operator OP(                        \
+        const tensor<L, E1>& left,                                                              \
+        const tensor<R, E2>& right) {                                                           \
+        return zip_common(ops::NAME<C> {}, left, right);                                        \
+    }                                                                                           \
+    template<typename L, typename R, typename C = tensor_promoted_value_type<L, R>, typename E> \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> operator OP(                        \
+        const tensor<L, E>& left,                                                               \
+        const R& right) {                                                                       \
+        return zip_common(ops::NAME<C> {}, left, right);                                        \
+    }                                                                                           \
+    template<typename L, typename R, typename C = tensor_promoted_value_type<L, R>, typename E> \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> operator OP(                        \
+        const L& left,                                                                          \
+        const tensor<R, E>& right) {                                                            \
+        return zip_common(ops::NAME<C> {}, left, right);                                        \
     }
 
 KERNEL_FLOAT_DEFINE_BINARY_OP(add, +)
@@ -163,28 +113,29 @@ KERNEL_FLOAT_DEFINE_BINARY_OP(bit_or, |)
 KERNEL_FLOAT_DEFINE_BINARY_OP(bit_xor, ^)
 
 // clang-format off
-template<template<typename T> typename F, typename L, typename R>
-static constexpr bool vector_assign_allowed =
-    common_vector_size<L, R> == vector_size<L> &&
-    is_implicit_convertible<
-        result_t<
-                F<common_t<vector_value_type<L>, vector_value_type<R>>>,
-                vector_value_type<L>,
-                vector_value_type<R>
-        >,
-        vector_value_type<L>
-    >;
+template<template<typename> typename F, typename T, typename E, typename R>
+static constexpr bool is_tensor_assign_allowed =
+        is_tensor_broadcastable<R, E> &&
+        is_implicit_convertible<
+            result_t<
+                F<promote_t<T, tensor_value_type<R>>>,
+                    T,
+                    tensor_value_type<R>
+                >,
+            T
+        >;
 // clang-format on
 
-#define KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(NAME, OP)                                        \
-    template<                                                                                 \
-        typename L,                                                                           \
-        typename R,                                                                           \
-        typename T = enabled_t<vector_assign_allowed<ops::NAME, L, R>, vector_value_type<L>>> \
-    KERNEL_FLOAT_INLINE vector<L>& operator OP(vector<L>& lhs, const R& rhs) {                \
-        using F = ops::NAME<T>;                                                               \
-        lhs = zip_common<F, const L&, const R&, L>(F {}, lhs.storage(), rhs);                 \
-        return lhs;                                                                           \
+#define KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(NAME, OP)                               \
+    template<                                                                        \
+        typename T,                                                                  \
+        typename E,                                                                  \
+        typename R,                                                                  \
+        typename = enabled_t<is_tensor_assign_allowed<ops::NAME, T, E, R>>>          \
+    KERNEL_FLOAT_INLINE tensor<T, E>& operator OP(tensor<T, E>& lhs, const R& rhs) { \
+        using F = ops::NAME<T>;                                                      \
+        lhs = zip_common(F {}, lhs, rhs);                                            \
+        return lhs;                                                                  \
     }
 
 KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(add, +=)
@@ -271,4 +222,4 @@ struct bit_xor<double> {
 
 }  // namespace kernel_float
 
-#endif  //KERNEL_FLOAT_BINOPS_H
+#endif
