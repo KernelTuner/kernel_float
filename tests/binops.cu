@@ -4,7 +4,7 @@
 namespace kf = kernel_float;
 
 template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
-struct arithmetic_test;
+    struct / arithmetic_test;
 
 template<typename T, size_t N, size_t... Is>
 struct arithmetic_test<T, N, std::index_sequence<Is...>> {

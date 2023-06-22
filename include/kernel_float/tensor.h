@@ -39,6 +39,9 @@ struct tensor {
         return E::ravel_index(index);
     }
 
+    template<typename... Args, enabled_t<sizeof...(Args) == volume, int> = 0>
+    KERNEL_FLOAT_INLINE tensor(Args&&... args) : storage_ {std::forward<Args>(args)...} {}
+
     KERNEL_FLOAT_INLINE
     tensor(T init = {}) {
         for (size_t i = 0; i < size(); i++) {
@@ -228,6 +231,12 @@ using vec = tensor<T, extents<N>>;
 
 template<typename T, size_t N, size_t M>
 using mat = tensor<T, extents<N, M>>;
+
+template<typename... Args>
+KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
+    using T = promote_t<Args...>;
+    return tensor_storage<T, sizeof...(Args)> {T {args}...};
+};
 
 // clang-format off
 template<typename T> using vec1 = vec<T, 1>;

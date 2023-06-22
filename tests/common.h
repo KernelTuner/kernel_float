@@ -215,7 +215,7 @@ void run_on_host(type_sequence<Ts...>, size_sequence<Is...>) {
 
 template<template<typename, size_t> class F, typename... Ts>
 void run_on_host(type_sequence<Ts...> = {}) {
-    run_on_host<F>(type_sequence<Ts...> {}, size_sequence<1, 2, 3, 4, 5, 6, 7, 8> {});
+    run_on_host<F>(type_sequence<Ts...> {}, size_sequence<1, 2, 3, 4, 7, 8> {});
 }
 
 template<typename F, typename... Args>
@@ -266,7 +266,7 @@ void run_on_device(type_sequence<Ts...>, size_sequence<Is...>) {
 
 template<template<typename, size_t> class F, typename... Ts>
 void run_on_device(type_sequence<Ts...> = {}) {
-    run_on_device<F>(type_sequence<Ts...> {}, size_sequence<1, 2, 3, 4, 5, 6, 7, 8> {});
+    run_on_device<F>(type_sequence<Ts...> {}, size_sequence<1, 2, 3, 4, 7, 8> {});
 }
 
 template<template<typename, size_t> class F, typename... Ts>

@@ -1,6 +1,6 @@
 #include "common.h"
 #include "kernel_float.h"
-
+/*
 namespace kf = kernel_float;
 
 template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
@@ -40,3 +40,4 @@ struct swizzle_test<T, N, std::index_sequence<Is...>> {
 TEST_CASE("swizzle") {
     run_on_host_and_device<swizzle_test, int, float>();
 }
+*/

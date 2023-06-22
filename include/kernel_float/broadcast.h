@@ -2,6 +2,7 @@
 #define KERNEL_FLOAT_CAST_H
 
 #include "base.h"
+#include "unops.h"
 
 namespace kernel_float {
 namespace detail {
@@ -173,7 +174,7 @@ struct strides_helper<extents<N, M, K>> {
 };
 
 template<typename T, typename From, typename To>
-struct broadcast_helper {
+struct broadcast_impl {
     KERNEL_FLOAT_INLINE static tensor_storage<T, From::volume>
     call(tensor_storage<T, To::volume> input) {
         static_assert(is_broadcastable<From, To>, "cannot broadcast to required shape");
@@ -187,7 +188,7 @@ struct broadcast_helper {
 };
 
 template<typename T, typename E>
-struct broadcast_helper<T, E, E> {
+struct broadcast_impl<T, E, E> {
     KERNEL_FLOAT_INLINE static tensor_storage<T, E::volume>
     call(tensor_storage<T, E::volume> input) {
         return input;
@@ -200,26 +201,26 @@ template<size_t... Ns, typename V>
 tensor<tensor_value_type<V>, extents<Ns...>>
 broadcast(const V& input, extents<Ns...> new_extents = {}) {
     using T = tensor_value_type<V>;
-    return detail::broadcast_helper<T, tensor_extents<V>, extents<Ns...>>::call(
+    return detail::broadcast_impl<T, tensor_extents<V>, extents<Ns...>>::call(
         into_tensor(input).storage());
 }
 
 template<size_t... Ns, typename T>
 tensor<T, extents<Ns...>> fill(T value = {}, extents<Ns...> = {}) {
     tensor_storage<T, 1> input = {value};
-    return detail::broadcast_helper<T, extents<>, extents<Ns...>>::call(input);
+    return detail::broadcast_impl<T, extents<>, extents<Ns...>>::call(input);
 }
 
 template<typename T, size_t... Ns>
 tensor<T, extents<Ns...>> zeros(extents<Ns...> = {}) {
     tensor_storage<T, 1> input = {T {}};
-    return detail::broadcast_helper<T, extents<>, extents<Ns...>>::call(input);
+    return detail::broadcast_impl<T, extents<>, extents<Ns...>>::call(input);
 }
 
 template<typename T, size_t... Ns>
 tensor<T, extents<Ns...>> ones(extents<Ns...> = {}) {
     tensor_storage<T, 1> input = {T {1}};
-    return detail::broadcast_helper<T, extents<>, extents<Ns...>>::call(input);
+    return detail::broadcast_impl<T, extents<>, extents<Ns...>>::call(input);
 }
 
 template<typename V, typename T = tensor_value_type<V>, typename E = tensor_extents<V>>
@@ -230,6 +231,51 @@ tensor<T, E> zeros_like(const V&) {
 template<typename V, typename T = tensor_value_type<V>, typename E = tensor_extents<V>>
 tensor<T, E> ones_like(const V&) {
     return ones<T>(E {});
+}
+
+namespace detail {
+template<typename T, typename E, typename T2, typename E2, RoundingMode M = RoundingMode::ANY>
+struct convert_helper {
+    KERNEL_FLOAT_INLINE
+    static tensor_storage<T2, E2::volume> call(tensor_storage<T, E::volume> input) {
+        tensor_storage<T2, E::volume> intermediate =
+            detail::apply_impl<ops::cast<T, T2, M>, E::volume, T2, T>::call(input);
+        return detail::broadcast_impl<T2, E, E2>::call(intermediate);
+    }
+};
+
+template<typename T, typename E, RoundingMode M>
+struct convert_helper<T, E, T, E, M> {
+    KERNEL_FLOAT_INLINE
+    static tensor_storage<T, E::volume> call(tensor_storage<T, E::volume> input) {
+        return input;
+    }
+};
+
+template<typename T, typename E, typename E2, RoundingMode M>
+struct convert_helper<T, E, T, E2, M> {
+    KERNEL_FLOAT_INLINE
+    static tensor_storage<T, E2::volume> call(tensor_storage<T, E::volume> input) {
+        return detail::broadcast_impl<T, E, E2>::call(input);
+    }
+};
+
+template<typename T, typename E, typename T2, RoundingMode M>
+struct convert_helper<T, E, T2, E, M> {
+    KERNEL_FLOAT_INLINE
+    static tensor_storage<T2, E::volume> call(tensor_storage<T, E::volume> input) {
+        return detail::apply_impl<ops::cast<T, T2, M>, E::volume, T2, T>::call(input);
+    }
+};
+}  // namespace detail
+
+/**
+ * Cast the values of the given input tensor to type `R` and then broadcast the result to the given shape `(Ns...)`.
+ */
+template<typename R, size_t... Ns, RoundingMode M = RoundingMode::ANY, typename V>
+tensor<R, extents<Ns...>> convert(const V& input, extents<Ns...> new_shape = {}) {
+    return detail::convert_helper<tensor_value_type<V>, tensor_extents<V>, R, extents<Ns...>, M, >(
+        into_tensor(input).storage());
 }
 
 }  // namespace kernel_float

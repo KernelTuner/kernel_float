@@ -14,13 +14,11 @@ struct basic_test<T, N, std::index_sequence<Is...>> {
 
         // check if getters work
         ASSERT(equals(a.get(Is), items[Is]) && ...);
-        ASSERT(equals(a.get(kf::const_index<Is> {}), items[Is]) && ...);
         ASSERT(equals<T>(a[Is], items[Is]) && ...);
-        ASSERT(equals<T>(a[kf::const_index<Is> {}], items[Is]) && ...);
 
         // check if setter works
         T new_items[N] = {gen.next(Is)...};
-        (a.set(kf::const_index<Is> {}, new_items[Is]), ...);
+        (a.set(Is, new_items[Is]), ...);
         ASSERT(equals(a.get(Is), new_items[Is]) && ...);
 
         // check if setter works

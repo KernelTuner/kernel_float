@@ -43,7 +43,7 @@ template<typename F, typename V>
 KERNEL_FLOAT_INLINE tensor_value_type<V> reduce(F fun, const V& input) {
     return detail::reduce_helper<F, tensor_volume<V>, tensor_value_type<V>>::call(
         fun,
-        into_tensor(input));
+        into_tensor_storage(input));
 }
 
 /**

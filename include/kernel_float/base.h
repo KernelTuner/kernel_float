@@ -303,11 +303,6 @@ template<typename V>
 using into_tensor_type = typename into_tensor_traits<V>::type;
 
 template<typename V>
-KERNEL_FLOAT_INLINE into_tensor_type<V> into_tensor(V&& input) {
-    return into_tensor_traits<V>::call(std::forward<V>(input));
-}
-
-template<typename V>
 using tensor_extents = typename tensor_traits<into_tensor_type<V>>::extents_type;
 
 template<typename V>
@@ -319,9 +314,22 @@ static constexpr size_t tensor_volume = tensor_extents<V>::volume;
 template<typename V>
 using tensor_value_type = typename tensor_traits<into_tensor_type<V>>::value_type;
 
+template<typename V>
+using tensor_storage_type = tensor_storage<tensor_value_type<V>, tensor_volume<V>>;
+
 template<typename... Vs>
-using tensor_promoted_value_type =
+using promoted_tensor_value_type =
     promote_t<typename tensor_traits<into_tensor_type<Vs>>::value_type...>;
+
+template<typename V>
+KERNEL_FLOAT_INLINE into_tensor_type<V> into_tensor(V&& input) {
+    return into_tensor_traits<V>::call(std::forward<V>(input));
+}
+
+template<typename V>
+KERNEL_FLOAT_INLINE tensor_storage_type<V> into_tensor_storage(V&& input) {
+    return into_tensor_traits<V>::call(std::forward<V>(input)).storage();
+}
 
 }  // namespace kernel_float
 

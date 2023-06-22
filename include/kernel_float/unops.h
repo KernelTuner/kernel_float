@@ -5,8 +5,12 @@
 
 namespace kernel_float {
 namespace detail {
-template<typename F, size_t N, typename Output, typename Input, typename = void>
-struct map_helper {
+
+template<typename F, size_t N, typename Output, typename... Args>
+struct apply_impl;
+
+template<typename F, size_t N, typename Output, typename Input>
+struct apply_impl<F, N, Output, Input> {
     KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
     call(F fun, const tensor_storage<Input, N>& input) {
         return call(fun, input, make_index_sequence<N> {});
@@ -28,7 +32,7 @@ template<typename F, typename V>
 KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     using Input = tensor_value_type<V>;
     using Output = result_t<F, Input>;
-    return detail::map_helper<F, tensor_volume<V>, Output, Input>::call(
+    return detail::apply_impl<F, tensor_volume<V>, Output, Input>::call(
         fun,
         into_tensor(input).storage());
 }
@@ -128,17 +132,14 @@ struct cast<T, T, m> {
         return input;
     }
 };
-}  // namespace ops
 
-namespace detail {
-template<size_t N, typename T>
-struct map_helper<ops::cast<T, T>, N, T, T> {
-    KERNEL_FLOAT_INLINE static tensor_storage<T, N>
-    call(ops::cast<T, T> fun, const tensor_storage<T, N>& input) {
+template<typename T>
+struct cast<T, T, RoundingMode::ANY> {
+    KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
         return input;
     }
 };
-}  // namespace detail
+}  // namespace ops
 
 template<typename R, RoundingMode Mode = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE tensor<R, tensor_extents<V>> cast(const V& input) {

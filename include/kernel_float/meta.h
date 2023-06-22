@@ -170,7 +170,7 @@ struct multi_promote_type<A, B, C, Rest...>:
 }  // namespace detail
 
 template<typename... Ts>
-using promote_t = typename detail::multi_promote_type<Ts...>::type;
+using promote_t = typename detail::multi_promote_type<decay_t<Ts>...>::type;
 
 namespace detail {
 
