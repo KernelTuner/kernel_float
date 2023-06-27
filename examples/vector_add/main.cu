@@ -13,11 +13,11 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N>
-__global__ void my_kernel(int length, const vhalf<N>* input, kdouble constant, vfloat<N>* output) {
+__global__ void my_kernel(int length, const khalf<N>* input, double constant, kfloat<N>* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        output[i] = kernel_float::cast<float>((input[i] * input[i]) * constant);
+        output[i] = kf::cast<float>((input[i] * input[i]) * constant);
     }
 }
 
@@ -35,13 +35,13 @@ void run_kernel(int n) {
     }
 
     // Allocate device memory
-    vhalf<items_per_thread>* input_dev;
-    vfloat<items_per_thread>* output_dev;
-    cuda_check(cudaMalloc(&input_dev, sizeof(khalf) * n));
-    cuda_check(cudaMalloc(&output_dev, sizeof(kfloat) * n));
+    khalf<items_per_thread>* input_dev;
+    kfloat<items_per_thread>* output_dev;
+    cuda_check(cudaMalloc(&input_dev, sizeof(half) * n));
+    cuda_check(cudaMalloc(&output_dev, sizeof(float) * n));
 
     // Copy device memory
-    cuda_check(cudaMemcpy(input_dev, input.data(), sizeof(khalf) * n, cudaMemcpyDefault));
+    cuda_check(cudaMemcpy(input_dev, input.data(), sizeof(half) * n, cudaMemcpyDefault));
 
     // Launch kernel!
     int block_size = 256;
@@ -50,7 +50,7 @@ void run_kernel(int n) {
     my_kernel<items_per_thread><<<grid_size, block_size>>>(n, input_dev, constant, output_dev);
 
     // Copy results back
-    cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(kfloat) * n, cudaMemcpyDefault));
+    cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));
 
     // Check results
     for (int i = 0; i < n; i++) {
