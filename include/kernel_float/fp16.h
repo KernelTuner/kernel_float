@@ -9,7 +9,7 @@
 #include "binops.h"
 
 namespace kernel_float {
-KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)
 
@@ -87,7 +87,29 @@ struct apply_impl<F, N, __half, __half, __half> {
         return result;
     }
 };
-}  // namespace detail
+
+template<typename F, size_t N>
+struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
+    KERNEL_FLOAT_INLINE static __half call(F fun, const tensor_storage<__half, N>& input) {
+        __half2 accum = {input[0], input[1]};
+
+#pragma unroll
+        for (size_t i = 2; i < N; i += 2) {
+            __half2 a = {input[i], input[i + 1]};
+            accum = zip_halfx2<F>::call(fun, accum, a);
+        }
+
+        __half result = fun(accum.x, accum.y);
+
+        if (N % 2 != 0) {
+            result = fun(result, input[N - 1]);
+        }
+
+        return result;
+    }
+};
+
+};  // namespace detail
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                               \

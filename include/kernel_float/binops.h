@@ -11,17 +11,14 @@ template<typename F, size_t N, typename Output, typename Left, typename Right>
 struct apply_impl<F, N, Output, Left, Right> {
     KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
     call(F fun, const tensor_storage<Left, N>& left, const tensor_storage<Right, N>& right) {
-        return call(fun, left, right, make_index_sequence<N> {});
-    }
+        tensor_storage<Output, N> result;
 
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N> call(
-        F fun,
-        const tensor_storage<Left, N>& left,
-        const tensor_storage<Right, N>& right,
-        index_sequence<Is...>) {
-        return {fun(left[Is], right[Is])...};
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            result[i] = fun(left[i], right[i]);
+        }
+
+        return result;
     }
 };
 }  // namespace detail

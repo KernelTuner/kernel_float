@@ -4,9 +4,7 @@
 #include <vector>
 
 #include "kernel_float.h"
-namespace kf = kernel_float;
-
-using x = kf::half;
+using namespace kernel_float::prelude;
 
 void cuda_check(cudaError_t code) {
     if (code != cudaSuccess) {
@@ -15,39 +13,35 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N>
-__global__ void my_kernel(
-    int length,
-    const kf::unaligned_vec<__half, N>* input,
-    double constant,
-    kf::unaligned_vec<float, N>* output) {
+__global__ void my_kernel(int length, const vhalf<N>* input, kdouble constant, vfloat<N>* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        output[i] = kf::cast<float>((input[i] * input[i]) * constant);
+        output[i] = kernel_float::cast<float>((input[i] * input[i]) * constant);
     }
 }
 
 template<int items_per_thread>
 void run_kernel(int n) {
     double constant = 1.0;
-    std::vector<__half> input(n);
+    std::vector<half> input(n);
     std::vector<float> output_expected;
     std::vector<float> output_result;
 
     // Generate input data
     for (int i = 0; i < n; i++) {
-        input[i] = __half(i);
+        input[i] = half(i);
         output_expected[i] = float(i + constant);
     }
 
     // Allocate device memory
-    kf::unaligned_vec<__half, items_per_thread>* input_dev;
-    kf::unaligned_vec<float, items_per_thread>* output_dev;
-    cuda_check(cudaMalloc(&input_dev, sizeof(__half) * n));
-    cuda_check(cudaMalloc(&output_dev, sizeof(float) * n));
+    vhalf<items_per_thread>* input_dev;
+    vfloat<items_per_thread>* output_dev;
+    cuda_check(cudaMalloc(&input_dev, sizeof(khalf) * n));
+    cuda_check(cudaMalloc(&output_dev, sizeof(kfloat) * n));
 
     // Copy device memory
-    cuda_check(cudaMemcpy(input_dev, input.data(), sizeof(__half) * n, cudaMemcpyDefault));
+    cuda_check(cudaMemcpy(input_dev, input.data(), sizeof(khalf) * n, cudaMemcpyDefault));
 
     // Launch kernel!
     int block_size = 256;
@@ -56,7 +50,7 @@ void run_kernel(int n) {
     my_kernel<items_per_thread><<<grid_size, block_size>>>(n, input_dev, constant, output_dev);
 
     // Copy results back
-    cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));
+    cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(kfloat) * n, cudaMemcpyDefault));
 
     // Check results
     for (int i = 0; i < n; i++) {

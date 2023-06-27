@@ -13,14 +13,14 @@ template<typename F, size_t N, typename Output, typename Input>
 struct apply_impl<F, N, Output, Input> {
     KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
     call(F fun, const tensor_storage<Input, N>& input) {
-        return call(fun, input, make_index_sequence<N> {});
-    }
+        tensor_storage<Output, N> result;
 
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
-    call(F fun, const tensor_storage<Input, N>& input, index_sequence<Is...>) {
-        return {fun(input[Is])...};
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            result[i] = fun(input[i]);
+        }
+
+        return result;
     }
 };
 }  // namespace detail

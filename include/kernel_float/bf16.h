@@ -7,9 +7,10 @@
 #include <cuda_bf16.h>
 
 #include "binops.h"
+#include "tensor.h"
 
 namespace kernel_float {
-KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, bool)
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_bfloat16)
 
@@ -84,6 +85,28 @@ struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
 
         if (N % 2 != 0) {
             result[N - 1] = fun(left[N - 1], right[N - 1]);
+        }
+
+        return result;
+    }
+};
+
+template<typename F, size_t N>
+struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
+    KERNEL_FLOAT_INLINE static __nv_bfloat16
+    call(F fun, const tensor_storage<__nv_bfloat16, N>& input) {
+        __nv_bfloat162 accum = {input[0], input[1]};
+
+#pragma unroll
+        for (size_t i = 2; i < N; i += 2) {
+            __nv_bfloat162 a = {input[i], input[i + 1]};
+            accum = zip_bfloat16x2<F>::call(fun, accum, a);
+        }
+
+        __nv_bfloat16 result = fun(accum.x, accum.y);
+
+        if (N % 2 != 0) {
+            result = fun(result, input[N - 1]);
         }
 
         return result;

@@ -94,7 +94,7 @@ struct promote_type<T, T> {
         using type = T;                         \
     };
 
-// T and bool becomes T
+// T + bool becomes T
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(char, bool)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed char, bool)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(signed short, bool)
@@ -143,6 +143,33 @@ KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, char)
 KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, short)
 KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, int)
 KERNEL_FLOAT_DEFINE_PROMOTED_INTEGRAL(long long, long)
+
+template<typename T>
+struct promote_type<T*, T*> {
+    using type = T*;
+};
+
+#define KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(I) \
+    template<typename T>                        \
+    struct promote_type<T*, I> {                \
+        using type = T*;                        \
+    };                                          \
+    template<typename T>                        \
+    struct promote_type<I, T*> {                \
+        using type = T*;                        \
+    };
+
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(char)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(signed char)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(signed short)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(signed int)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(signed long)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(signed long long)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(unsigned char)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(unsigned short)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(unsigned int)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(unsigned long)
+KERNEL_FLOAT_DEFINE_PROMOTED_POINTER(unsigned long long)
 
 // half precision
 //    KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(half)

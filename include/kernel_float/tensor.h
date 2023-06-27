@@ -30,6 +30,11 @@ struct tensor {
     }
 
     KERNEL_FLOAT_INLINE
+    static constexpr extents_type shape() {
+        return {};
+    }
+
+    KERNEL_FLOAT_INLINE
     static constexpr size_t stride(size_t axis) {
         return E::stride(axis);
     }
@@ -39,18 +44,25 @@ struct tensor {
         return E::ravel_index(index);
     }
 
-    template<typename... Args, enabled_t<sizeof...(Args) == volume, int> = 0>
-    KERNEL_FLOAT_INLINE tensor(Args&&... args) : storage_ {std::forward<Args>(args)...} {}
-
-    KERNEL_FLOAT_INLINE
-    tensor(T init = {}) {
-        for (size_t i = 0; i < size(); i++) {
-            storage_[i] = init;
-        }
-    }
+    tensor(const tensor&) = default;
 
     KERNEL_FLOAT_INLINE
     tensor(storage_type storage) : storage_(storage) {}
+
+    template<typename... Args, enabled_t<sizeof...(Args) == volume && volume >= 2, int> = 0>
+    KERNEL_FLOAT_INLINE tensor(Args&&... args) : storage_ {std::forward<Args>(args)...} {}
+
+    template<
+        typename U,
+        typename F,
+        enabled_t<
+            is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
+            int> = 0>
+    KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
+        tensor(convert<T>(input, extents_type {})) {}
+
+    KERNEL_FLOAT_INLINE tensor(const value_type& input = {}) :
+        tensor(convert<T>(input, extents_type {})) {}
 
     KERNEL_FLOAT_INLINE
     storage_type& storage() {
@@ -237,50 +249,6 @@ KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... 
     using T = promote_t<Args...>;
     return tensor_storage<T, sizeof...(Args)> {T {args}...};
 };
-
-// clang-format off
-template<typename T> using vec1 = vec<T, 1>;
-template<typename T> using vec2 = vec<T, 2>;
-template<typename T> using vec3 = vec<T, 3>;
-template<typename T> using vec4 = vec<T, 4>;
-template<typename T> using vec5 = vec<T, 5>;
-template<typename T> using vec6 = vec<T, 6>;
-template<typename T> using vec7 = vec<T, 7>;
-template<typename T> using vec8 = vec<T, 8>;
-// clang-format on
-
-#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T) \
-    using k##NAME = scalar<T>;           \
-    template<size_t N>                   \
-    using NAME##X = vec<T, N>;           \
-    using NAME##1 = vec<T, 1>;           \
-    using NAME##2 = vec<T, 2>;           \
-    using NAME##3 = vec<T, 3>;           \
-    using NAME##4 = vec<T, 4>;           \
-    using NAME##5 = vec<T, 5>;           \
-    using NAME##6 = vec<T, 6>;           \
-    using NAME##7 = vec<T, 7>;           \
-    using NAME##8 = vec<T, 8>;
-
-KERNEL_FLOAT_TYPE_ALIAS(char, char)
-KERNEL_FLOAT_TYPE_ALIAS(short, short)
-KERNEL_FLOAT_TYPE_ALIAS(int, int)
-KERNEL_FLOAT_TYPE_ALIAS(long, long)
-KERNEL_FLOAT_TYPE_ALIAS(longlong, long long)
-
-KERNEL_FLOAT_TYPE_ALIAS(uchar, unsigned char)
-KERNEL_FLOAT_TYPE_ALIAS(ushort, unsigned short)
-KERNEL_FLOAT_TYPE_ALIAS(uint, unsigned int)
-KERNEL_FLOAT_TYPE_ALIAS(ulong, unsigned long)
-KERNEL_FLOAT_TYPE_ALIAS(ulonglong, unsigned long long)
-
-KERNEL_FLOAT_TYPE_ALIAS(float, float)
-KERNEL_FLOAT_TYPE_ALIAS(f32x, float)
-KERNEL_FLOAT_TYPE_ALIAS(float32x, float)
-
-KERNEL_FLOAT_TYPE_ALIAS(double, double)
-KERNEL_FLOAT_TYPE_ALIAS(f64x, double)
-KERNEL_FLOAT_TYPE_ALIAS(float64x, double)
 
 }  // namespace kernel_float
 

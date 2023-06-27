@@ -226,8 +226,15 @@ struct extents<N, M, K> {
     }
 };
 
-template<typename V>
-struct into_tensor_traits;
+template<typename T>
+struct into_tensor_traits {
+    using type = tensor<T, extents<>>;
+
+    KERNEL_FLOAT_INLINE
+    static type call(const T& input) {
+        return tensor_storage<T, 1> {input};
+    }
+};
 
 template<typename V>
 struct into_tensor_traits<const V> {

@@ -6,14 +6,14 @@
 namespace kernel_float {
 
 template<typename T>
-struct alignas(2 * alignof(T)) complex_storage {
+struct alignas(2 * alignof(T)) complex_type_storage {
     T re;
     T im;
 };
 
 template<typename T>
-struct complex_type: complex_storage<T> {
-    using base_type = complex_storage<T>;
+struct complex_type: complex_type_storage<T> {
+    using base_type = complex_type_storage<T>;
 
     template<typename T2>
     KERNEL_FLOAT_INLINE complex_type(complex_type<T2> that) : base_type(that.real(), that.imag()) {}
