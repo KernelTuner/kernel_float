@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-06-27 15:32:45.699220
-// git hash: 9f4a8e610fbfefc3b67f36b501f913c36a81f67e
+// date: 2023-07-17 15:01:51.588582
+// git hash: 1812de6d6fd205d35e0f07a5eb4fc3e2c190bdfd
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -47,265 +47,6 @@
 #define KERNEL_FLOAT_UNREACHABLE __builtin_unreachable()
 
 #endif  //KERNEL_FLOAT_MACROS_H
-#ifndef KERNEL_FLOAT_COMPLEX_TYPE_H
-#define KERNEL_FLOAT_COMPLEX_TYPE_H
-
-
-
-namespace kernel_float {
-
-template<typename T>
-struct alignas(2 * alignof(T)) complex_type_storage {
-    T re;
-    T im;
-};
-
-template<typename T>
-struct complex_type: complex_type_storage<T> {
-    using base_type = complex_type_storage<T>;
-
-    template<typename T2>
-    KERNEL_FLOAT_INLINE complex_type(complex_type<T2> that) : base_type(that.real(), that.imag()) {}
-
-    KERNEL_FLOAT_INLINE
-    complex_type(T real = {}, T imag = {}) : base_type(real, im) {}
-
-    KERNEL_FLOAT_INLINE
-    T real() const {
-        return re;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T imag() const {
-        return im;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T norm() const {
-        return re * re + im * im;
-    }
-
-    KERNEL_FLOAT_INLINE
-    complex_type conj() const {
-        return {re, -im};
-    }
-};
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator+(complex_type<T> v) {
-    return v;
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator+(complex_type<T> a, complex_type<T> b) {
-    return {a.real() + b.real(), a.imag() + b.imag()};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator+(T a, complex_type<T> b) {
-    return {a + b.real(), b.imag()};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator+(complex_type<T> a, T b) {
-    return {a.real() + b, a.imag()};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>& operator+=(complex_type<T>& a, complex_type<T> b) {
-    return (a = a + b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>& operator+=(complex_type<T>& a, T b) {
-    return (a = a + b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> v) {
-    return {-v.real(), -v.imag()};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, complex_type<T> b) {
-    return {
-        a.real() - b.real(), a.imag() - b.imag()
-    }
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator-(T a, complex_type<T> b) {
-    return {
-        a - b.real(), -b.imag()
-    }
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, T b) {
-    return {
-        a.real() - b, a.imag()
-    }
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>& operator-=(complex_type<T>& a, complex_type<T> b) {
-    return (a = a - b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>& operator-=(complex_type<T>& a, T b) {
-    return (a = a - b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator*(complex_type<T> a, complex_type<T> b) {
-    return {
-        a.real() * b.real() - a.imag() * b.imag(), a.real() * b.imag() + a.imag() * b.real()
-    }
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator*(complex_type<T> a, T b) {
-    return {a.real() * b, a.imag() * b};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>* operator*=(complex_type<T>& a, complex_type<T> b) {
-    return (a = a * b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>& operator*=(complex_type<T>& a, T b) {
-    return (a = a * b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator*(T a, complex_type<T> b) {
-    return {
-        a * b.real(),
-        a * b.imag(),
-    };
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, complex_type<T> b) {
-    T normi = 1 / b.norm();
-
-    return {
-        (a.real() * b.real() + a.imag() * b.imag()) * normi,
-        (a.imag() * b.real() - a.real() * b.imag()) * normi};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, T b) {
-    return {a.real() * (1 / b), a.imag() * (1 / b)};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> operator/(T a, complex_type<T> b) {
-    T normi = 1 / b.norm();
-
-    return {a * b.real() * normi, -a * b.imag() * normi};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>* operator/=(complex_type<T>& a, complex_type<T> b) {
-    return (a = a / b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T>& operator/=(complex_type<T>& a, T b) {
-    return (a = a / b);
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE T real(complex_type<T> v) {
-    return v.real();
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE T imag(complex_type<T> v) {
-    return v.real();
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE T abs(complex_type<T> v) {
-    return hypot(v.real(), v.imag());
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE T arg(complex_type<T> v) {
-    return atan2(v.imag(), v.real());
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> sqrt(complex_type<T> v) {
-    T radius = abs(v);
-    T cosA = v.real() / radius;
-
-    complex_type<T> out = {
-        sqrt(radius * (cosA + T(1)) * T(.5)),
-        sqrt(radius * (T(1) - cosA) * T(.5))};
-
-    // signbit should be false if x.y is negative
-    if (v.imag() < 0) {
-        out = complex_type<T> {out.real, -out.im};
-    }
-
-    return out;
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> norm(complex_type<T> v) {
-    return v.real() * v.real() + v.imag() * v.imag();
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> conj(complex_type<T> v) {
-    return {v.real(), -v.imag()};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> exp(complex_type<T> v) {
-    // TODO: Handle nan and inf correctly
-    T e = exp(v.real());
-    T a = v.imag();
-    return complex_type<T>(e * cos(a), e * sin(a));
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> log(complex_type<T> v) {
-    return {log(abs(v)), arg(v)};
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> pow(complex_type<T> a, T b) {
-    return exp(a * log(b));
-}
-
-template<typename T>
-KERNEL_FLOAT_INLINE complex_type<T> pow(complex_type<T> a, complex_type<T> b) {
-    return exp(a * log(b));
-}
-
-template<typename L, typename R>
-struct promote_type<complex_type<L>, complex_type<R>> {
-    using type = complex_type<promote_t<L, R>>;
-};
-
-template<typename L, typename R>
-struct promote_type<complex_type<L>, R> {
-    using type = complex_type<promote_t<L, R>>;
-};
-
-template<typename L, typename R>
-struct promote_type<L, complex_type<R>> {
-    using type = complex_type<promote_t<L, R>>;
-};
-
-}  // namespace kernel_float
-
-#endif
 #ifndef KERNEL_FLOAT_CORE_H
 #define KERNEL_FLOAT_CORE_H
 
@@ -905,6 +646,266 @@ template<typename V>
 KERNEL_FLOAT_INLINE tensor_storage_type<V> into_tensor_storage(V&& input) {
     return into_tensor_traits<V>::call(std::forward<V>(input)).storage();
 }
+
+}  // namespace kernel_float
+
+#endif
+#ifndef KERNEL_FLOAT_COMPLEX_TYPE_H
+#define KERNEL_FLOAT_COMPLEX_TYPE_H
+
+
+
+
+namespace kernel_float {
+
+template<typename T>
+struct alignas(2 * alignof(T)) complex_type_storage {
+    T re;
+    T im;
+};
+
+template<typename T>
+struct complex_type: complex_type_storage<T> {
+    using base_type = complex_type_storage<T>;
+
+    template<typename T2>
+    KERNEL_FLOAT_INLINE complex_type(complex_type<T2> that) : base_type(that.real(), that.imag()) {}
+
+    KERNEL_FLOAT_INLINE
+    complex_type(T real = {}, T imag = {}) : base_type(real, im) {}
+
+    KERNEL_FLOAT_INLINE
+    T real() const {
+        return re;
+    }
+
+    KERNEL_FLOAT_INLINE
+    T imag() const {
+        return im;
+    }
+
+    KERNEL_FLOAT_INLINE
+    T norm() const {
+        return re * re + im * im;
+    }
+
+    KERNEL_FLOAT_INLINE
+    complex_type conj() const {
+        return {re, -im};
+    }
+};
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator+(complex_type<T> v) {
+    return v;
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator+(complex_type<T> a, complex_type<T> b) {
+    return {a.real() + b.real(), a.imag() + b.imag()};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator+(T a, complex_type<T> b) {
+    return {a + b.real(), b.imag()};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator+(complex_type<T> a, T b) {
+    return {a.real() + b, a.imag()};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>& operator+=(complex_type<T>& a, complex_type<T> b) {
+    return (a = a + b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>& operator+=(complex_type<T>& a, T b) {
+    return (a = a + b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> v) {
+    return {-v.real(), -v.imag()};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, complex_type<T> b) {
+    return {
+        a.real() - b.real(), a.imag() - b.imag()
+    }
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator-(T a, complex_type<T> b) {
+    return {
+        a - b.real(), -b.imag()
+    }
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, T b) {
+    return {
+        a.real() - b, a.imag()
+    }
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>& operator-=(complex_type<T>& a, complex_type<T> b) {
+    return (a = a - b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>& operator-=(complex_type<T>& a, T b) {
+    return (a = a - b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator*(complex_type<T> a, complex_type<T> b) {
+    return {
+        a.real() * b.real() - a.imag() * b.imag(), a.real() * b.imag() + a.imag() * b.real()
+    }
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator*(complex_type<T> a, T b) {
+    return {a.real() * b, a.imag() * b};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>* operator*=(complex_type<T>& a, complex_type<T> b) {
+    return (a = a * b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>& operator*=(complex_type<T>& a, T b) {
+    return (a = a * b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator*(T a, complex_type<T> b) {
+    return {
+        a * b.real(),
+        a * b.imag(),
+    };
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, complex_type<T> b) {
+    T normi = 1 / b.norm();
+
+    return {
+        (a.real() * b.real() + a.imag() * b.imag()) * normi,
+        (a.imag() * b.real() - a.real() * b.imag()) * normi};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, T b) {
+    return {a.real() * (1 / b), a.imag() * (1 / b)};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> operator/(T a, complex_type<T> b) {
+    T normi = 1 / b.norm();
+
+    return {a * b.real() * normi, -a * b.imag() * normi};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>* operator/=(complex_type<T>& a, complex_type<T> b) {
+    return (a = a / b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T>& operator/=(complex_type<T>& a, T b) {
+    return (a = a / b);
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE T real(complex_type<T> v) {
+    return v.real();
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE T imag(complex_type<T> v) {
+    return v.real();
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE T abs(complex_type<T> v) {
+    return hypot(v.real(), v.imag());
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE T arg(complex_type<T> v) {
+    return atan2(v.imag(), v.real());
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> sqrt(complex_type<T> v) {
+    T radius = abs(v);
+    T cosA = v.real() / radius;
+
+    complex_type<T> out = {
+        sqrt(radius * (cosA + T(1)) * T(.5)),
+        sqrt(radius * (T(1) - cosA) * T(.5))};
+
+    // signbit should be false if x.y is negative
+    if (v.imag() < 0) {
+        out = complex_type<T> {out.real, -out.im};
+    }
+
+    return out;
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> norm(complex_type<T> v) {
+    return v.real() * v.real() + v.imag() * v.imag();
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> conj(complex_type<T> v) {
+    return {v.real(), -v.imag()};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> exp(complex_type<T> v) {
+    // TODO: Handle nan and inf correctly
+    T e = exp(v.real());
+    T a = v.imag();
+    return complex_type<T>(e * cos(a), e * sin(a));
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> log(complex_type<T> v) {
+    return {log(abs(v)), arg(v)};
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> pow(complex_type<T> a, T b) {
+    return exp(a * log(b));
+}
+
+template<typename T>
+KERNEL_FLOAT_INLINE complex_type<T> pow(complex_type<T> a, complex_type<T> b) {
+    return exp(a * log(b));
+}
+
+template<typename L, typename R>
+struct promote_type<complex_type<L>, complex_type<R>> {
+    using type = complex_type<promote_t<L, R>>;
+};
+
+template<typename L, typename R>
+struct promote_type<complex_type<L>, R> {
+    using type = complex_type<promote_t<L, R>>;
+};
+
+template<typename L, typename R>
+struct promote_type<L, complex_type<R>> {
+    using type = complex_type<promote_t<L, R>>;
+};
 
 }  // namespace kernel_float
 
@@ -1578,6 +1579,435 @@ struct bit_xor<double> {
 }  // namespace kernel_float
 
 #endif
+#ifndef KERNEL_FLOAT_REDUCE_H
+#define KERNEL_FLOAT_REDUCE_H
+
+
+
+namespace kernel_float {
+namespace detail {
+template<typename F, size_t N, typename T, typename = void>
+struct reduce_helper {
+    KERNEL_FLOAT_INLINE static T call(F fun, const tensor_storage<T, N>& input) {
+        return call(fun, input, make_index_sequence<N> {});
+    }
+
+  private:
+    template<size_t... Is>
+    KERNEL_FLOAT_INLINE static T
+    call(F fun, const tensor_storage<T, N>& input, index_sequence<0, Is...>) {
+        T result = input[0];
+#pragma unroll
+        for (size_t i = 1; i < N; i++) {
+            result = fun(result, input[i]);
+        }
+        return result;
+    }
+};
+}  // namespace detail
+
+/**
+ * Reduce the elements of the given vector ``input`` into a single value using
+ * the function ``fun``. This function should be a binary function that takes
+ * two elements and returns one element. The order in which the elements
+ * are reduced is not specified and depends on the reduction function and
+ * the vector type.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 2, 1};
+ * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 5+2+1=8
+ * ```
+ */
+template<typename F, typename V>
+KERNEL_FLOAT_INLINE tensor_value_type<V> reduce(F fun, const V& input) {
+    return detail::reduce_helper<F, tensor_volume<V>, tensor_value_type<V>>::call(
+        fun,
+        into_tensor_storage(input));
+}
+
+/**
+ * Find the minimum element in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = min(x);  // Returns 0
+ * ```
+ */
+template<typename V, typename T = tensor_value_type<V>>
+KERNEL_FLOAT_INLINE T min(const V& input) {
+    return reduce(ops::min<T> {}, input);
+}
+
+/**
+ * Find the maximum element in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = max(x);  // Returns 5
+ * ```
+ */
+template<typename V, typename T = tensor_value_type<V>>
+KERNEL_FLOAT_INLINE T max(const V& input) {
+    return reduce(ops::max<T> {}, input);
+}
+
+/**
+ * Sum the items in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 8
+ * ```
+ */
+template<typename V, typename T = tensor_value_type<V>>
+KERNEL_FLOAT_INLINE T sum(const V& input) {
+    return reduce(ops::add<T> {}, input);
+}
+
+/**
+ * Multiply the items in the given vector ``input``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
+ * int y = sum(x);  // Returns 5*0*2*1*0 = 0
+ * ```
+ */
+template<typename V, typename T = tensor_value_type<V>>
+KERNEL_FLOAT_INLINE T product(const V& input) {
+    return reduce(ops::multiply<T> {}, input);
+}
+
+/**
+ * Check if all elements in the given vector ``input`` are non-zero. An element ``v`` is considered
+ * non-zero if ``bool(v)==true``.
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE bool all(const V& input) {
+    return reduce(ops::bit_and<bool> {}, cast<bool>(input));
+}
+
+/**
+ * Check if any element in the given vector ``input`` is non-zero. An element ``v`` is considered
+ * non-zero if ``bool(v)==true``.
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE bool any(const V& input) {
+    return reduce(ops::bit_or<bool> {}, cast<bool>(input));
+}
+
+/**
+ * Count the number of non-zero items in the given vector ``input``. An element ``v`` is considered
+ * non-zero if ``bool(v)==true``.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
+ * int y = count(x);  // Returns 3 (5, 2, 1 are non-zero)
+ * ```
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE int count(const V& input) {
+    return sum(cast<int>(cast<bool>(input)));
+}
+}  // namespace kernel_float
+
+#endif  //KERNEL_FLOAT_REDUCE_H
+#ifndef KERNEL_FLOAT_BASE_H
+#define KERNEL_FLOAT_BASE_H
+
+
+
+
+
+
+
+namespace kernel_float {
+
+template<typename Derived, typename T, size_t N>
+struct tensor_extension {};
+
+template<typename T, typename E, template<typename, size_t> class S>
+struct tensor: tensor_extension<tensor<T, E, S>, T, E::volume> {
+    static constexpr size_t rank = E::rank;
+    static constexpr size_t volume = E::volume;
+
+    using value_type = T;
+    using extents_type = E;
+    using ndindex_type = ndindex<rank>;
+    using storage_type = S<T, volume>;
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t size() {
+        return E::volume;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t size(size_t axis) {
+        return E::size(axis);
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr extents_type shape() {
+        return {};
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t stride(size_t axis) {
+        return E::stride(axis);
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t linearize_index(ndindex_type index) {
+        return E::ravel_index(index);
+    }
+
+    tensor(const tensor&) = default;
+
+    KERNEL_FLOAT_INLINE
+    tensor(storage_type storage) : storage_(storage) {}
+
+    template<typename... Args, enabled_t<sizeof...(Args) == volume && volume >= 2, int> = 0>
+    KERNEL_FLOAT_INLINE tensor(Args&&... args) : storage_ {std::forward<Args>(args)...} {}
+
+    template<
+        typename U,
+        typename F,
+        enabled_t<
+            is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
+            int> = 0>
+    KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
+        tensor(convert<T>(input, extents_type {})) {}
+
+    template<
+        typename U,
+        typename F,
+        enabled_t<
+            !is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
+            int> = 0>
+    explicit KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
+        tensor(convert<T>(input, extents_type {})) {}
+
+    KERNEL_FLOAT_INLINE tensor(const value_type& input = {}) :
+        tensor(convert<T>(input, extents_type {})) {}
+
+    KERNEL_FLOAT_INLINE
+    storage_type& storage() {
+        return storage_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const storage_type& storage() const {
+        return storage_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return storage_.data();
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return storage_.data();
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* cdata() const {
+        return storage_.data();
+    }
+
+    KERNEL_FLOAT_INLINE
+    T* begin() {
+        return storage_.data();
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* begin() const {
+        return storage_.data();
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* cbegin() const {
+        return storage_.data();
+    }
+
+    KERNEL_FLOAT_INLINE
+    T* end() {
+        return storage_.data() + E::volume;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* end() const {
+        return storage_.data() + E::volume;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* cend() const {
+        return storage_.data() + E::volume;
+    }
+
+    KERNEL_FLOAT_INLINE
+    T& at(ndindex_type x) {
+        return *(data() + linearize_index(x));
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T& at(ndindex_type x) const {
+        return *(data() + linearize_index(x));
+    }
+
+    KERNEL_FLOAT_INLINE
+    T get(ndindex_type x) const {
+        return at(x);
+    }
+
+    KERNEL_FLOAT_INLINE
+    void set(ndindex_type x, T value) {
+        at(x) = std::move(value);
+    }
+
+    KERNEL_FLOAT_INLINE
+    T& operator[](ndindex_type x) {
+        return at(x);
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T& operator[](ndindex_type x) const {
+        return at(x);
+    }
+
+    KERNEL_FLOAT_INLINE
+    T& operator()(ndindex_type x) {
+        return at(x);
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T& operator()(ndindex_type x) const {
+        return at(x);
+    }
+
+    KERNEL_FLOAT_INLINE
+    tensor<T, extents<volume>> flatten() const {
+        return storage_;
+    }
+
+    template<size_t... Ns>
+    KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> reshape(extents<Ns...> = {}) const {
+        static_assert(extents<Ns...>::volume == volume, "invalid reshape shape");
+        return storage_;
+    }
+
+    template<size_t... Ns>
+    KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> broadcast(extents<Ns...> new_shape = {}) const {
+        return kernel_float::broadcast(*this, new_shape);
+    }
+
+    template<typename F>
+    KERNEL_FLOAT_INLINE tensor<result_t<F, T>, E> map(F fun = {}) const {
+        return kernel_float::map(fun, *this);
+    }
+
+    template<typename F>
+    KERNEL_FLOAT_INLINE T reduce(F fun = {}) const {
+        return kernel_float::reduce(fun, *this);
+    }
+
+  private:
+    storage_type storage_;
+};
+
+template<typename Derived, typename T>
+struct tensor_extension<Derived, T, 1> {
+    KERNEL_FLOAT_INLINE
+    T get() const {
+        return static_cast<const Derived*>(this)->get({});
+    }
+
+    KERNEL_FLOAT_INLINE
+    void set(T value) {
+        static_cast<Derived*>(this)->set({}, value);
+    }
+
+    KERNEL_FLOAT_INLINE
+    operator T() const {
+        return get();
+    }
+};
+
+#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4)    \
+    template<>                                                \
+    struct into_tensor_traits<::T2> {                         \
+        using type = tensor<T, extents<2>>;                   \
+                                                              \
+        KERNEL_FLOAT_INLINE                                   \
+        static type call(::T2 v) {                            \
+            return tensor_storage<T, 2> {v.x, v.y};           \
+        }                                                     \
+    };                                                        \
+                                                              \
+    template<>                                                \
+    struct into_tensor_traits<::T3> {                         \
+        using type = tensor<T, extents<3>>;                   \
+                                                              \
+        KERNEL_FLOAT_INLINE                                   \
+        static type call(::T3 v) {                            \
+            return tensor_storage<T, 3> {v.x, v.y, v.z};      \
+        }                                                     \
+    };                                                        \
+                                                              \
+    template<>                                                \
+    struct into_tensor_traits<::T4> {                         \
+        using type = tensor<T, extents<4>>;                   \
+                                                              \
+        KERNEL_FLOAT_INLINE                                   \
+        static type call(::T4 v) {                            \
+            return tensor_storage<T, 4> {v.x, v.y, v.z, v.w}; \
+        }                                                     \
+    };
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(int, int1, int2, int3, int4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long, long1, long2, long3, long4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long long, longlong1, longlong2, longlong3, longlong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned char, uchar1, uchar2, uchar3, uchar4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned short, ushort1, ushort2, ushort3, ushort4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned int, uint1, uint2, uint3, uint4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long, ulong1, ulong2, ulong3, ulong4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulonglong3, ulonglong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
+
+template<typename T>
+using scalar = tensor<T, extents<>>;
+
+template<typename T, size_t N>
+using vec = tensor<T, extents<N>>;
+
+template<typename T, size_t N, size_t M>
+using mat = tensor<T, extents<N, M>>;
+
+template<typename... Args>
+KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
+    using T = promote_t<Args...>;
+    return tensor_storage<T, sizeof...(Args)> {T {args}...};
+};
+
+}  // namespace kernel_float
+
+#endif
 #ifndef KERNEL_FLOAT_FP16_H
 #define KERNEL_FLOAT_FP16_H
 
@@ -1802,405 +2232,6 @@ using half = __half;
 #endif
 
 #endif  //KERNEL_FLOAT_FP16_H
-#ifndef KERNEL_FLOAT_REDUCE_H
-#define KERNEL_FLOAT_REDUCE_H
-
-
-
-namespace kernel_float {
-namespace detail {
-template<typename F, size_t N, typename T, typename = void>
-struct reduce_helper {
-    KERNEL_FLOAT_INLINE static T call(F fun, const tensor_storage<T, N>& input) {
-        return call(fun, input, make_index_sequence<N> {});
-    }
-
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static T
-    call(F fun, const tensor_storage<T, N>& input, index_sequence<0, Is...>) {
-        T result = input[0];
-#pragma unroll
-        for (size_t i = 1; i < N; i++) {
-            result = fun(result, input[i]);
-        }
-        return result;
-    }
-};
-}  // namespace detail
-
-/**
- * Reduce the elements of the given vector ``input`` into a single value using
- * the function ``fun``. This function should be a binary function that takes
- * two elements and returns one element. The order in which the elements
- * are reduced is not specified and depends on the reduction function and
- * the vector type.
- *
- * Example
- * =======
- * ```
- * vec<int, 3> x = {5, 2, 1};
- * int y = reduce(x, [](int a, int b) { return a + b; }); // returns 5+2+1=8
- * ```
- */
-template<typename F, typename V>
-KERNEL_FLOAT_INLINE tensor_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_helper<F, tensor_volume<V>, tensor_value_type<V>>::call(
-        fun,
-        into_tensor_storage(input));
-}
-
-/**
- * Find the minimum element in the given vector ``input``.
- *
- * Example
- * =======
- * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = min(x);  // Returns 0
- * ```
- */
-template<typename V, typename T = tensor_value_type<V>>
-KERNEL_FLOAT_INLINE T min(const V& input) {
-    return reduce(ops::min<T> {}, input);
-}
-
-/**
- * Find the maximum element in the given vector ``input``.
- *
- * Example
- * =======
- * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = max(x);  // Returns 5
- * ```
- */
-template<typename V, typename T = tensor_value_type<V>>
-KERNEL_FLOAT_INLINE T max(const V& input) {
-    return reduce(ops::max<T> {}, input);
-}
-
-/**
- * Sum the items in the given vector ``input``.
- *
- * Example
- * =======
- * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 8
- * ```
- */
-template<typename V, typename T = tensor_value_type<V>>
-KERNEL_FLOAT_INLINE T sum(const V& input) {
-    return reduce(ops::add<T> {}, input);
-}
-
-/**
- * Multiply the items in the given vector ``input``.
- *
- * Example
- * =======
- * ```
- * vec<int, 5> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 5*0*2*1*0 = 0
- * ```
- */
-template<typename V, typename T = tensor_value_type<V>>
-KERNEL_FLOAT_INLINE T product(const V& input) {
-    return reduce(ops::multiply<T> {}, input);
-}
-
-/**
- * Check if all elements in the given vector ``input`` are non-zero. An element ``v`` is considered
- * non-zero if ``bool(v)==true``.
- */
-template<typename V>
-KERNEL_FLOAT_INLINE bool all(const V& input) {
-    return reduce(ops::bit_and<bool> {}, cast<bool>(input));
-}
-
-/**
- * Check if any element in the given vector ``input`` is non-zero. An element ``v`` is considered
- * non-zero if ``bool(v)==true``.
- */
-template<typename V>
-KERNEL_FLOAT_INLINE bool any(const V& input) {
-    return reduce(ops::bit_or<bool> {}, cast<bool>(input));
-}
-
-/**
- * Count the number of non-zero items in the given vector ``input``. An element ``v`` is considered
- * non-zero if ``bool(v)==true``.
- *
- * Example
- * =======
- * ```
- * vec<int, 5> x = {5, 0, 2, 1, 0};
- * int y = count(x);  // Returns 3 (5, 2, 1 are non-zero)
- * ```
- */
-template<typename V>
-KERNEL_FLOAT_INLINE int count(const V& input) {
-    return sum(cast<int>(cast<bool>(input)));
-}
-}  // namespace kernel_float
-
-#endif  //KERNEL_FLOAT_REDUCE_H
-#ifndef KERNEL_FLOAT_BASE_H
-#define KERNEL_FLOAT_BASE_H
-
-
-
-
-
-
-
-namespace kernel_float {
-
-template<typename T, typename E, template<typename, size_t> class S>
-struct tensor {
-    static constexpr size_t rank = E::rank;
-    static constexpr size_t volume = E::volume;
-
-    using value_type = T;
-    using extents_type = E;
-    using ndindex_type = ndindex<rank>;
-    using storage_type = S<T, volume>;
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t size() {
-        return E::volume;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t size(size_t axis) {
-        return E::size(axis);
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr extents_type shape() {
-        return {};
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t stride(size_t axis) {
-        return E::stride(axis);
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t linearize_index(ndindex_type index) {
-        return E::ravel_index(index);
-    }
-
-    tensor(const tensor&) = default;
-
-    KERNEL_FLOAT_INLINE
-    tensor(storage_type storage) : storage_(storage) {}
-
-    template<typename... Args, enabled_t<sizeof...(Args) == volume && volume >= 2, int> = 0>
-    KERNEL_FLOAT_INLINE tensor(Args&&... args) : storage_ {std::forward<Args>(args)...} {}
-
-    template<
-        typename U,
-        typename F,
-        enabled_t<
-            is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
-            int> = 0>
-    KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
-        tensor(convert<T>(input, extents_type {})) {}
-
-    KERNEL_FLOAT_INLINE tensor(const value_type& input = {}) :
-        tensor(convert<T>(input, extents_type {})) {}
-
-    KERNEL_FLOAT_INLINE
-    storage_type& storage() {
-        return storage_;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const storage_type& storage() const {
-        return storage_;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* cdata() const {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    T* begin() {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* begin() const {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* cbegin() const {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    T* end() {
-        return storage_.data() + E::volume;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* end() const {
-        return storage_.data() + E::volume;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* cend() const {
-        return storage_.data() + E::volume;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T& at(ndindex_type x) {
-        return *(data() + linearize_index(x));
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& at(ndindex_type x) const {
-        return *(data() + linearize_index(x));
-    }
-
-    KERNEL_FLOAT_INLINE
-    T get(ndindex_type x) const {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    void set(ndindex_type x, T value) {
-        at(x) = std::move(value);
-    }
-
-    KERNEL_FLOAT_INLINE
-    T& operator[](ndindex_type x) {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& operator[](ndindex_type x) const {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    T& operator()(ndindex_type x) {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& operator()(ndindex_type x) const {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    tensor<T, extents<volume>> flatten() const {
-        return storage_;
-    }
-
-    template<size_t... Ns>
-    KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> reshape(extents<Ns...> = {}) const {
-        static_assert(extents<Ns...>::volume == volume, "invalid reshape shape");
-        return storage_;
-    }
-
-    template<size_t... Ns>
-    KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> broadcast(extents<Ns...> new_shape = {}) const {
-        return kernel_float::broadcast(*this, new_shape);
-    }
-
-    template<typename F>
-    KERNEL_FLOAT_INLINE tensor<result_t<F, T>, E> map(F fun = {}) const {
-        return kernel_float::map(fun, *this);
-    }
-
-    template<typename F>
-    KERNEL_FLOAT_INLINE T reduce(F fun = {}) const {
-        return kernel_float::reduce(fun, *this);
-    }
-
-  private:
-    storage_type storage_;
-};
-
-#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4)    \
-    template<>                                                \
-    struct into_tensor_traits<::T2> {                         \
-        using type = tensor<T, extents<2>>;                   \
-                                                              \
-        KERNEL_FLOAT_INLINE                                   \
-        static type call(::T2 v) {                            \
-            return tensor_storage<T, 2> {v.x, v.y};           \
-        }                                                     \
-    };                                                        \
-                                                              \
-    template<>                                                \
-    struct into_tensor_traits<::T3> {                         \
-        using type = tensor<T, extents<3>>;                   \
-                                                              \
-        KERNEL_FLOAT_INLINE                                   \
-        static type call(::T3 v) {                            \
-            return tensor_storage<T, 3> {v.x, v.y, v.z};      \
-        }                                                     \
-    };                                                        \
-                                                              \
-    template<>                                                \
-    struct into_tensor_traits<::T4> {                         \
-        using type = tensor<T, extents<4>>;                   \
-                                                              \
-        KERNEL_FLOAT_INLINE                                   \
-        static type call(::T4 v) {                            \
-            return tensor_storage<T, 4> {v.x, v.y, v.z, v.w}; \
-        }                                                     \
-    };
-
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(int, int1, int2, int3, int4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long, long1, long2, long3, long4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long long, longlong1, longlong2, longlong3, longlong4)
-
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned char, uchar1, uchar2, uchar3, uchar4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned short, ushort1, ushort2, ushort3, ushort4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned int, uint1, uint2, uint3, uint4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long, ulong1, ulong2, ulong3, ulong4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulonglong3, ulonglong4)
-
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
-
-template<typename T>
-using scalar = tensor<T, extents<>>;
-
-template<typename T, size_t N>
-using vec = tensor<T, extents<N>>;
-
-template<typename T, size_t N, size_t M>
-using mat = tensor<T, extents<N, M>>;
-
-template<typename... Args>
-KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
-    using T = promote_t<Args...>;
-    return tensor_storage<T, sizeof...(Args)> {T {args}...};
-};
-
-}  // namespace kernel_float
-
-#endif
 #ifndef KERNEL_FLOAT_BF16_H
 #define KERNEL_FLOAT_BF16_H
 
@@ -2483,16 +2514,17 @@ template<typename T> using kvec7 = kvec<T, 7>;
 template<typename T> using kvec8 = kvec<T, 8>;
 // clang-format on
 
-#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)       \
-    template<size_t... Ns>                     \
-    using k##NAME = tensor<T, extents<Ns...>>; \
-    using k##NAME##1 = vec<T, 1>;              \
-    using k##NAME##2 = vec<T, 2>;              \
-    using k##NAME##3 = vec<T, 3>;              \
-    using k##NAME##4 = vec<T, 4>;              \
-    using k##NAME##5 = vec<T, 5>;              \
-    using k##NAME##6 = vec<T, 6>;              \
-    using k##NAME##7 = vec<T, 7>;              \
+#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)          \
+    using k##NAME = tensor<T, extents<>>;         \
+    template<size_t... Ns>                        \
+    using k##NAME##N = tensor<T, extents<Ns...>>; \
+    using k##NAME##1 = vec<T, 1>;                 \
+    using k##NAME##2 = vec<T, 2>;                 \
+    using k##NAME##3 = vec<T, 3>;                 \
+    using k##NAME##4 = vec<T, 4>;                 \
+    using k##NAME##5 = vec<T, 5>;                 \
+    using k##NAME##6 = vec<T, 6>;                 \
+    using k##NAME##7 = vec<T, 7>;                 \
     using k##NAME##8 = vec<T, 8>;
 
 KERNEL_FLOAT_TYPE_ALIAS(char, char)

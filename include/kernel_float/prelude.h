@@ -30,16 +30,17 @@ template<typename T> using kvec7 = kvec<T, 7>;
 template<typename T> using kvec8 = kvec<T, 8>;
 // clang-format on
 
-#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)       \
-    template<size_t... Ns>                     \
-    using k##NAME = tensor<T, extents<Ns...>>; \
-    using k##NAME##1 = vec<T, 1>;              \
-    using k##NAME##2 = vec<T, 2>;              \
-    using k##NAME##3 = vec<T, 3>;              \
-    using k##NAME##4 = vec<T, 4>;              \
-    using k##NAME##5 = vec<T, 5>;              \
-    using k##NAME##6 = vec<T, 6>;              \
-    using k##NAME##7 = vec<T, 7>;              \
+#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)          \
+    using k##NAME = tensor<T, extents<>>;         \
+    template<size_t... Ns>                        \
+    using k##NAME##N = tensor<T, extents<Ns...>>; \
+    using k##NAME##1 = vec<T, 1>;                 \
+    using k##NAME##2 = vec<T, 2>;                 \
+    using k##NAME##3 = vec<T, 3>;                 \
+    using k##NAME##4 = vec<T, 4>;                 \
+    using k##NAME##5 = vec<T, 5>;                 \
+    using k##NAME##6 = vec<T, 6>;                 \
+    using k##NAME##7 = vec<T, 7>;                 \
     using k##NAME##8 = vec<T, 8>;
 
 KERNEL_FLOAT_TYPE_ALIAS(char, char)

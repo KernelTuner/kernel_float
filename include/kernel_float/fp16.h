@@ -6,7 +6,7 @@
 #if KERNEL_FLOAT_FP16_AVAILABLE
 #include <cuda_fp16.h>
 
-#include "binops.h"
+#include "tensor.h"
 
 namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__half)
