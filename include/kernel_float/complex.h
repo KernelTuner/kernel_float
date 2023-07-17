@@ -2,6 +2,7 @@
 #define KERNEL_FLOAT_COMPLEX_TYPE_H
 
 #include "macros.h"
+#include "meta.h"
 
 namespace kernel_float {
 
