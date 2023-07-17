@@ -9,8 +9,11 @@
 
 namespace kernel_float {
 
+template<typename Derived, typename T, size_t N>
+struct tensor_extension {};
+
 template<typename T, typename E, template<typename, size_t> class S>
-struct tensor {
+struct tensor: tensor_extension<tensor<T, E, S>, T, E::volume> {
     static constexpr size_t rank = E::rank;
     static constexpr size_t volume = E::volume;
 
@@ -59,6 +62,15 @@ struct tensor {
             is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
             int> = 0>
     KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
+        tensor(convert<T>(input, extents_type {})) {}
+
+    template<
+        typename U,
+        typename F,
+        enabled_t<
+            !is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
+            int> = 0>
+    explicit KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
         tensor(convert<T>(input, extents_type {})) {}
 
     KERNEL_FLOAT_INLINE tensor(const value_type& input = {}) :
@@ -187,6 +199,24 @@ struct tensor {
 
   private:
     storage_type storage_;
+};
+
+template<typename Derived, typename T>
+struct tensor_extension<Derived, T, 1> {
+    KERNEL_FLOAT_INLINE
+    T get() const {
+        return static_cast<const Derived*>(this)->get({});
+    }
+
+    KERNEL_FLOAT_INLINE
+    void set(T value) {
+        static_cast<Derived*>(this)->set({}, value);
+    }
+
+    KERNEL_FLOAT_INLINE
+    operator T() const {
+        return get();
+    }
 };
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4)    \
