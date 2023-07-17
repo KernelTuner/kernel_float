@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-07-17 15:01:51.588582
-// git hash: 1812de6d6fd205d35e0f07a5eb4fc3e2c190bdfd
+// date: 2023-07-17 15:26:35.501561
+// git hash: bdfed8013d0b15349459ba92a43746c8bcb7857c
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1633,7 +1633,7 @@ KERNEL_FLOAT_INLINE tensor_value_type<V> reduce(F fun, const V& input) {
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
  * int y = min(x);  // Returns 0
  * ```
  */
@@ -1648,7 +1648,7 @@ KERNEL_FLOAT_INLINE T min(const V& input) {
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
  * int y = max(x);  // Returns 5
  * ```
  */
@@ -1663,13 +1663,29 @@ KERNEL_FLOAT_INLINE T max(const V& input) {
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
  * int y = sum(x);  // Returns 8
  * ```
  */
 template<typename V, typename T = tensor_value_type<V>>
 KERNEL_FLOAT_INLINE T sum(const V& input) {
     return reduce(ops::add<T> {}, input);
+}
+
+/**
+ * Compute the dot product of the given vectors ``left`` and ``right``
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {1, 2, 3};
+ * vec<int, 3> y = {4, 5, 6};
+ * int y = dot(x, y);  // Returns 1*4+2*5+3*6 = 32
+ * ```
+ */
+template<typename L, typename R, typename T = promoted_tensor_value_type<L, R>>
+KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
+    return reduce(ops::add<T> {}, zip_common(ops::multiply<T> {}, left, right));
 }
 
 /**

@@ -52,7 +52,7 @@ KERNEL_FLOAT_INLINE tensor_value_type<V> reduce(F fun, const V& input) {
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
  * int y = min(x);  // Returns 0
  * ```
  */
@@ -67,7 +67,7 @@ KERNEL_FLOAT_INLINE T min(const V& input) {
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
  * int y = max(x);  // Returns 5
  * ```
  */
@@ -82,13 +82,29 @@ KERNEL_FLOAT_INLINE T max(const V& input) {
  * Example
  * =======
  * ```
- * vec<int, 3> x = {5, 0, 2, 1, 0};
+ * vec<int, 5> x = {5, 0, 2, 1, 0};
  * int y = sum(x);  // Returns 8
  * ```
  */
 template<typename V, typename T = tensor_value_type<V>>
 KERNEL_FLOAT_INLINE T sum(const V& input) {
     return reduce(ops::add<T> {}, input);
+}
+
+/**
+ * Compute the dot product of the given vectors ``left`` and ``right``
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {1, 2, 3};
+ * vec<int, 3> y = {4, 5, 6};
+ * int y = dot(x, y);  // Returns 1*4+2*5+3*6 = 32
+ * ```
+ */
+template<typename L, typename R, typename T = promoted_tensor_value_type<L, R>>
+KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
+    return reduce(ops::add<T> {}, zip_common(ops::multiply<T> {}, left, right));
 }
 
 /**
