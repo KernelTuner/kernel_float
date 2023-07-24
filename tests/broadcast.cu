@@ -62,6 +62,6 @@ struct broadcast_test<T, N, std::index_sequence<Is...>, std::index_sequence<IIs.
     }
 };
 
-TEST_CASE("cast operators") {
+TEST_CASE("broadcast operators") {
     run_on_host_and_device<broadcast_test, int>();
 }
