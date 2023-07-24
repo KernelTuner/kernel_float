@@ -7,17 +7,14 @@ namespace kernel_float {
 namespace detail {
 
 template<typename F, size_t N, typename Output, typename... Args>
-struct apply_impl;
-
-template<typename F, size_t N, typename Output, typename Input>
-struct apply_impl<F, N, Output, Input> {
+struct apply_impl {
     KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
-    call(F fun, const tensor_storage<Input, N>& input) {
+    call(F fun, const tensor_storage<Args, N>&... inputs) {
         tensor_storage<Output, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            result[i] = fun(input[i]);
+            result[i] = fun(inputs[i]...);
         }
 
         return result;

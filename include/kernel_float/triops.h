@@ -6,29 +6,7 @@
 
 namespace kernel_float {
 
-namespace detail {
-
-template<typename F, size_t N, typename Output, typename A, typename B, typename C>
-struct apply_impl<F, N, Output, A, B, C> {
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N> call(
-        F fun,
-        const tensor_storage<A, N>& a,
-        const tensor_storage<B, N>& b,
-        const tensor_storage<C, N>& c) {
-        tensor_storage<Output, N> result;
-
-#pragma unroll
-        for (size_t i = 0; i < N; i++) {
-            result[i] = fun(a[i], b[i], c[i]);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
-
 namespace ops {
-
 template<typename T>
 struct conditional {
     KERNEL_FLOAT_INLINE T operator()(bool cond, T true_value, T false_value) {
@@ -39,7 +17,6 @@ struct conditional {
         }
     }
 };
-
 }  // namespace ops
 
 /**

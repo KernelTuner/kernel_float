@@ -5,23 +5,6 @@
 #include "unops.h"
 
 namespace kernel_float {
-namespace detail {
-
-template<typename F, size_t N, typename Output, typename Left, typename Right>
-struct apply_impl<F, N, Output, Left, Right> {
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
-    call(F fun, const tensor_storage<Left, N>& left, const tensor_storage<Right, N>& right) {
-        tensor_storage<Output, N> result;
-
-#pragma unroll
-        for (size_t i = 0; i < N; i++) {
-            result[i] = fun(left[i], right[i]);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
 
 template<typename F, typename L, typename R>
 using zip_type =
