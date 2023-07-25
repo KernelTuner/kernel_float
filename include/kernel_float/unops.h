@@ -110,6 +110,28 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN(signbit)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isinf)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isnan)
 
+#if KERNEL_FLOAT_IS_DEVICE
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))   \
+    namespace ops {                                                  \
+    template<>                                                       \
+    struct OP_NAME<float> {                                          \
+        KERNEL_FLOAT_INLINE float operator()(float input) {          \
+            return FLOAT_FUN(input);                                 \
+        }                                                            \
+    };                                                               \
+    }
+#else
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))
+#endif
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_exp, exp, __expf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_log, log, __logf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
+
 enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
 
 namespace ops {

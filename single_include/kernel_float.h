@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-07-24 17:00:55.602691
-// git hash: 73f1cb7e69c4fde74b7535a3429c1b877fb79fef
+// date: 2023-07-25 14:25:22.766896
+// git hash: eacf58401b70e1d94bf315e7e192708267f4e9e0
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -919,17 +919,14 @@ namespace kernel_float {
 namespace detail {
 
 template<typename F, size_t N, typename Output, typename... Args>
-struct apply_impl;
-
-template<typename F, size_t N, typename Output, typename Input>
-struct apply_impl<F, N, Output, Input> {
+struct apply_impl {
     KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
-    call(F fun, const tensor_storage<Input, N>& input) {
+    call(F fun, const tensor_storage<Args, N>&... inputs) {
         tensor_storage<Output, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            result[i] = fun(input[i]);
+            result[i] = fun(inputs[i]...);
         }
 
         return result;
@@ -1024,6 +1021,28 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN(round)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(signbit)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isinf)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isnan)
+
+#if KERNEL_FLOAT_IS_DEVICE
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))   \
+    namespace ops {                                                  \
+    template<>                                                       \
+    struct OP_NAME<float> {                                          \
+        KERNEL_FLOAT_INLINE float operator()(float input) {          \
+            return FLOAT_FUN(input);                                 \
+        }                                                            \
+    };                                                               \
+    }
+#else
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))
+#endif
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_exp, exp, __expf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_log, log, __logf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
 
 enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
 
@@ -1362,23 +1381,6 @@ convert(const V& input, extents<Ns...> new_shape = {}) {
 
 
 namespace kernel_float {
-namespace detail {
-
-template<typename F, size_t N, typename Output, typename Left, typename Right>
-struct apply_impl<F, N, Output, Left, Right> {
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
-    call(F fun, const tensor_storage<Left, N>& left, const tensor_storage<Right, N>& right) {
-        tensor_storage<Output, N> result;
-
-#pragma unroll
-        for (size_t i = 0; i < N; i++) {
-            result[i] = fun(left[i], right[i]);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
 
 template<typename F, typename L, typename R>
 using zip_type =
@@ -1517,6 +1519,25 @@ KERNEL_FLOAT_DEFINE_BINARY_FUN(remainder)
 #if KERNEL_FLOAT_CUDA_DEVICE
 KERNEL_FLOAT_DEFINE_BINARY_FUN(rhypot)
 #endif
+
+#if KERNEL_FLOAT_IS_DEVICE
+#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN)     \
+    KERNEL_FLOAT_DEFINE_BINARY(FUN_NAME, ops::OP_NAME<T> {}(left, right)) \
+    namespace ops {                                                       \
+    template<>                                                            \
+    struct OP_NAME<float> {                                               \
+        KERNEL_FLOAT_INLINE float operator()(float left, float right) {   \
+            return FLOAT_FUN(left, right);                                \
+        }                                                                 \
+    };                                                                    \
+    }
+#else
+#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_BINARY(FUN_NAME, ops::OP_NAME<T> {}(left, right))
+#endif
+
+KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_div, divide, __fdividef)
+KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_pow, pow, __powf)
 
 namespace ops {
 template<>
@@ -2156,20 +2177,25 @@ struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
     };                                                                              \
     }
 
-KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2);
-KERNEL_FLOAT_FP16_UNARY_FUN(negate, ::__hneg, ::__hneg2);
-KERNEL_FLOAT_FP16_UNARY_FUN(ceil, ::hceil, ::h2ceil);
-KERNEL_FLOAT_FP16_UNARY_FUN(cos, ::hcos, ::h2cos);
-KERNEL_FLOAT_FP16_UNARY_FUN(exp, ::hexp, ::h2exp);
-KERNEL_FLOAT_FP16_UNARY_FUN(exp10, ::hexp10, ::h2exp10);
-KERNEL_FLOAT_FP16_UNARY_FUN(floor, ::hfloor, ::h2floor);
-KERNEL_FLOAT_FP16_UNARY_FUN(log, ::hlog, ::h2log);
-KERNEL_FLOAT_FP16_UNARY_FUN(log10, ::hlog10, ::h2log2);
-KERNEL_FLOAT_FP16_UNARY_FUN(rint, ::hrint, ::h2rint);
-KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt);
-KERNEL_FLOAT_FP16_UNARY_FUN(sin, ::hsin, ::h2sin);
-KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt);
-KERNEL_FLOAT_FP16_UNARY_FUN(trunc, ::htrunc, ::h2trunc);
+KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2)
+KERNEL_FLOAT_FP16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
+KERNEL_FLOAT_FP16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
+KERNEL_FLOAT_FP16_UNARY_FUN(cos, ::hcos, ::h2cos)
+KERNEL_FLOAT_FP16_UNARY_FUN(exp, ::hexp, ::h2exp)
+KERNEL_FLOAT_FP16_UNARY_FUN(exp10, ::hexp10, ::h2exp10)
+KERNEL_FLOAT_FP16_UNARY_FUN(floor, ::hfloor, ::h2floor)
+KERNEL_FLOAT_FP16_UNARY_FUN(log, ::hlog, ::h2log)
+KERNEL_FLOAT_FP16_UNARY_FUN(log10, ::hlog10, ::h2log2)
+KERNEL_FLOAT_FP16_UNARY_FUN(rint, ::hrint, ::h2rint)
+KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
+KERNEL_FLOAT_FP16_UNARY_FUN(sin, ::hsin, ::h2sin)
+KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)
+KERNEL_FLOAT_FP16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
+
+KERNEL_FLOAT_FP16_UNARY_FUN(fast_exp, ::hexp, ::h2exp)
+KERNEL_FLOAT_FP16_UNARY_FUN(fast_log, ::hlog, ::h2log)
+KERNEL_FLOAT_FP16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
+KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
 
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                            \
     namespace ops {                                                                               \
@@ -2195,6 +2221,8 @@ KERNEL_FLOAT_FP16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_FP16_BINARY_FUN(divide, __hdiv, __h2div)
 KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
+
+KERNEL_FLOAT_FP16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_FP16_BINARY_FUN(equal_to, __heq, __heq2)
 KERNEL_FLOAT_FP16_BINARY_FUN(not_equal_to, __heq, __heq2)
@@ -2384,20 +2412,25 @@ struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
     };                                                                      \
     }
 
-KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2);
-KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2);
-KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil);
-KERNEL_FLOAT_BF16_UNARY_FUN(cos, ::hcos, ::h2cos);
-KERNEL_FLOAT_BF16_UNARY_FUN(exp, ::hexp, ::h2exp);
-KERNEL_FLOAT_BF16_UNARY_FUN(exp10, ::hexp10, ::h2exp10);
-KERNEL_FLOAT_BF16_UNARY_FUN(floor, ::hfloor, ::h2floor);
-KERNEL_FLOAT_BF16_UNARY_FUN(log, ::hlog, ::h2log);
-KERNEL_FLOAT_BF16_UNARY_FUN(log10, ::hlog10, ::h2log2);
-KERNEL_FLOAT_BF16_UNARY_FUN(rint, ::hrint, ::h2rint);
-KERNEL_FLOAT_BF16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt);
-KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin);
-KERNEL_FLOAT_BF16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt);
-KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc);
+KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2)
+KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
+KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
+KERNEL_FLOAT_BF16_UNARY_FUN(cos, ::hcos, ::h2cos)
+KERNEL_FLOAT_BF16_UNARY_FUN(exp, ::hexp, ::h2exp)
+KERNEL_FLOAT_BF16_UNARY_FUN(exp10, ::hexp10, ::h2exp10)
+KERNEL_FLOAT_BF16_UNARY_FUN(floor, ::hfloor, ::h2floor)
+KERNEL_FLOAT_BF16_UNARY_FUN(log, ::hlog, ::h2log)
+KERNEL_FLOAT_BF16_UNARY_FUN(log10, ::hlog10, ::h2log2)
+KERNEL_FLOAT_BF16_UNARY_FUN(rint, ::hrint, ::h2rint)
+KERNEL_FLOAT_BF16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
+KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
+KERNEL_FLOAT_BF16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)
+KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
+
+KERNEL_FLOAT_BF16_UNARY_FUN(fast_exp, ::hexp, ::h2exp)
+KERNEL_FLOAT_BF16_UNARY_FUN(fast_log, ::hlog, ::h2log)
+KERNEL_FLOAT_BF16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
+KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
 
 #define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                              \
     namespace ops {                                                                 \
@@ -2425,6 +2458,8 @@ KERNEL_FLOAT_BF16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_BF16_BINARY_FUN(divide, __hdiv, __h2div)
 KERNEL_FLOAT_BF16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_BF16_BINARY_FUN(max, __hmax, __hmax2)
+
+KERNEL_FLOAT_BF16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_BF16_BINARY_FUN(equal_to, __heq, __heq2)
 KERNEL_FLOAT_BF16_BINARY_FUN(not_equal_to, __heq, __heq2)
@@ -2593,29 +2628,7 @@ KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&..
 
 namespace kernel_float {
 
-namespace detail {
-
-template<typename F, size_t N, typename Output, typename A, typename B, typename C>
-struct apply_impl<F, N, Output, A, B, C> {
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N> call(
-        F fun,
-        const tensor_storage<A, N>& a,
-        const tensor_storage<B, N>& b,
-        const tensor_storage<C, N>& c) {
-        tensor_storage<Output, N> result;
-
-#pragma unroll
-        for (size_t i = 0; i < N; i++) {
-            result[i] = fun(a[i], b[i], c[i]);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
-
 namespace ops {
-
 template<typename T>
 struct conditional {
     KERNEL_FLOAT_INLINE T operator()(bool cond, T true_value, T false_value) {
@@ -2626,7 +2639,6 @@ struct conditional {
         }
     }
 };
-
 }  // namespace ops
 
 /**

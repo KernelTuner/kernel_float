@@ -144,6 +144,25 @@ KERNEL_FLOAT_DEFINE_BINARY_FUN(remainder)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(rhypot)
 #endif
 
+#if KERNEL_FLOAT_IS_DEVICE
+#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN)     \
+    KERNEL_FLOAT_DEFINE_BINARY(FUN_NAME, ops::OP_NAME<T> {}(left, right)) \
+    namespace ops {                                                       \
+    template<>                                                            \
+    struct OP_NAME<float> {                                               \
+        KERNEL_FLOAT_INLINE float operator()(float left, float right) {   \
+            return FLOAT_FUN(left, right);                                \
+        }                                                                 \
+    };                                                                    \
+    }
+#else
+#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_BINARY(FUN_NAME, ops::OP_NAME<T> {}(left, right))
+#endif
+
+KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_div, divide, __fdividef)
+KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_pow, pow, __powf)
+
 namespace ops {
 template<>
 struct add<bool> {
