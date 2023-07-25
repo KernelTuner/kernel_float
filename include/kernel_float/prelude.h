@@ -2,23 +2,20 @@
 #define KERNEL_FLOAT_PRELUDE_H
 
 #include "constant.h"
-#include "tensor.h"
+#include "vector.h"
 
 namespace kernel_float {
 namespace prelude {
 namespace kf = ::kernel_float;
 
 template<typename T>
-using kscalar = tensor<T, extents<>>;
+using kscalar = vector<T, extent<1>>;
 
 template<typename T, size_t N>
-using kvec = tensor<T, extents<N>>;
+using kvec = vector<T, extent<N>>;
 
-template<typename T, size_t N, size_t M>
-using kmat = tensor<T, extents<N, M>>;
-
-template<typename T, size_t... Ns>
-using ktensor = tensor<T, extents<Ns...>>;
+template<typename T, size_t N>
+using kvector = vector<T, extent<N>>;
 
 // clang-format off
 template<typename T> using kvec1 = kvec<T, 1>;
@@ -31,17 +28,16 @@ template<typename T> using kvec7 = kvec<T, 7>;
 template<typename T> using kvec8 = kvec<T, 8>;
 // clang-format on
 
-#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)          \
-    using k##NAME = tensor<T, extents<>>;         \
-    template<size_t... Ns>                        \
-    using k##NAME##N = tensor<T, extents<Ns...>>; \
-    using k##NAME##1 = vec<T, 1>;                 \
-    using k##NAME##2 = vec<T, 2>;                 \
-    using k##NAME##3 = vec<T, 3>;                 \
-    using k##NAME##4 = vec<T, 4>;                 \
-    using k##NAME##5 = vec<T, 5>;                 \
-    using k##NAME##6 = vec<T, 6>;                 \
-    using k##NAME##7 = vec<T, 7>;                 \
+#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)  \
+    template<size_t N>                    \
+    using k##NAME = vector<T, extent<N>>; \
+    using k##NAME##1 = vec<T, 1>;         \
+    using k##NAME##2 = vec<T, 2>;         \
+    using k##NAME##3 = vec<T, 3>;         \
+    using k##NAME##4 = vec<T, 4>;         \
+    using k##NAME##5 = vec<T, 5>;         \
+    using k##NAME##6 = vec<T, 6>;         \
+    using k##NAME##7 = vec<T, 7>;         \
     using k##NAME##8 = vec<T, 8>;
 
 KERNEL_FLOAT_TYPE_ALIAS(char, char)
@@ -75,8 +71,8 @@ KERNEL_FLOAT_TYPE_ALIAS(bfloat16, __nv_bfloat16)
 KERNEL_FLOAT_TYPE_ALIAS(bf16, __nv_bfloat16)
 #endif
 
-template<size_t... Ns>
-static constexpr extents<Ns...> kshape = {};
+template<size_t N>
+static constexpr extent<N> kextent = {};
 
 template<typename... Args>
 KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&... args) {

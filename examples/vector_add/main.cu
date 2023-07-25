@@ -13,7 +13,7 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N>
-__global__ void my_kernel(int length, const khalfN<N>* input, double constant, kfloatN<N>* output) {
+__global__ void my_kernel(int length, const khalf<N>* input, double constant, kfloat<N>* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
@@ -35,8 +35,8 @@ void run_kernel(int n) {
     }
 
     // Allocate device memory
-    khalfN<items_per_thread>* input_dev;
-    kfloatN<items_per_thread>* output_dev;
+    khalf<items_per_thread>* input_dev;
+    kfloat<items_per_thread>* output_dev;
     cuda_check(cudaMalloc(&input_dev, sizeof(half) * n));
     cuda_check(cudaMalloc(&output_dev, sizeof(float) * n));
 

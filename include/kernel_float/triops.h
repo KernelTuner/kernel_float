@@ -22,64 +22,64 @@ struct conditional {
 /**
  * Return elements chosen from `true_values` and `false_values` depending on `cond`.
  *
- * This function broadcasts all arguments to the same shape and it promotes the values of `true_values` and
- * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a tensor where
+ * This function broadcasts all arguments to the same size and it promotes the values of `true_values` and
+ * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a vector where
  * the values are taken from `true_values` if the condition is true and `false_values` otherwise.
  *
  * @param cond The condition used for selection.
- * @param true_values The tensor of values to choose from when the condition is true.
- * @param false_values The tensor of values to choose from when the condition is false.
- * @return A tensor containing selected elements as per the condition.
+ * @param true_values The vector of values to choose from when the condition is true.
+ * @param false_values The vector of values to choose from when the condition is false.
+ * @return A vector containing selected elements as per the condition.
  */
 template<
     typename C,
     typename L,
     typename R,
-    typename T = promoted_tensor_value_type<L, R>,
-    typename E = broadcast_extents<tensor_extents<C>, broadcast_tensor_extents<L, R>>>
-KERNEL_FLOAT_INLINE tensor<T, E> where(const C& cond, const L& true_values, const R& false_values) {
+    typename T = promoted_vector_value_type<L, R>,
+    typename E = broadcast_extent<vector_extent_type<C>, broadcast_vector_extent_type<L, R>>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
 
-    return detail::apply_impl<F, E::volume, T, bool, T, T>::call(
+    return detail::apply_impl<F, E::value, T, bool, T, T>::call(
         F {},
-        detail::convert_helper<tensor_value_type<C>, tensor_extents<C>, bool, E>::call(
-            into_tensor_storage(cond)),
-        detail::convert_helper<tensor_value_type<L>, tensor_extents<L>, T, E>::call(
-            into_tensor_storage(true_values)),
-        detail::convert_helper<tensor_value_type<R>, tensor_extents<R>, T, E>::call(
-            into_tensor_storage(false_values)));
+        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
+            into_vector_storage(cond)),
+        detail::convert_helper<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(true_values)),
+        detail::convert_helper<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(false_values)));
 }
 
 /**
  * Selects elements from `true_values` depending on `cond`.
  *
- * This function returns a tensor where the values are taken from `true_values` where `cond` is `true` and `0` where
+ * This function returns a vector where the values are taken from `true_values` where `cond` is `true` and `0` where
  * `cond is `false`.
  *
  * @param cond The condition used for selection.
- * @param true_values The tensor of values to choose from when the condition is true.
- * @return A tensor containing selected elements as per the condition.
+ * @param true_values The vector of values to choose from when the condition is true.
+ * @return A vector containing selected elements as per the condition.
  */
 template<
     typename C,
     typename L,
-    typename T = tensor_value_type<L>,
-    typename E = broadcast_extents<tensor_extents<C>, tensor_extents<L>>>
-KERNEL_FLOAT_INLINE tensor<T, E> where(const C& cond, const L& true_values) {
-    tensor<T, extents<>> false_values = T {};
+    typename T = vector_value_type<L>,
+    typename E = broadcast_extent<vector_extent_type<C>, vector_extent_type<L>>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
+    vector<T, extent<1>> false_values = T {};
     return where(cond, true_values, false_values);
 }
 
 /**
- * Returns a tensor where the values are `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
+ * Returns a vector where the values are `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
  *
  * @param cond The condition used for selection.
- * @return A tensor containing elements as per the condition.
+ * @return A vector containing elements as per the condition.
  */
-template<typename T = bool, typename C, typename E = tensor_extents<C>>
-KERNEL_FLOAT_INLINE tensor<T, E> where(const C& cond) {
-    tensor<T, extents<>> true_values = T {true};
-    tensor<T, extents<>> false_values = T {false};
+template<typename T = bool, typename C, typename E = vector_extent_type<C>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond) {
+    vector<T, extent<1>> true_values = T {true};
+    vector<T, extent<1>> false_values = T {false};
     return where(cond, true_values, false_values);
 }
 
@@ -115,19 +115,19 @@ template<
     typename A,
     typename B,
     typename C,
-    typename T = promoted_tensor_value_type<A, B, C>,
-    typename E = broadcast_extents<tensor_extents<A>, broadcast_tensor_extents<B, C>>>
-KERNEL_FLOAT_INLINE tensor<T, E> fma(const A& a, const B& b, const C& c) {
+    typename T = promoted_vector_value_type<A, B, C>,
+    typename E = broadcast_extent<vector_extent_type<A>, broadcast_vector_extent_type<B, C>>>
+KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
 
-    return detail::apply_impl<F, E::volume, T, T, T, T>::call(
+    return detail::apply_impl<F, E::value, T, T, T, T>::call(
         F {},
-        detail::convert_helper<tensor_value_type<A>, tensor_extents<A>, T, E>::call(
-            into_tensor_storage(a)),
-        detail::convert_helper<tensor_value_type<B>, tensor_extents<B>, T, E>::call(
-            into_tensor_storage(b)),
-        detail::convert_helper<tensor_value_type<C>, tensor_extents<C>, T, E>::call(
-            into_tensor_storage(c)));
+        detail::convert_helper<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
+            into_vector_storage(a)),
+        detail::convert_helper<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
+            into_vector_storage(b)),
+        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
+            into_vector_storage(c)));
 }
 
 }  // namespace kernel_float

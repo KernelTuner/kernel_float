@@ -13,8 +13,8 @@
 #include "kernel_float/meta.h"
 #include "kernel_float/prelude.h"
 #include "kernel_float/reduce.h"
-#include "kernel_float/tensor.h"
 #include "kernel_float/triops.h"
 #include "kernel_float/unops.h"
+#include "kernel_float/vector.h"
 
 #endif

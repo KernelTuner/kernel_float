@@ -8,13 +8,13 @@ namespace detail {
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_impl {
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
-    call(F fun, const tensor_storage<Args, N>&... inputs) {
-        tensor_storage<Output, N> result;
+    KERNEL_FLOAT_INLINE static vector_storage<Output, N>
+    call(F fun, const vector_storage<Args, N>&... inputs) {
+        vector_storage<Output, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            result[i] = fun(inputs[i]...);
+            result.data()[i] = fun(inputs.data()[i]...);
         }
 
         return result;
@@ -23,15 +23,15 @@ struct apply_impl {
 }  // namespace detail
 
 template<typename F, typename V>
-using map_type = tensor<result_t<F, tensor_value_type<V>>, tensor_extents<V>>;
+using map_type = vector<result_t<F, vector_value_type<V>>, vector_extent_type<V>>;
 
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
-    using Input = tensor_value_type<V>;
+    using Input = vector_value_type<V>;
     using Output = result_t<F, Input>;
-    return detail::apply_impl<F, tensor_volume<V>, Output, Input>::call(
+    return detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
         fun,
-        into_tensor(input).storage());
+        into_vector(input).storage());
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                      \
@@ -44,15 +44,15 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     };                                                             \
     }                                                              \
     template<typename V>                                           \
-    KERNEL_FLOAT_INLINE into_tensor_type<V> NAME(const V& input) { \
-        using F = ops::NAME<tensor_value_type<V>>;                 \
+    KERNEL_FLOAT_INLINE into_vector_type<V> NAME(const V& input) { \
+        using F = ops::NAME<vector_value_type<V>>;                 \
         return map(F {}, input);                                   \
     }
 
 #define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                        \
     KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                   \
     template<typename T, typename D>                                        \
-    KERNEL_FLOAT_INLINE tensor<T, D> operator OP(const tensor<T, D>& vec) { \
+    KERNEL_FLOAT_INLINE vector<T, D> operator OP(const vector<T, D>& vec) { \
         return NAME(vec);                                                   \
     }
 
@@ -161,8 +161,8 @@ struct cast<T, T, RoundingMode::ANY> {
 }  // namespace ops
 
 template<typename R, RoundingMode Mode = RoundingMode::ANY, typename V>
-KERNEL_FLOAT_INLINE tensor<R, tensor_extents<V>> cast(const V& input) {
-    using F = ops::cast<tensor_value_type<V>, R, Mode>;
+KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
+    using F = ops::cast<vector_value_type<V>, R, Mode>;
     return map(F {}, input);
 }
 }  // namespace kernel_float

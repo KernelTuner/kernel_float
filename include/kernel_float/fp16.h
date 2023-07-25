@@ -6,7 +6,7 @@
 #if KERNEL_FLOAT_FP16_AVAILABLE
 #include <cuda_fp16.h>
 
-#include "tensor.h"
+#include "vector.h"
 
 namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__half)
@@ -14,12 +14,13 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)
 
 template<>
-struct into_tensor_traits<__half2> {
-    using type = tensor<__half, extents<2>>;
+struct into_vector_traits<__half2> {
+    using value_type = __half;
+    using extent_type = extent<2>;
 
     KERNEL_FLOAT_INLINE
-    static type call(__half2 input) {
-        return tensor_storage<__half, 2> {input.x, input.y};
+    static vector_storage<__half, 2> call(__half2 input) {
+        return {input.x, input.y};
     }
 };
 
@@ -46,20 +47,20 @@ struct zip_halfx2 {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half> {
-    KERNEL_FLOAT_INLINE static tensor_storage<__half, N>
-    call(F fun, const tensor_storage<__half, N>& input) {
-        tensor_storage<__half, N> result;
+    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
+    call(F fun, const vector_storage<__half, N>& input) {
+        vector_storage<__half, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i += 2) {
-            __half2 a = {input[i], input[i + 1]};
+            __half2 a = {input.data()[i], input.data()[i + 1]};
             __half2 b = map_halfx2<F>::call(fun, a);
-            result[i + 0] = b.x;
-            result[i + 1] = b.y;
+            result.data()[i + 0] = b.x;
+            result.data()[i + 1] = b.y;
         }
 
         if (N % 2 != 0) {
-            result[N - 1] = fun(input[N - 1]);
+            result.data()[N - 1] = fun(input.data()[N - 1]);
         }
 
         return result;
@@ -68,20 +69,20 @@ struct apply_impl<F, N, __half, __half> {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half, __half> {
-    KERNEL_FLOAT_INLINE static tensor_storage<__half, N>
-    call(F fun, const tensor_storage<__half, N>& left, const tensor_storage<__half, N>& right) {
-        tensor_storage<__half, N> result;
+    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
+    call(F fun, const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
+        vector_storage<__half, N> result;
 #pragma unroll
         for (size_t i = 0; i < N; i += 2) {
-            __half2 a = {left[i], left[i + 1]};
-            __half2 b = {right[i], right[i + 1]};
+            __half2 a = {left.data()[i], left.data()[i + 1]};
+            __half2 b = {right.data()[i], right.data()[i + 1]};
             __half2 c = zip_halfx2<F>::call(fun, a, b);
-            result[i + 0] = c.x;
-            result[i + 1] = c.y;
+            result.data()[i + 0] = c.x;
+            result.data()[i + 1] = c.y;
         }
 
         if (N % 2 != 0) {
-            result[N - 1] = fun(left[N - 1], right[N - 1]);
+            result.data()[N - 1] = fun(left.data()[N - 1], right.data()[N - 1]);
         }
 
         return result;
@@ -90,19 +91,19 @@ struct apply_impl<F, N, __half, __half, __half> {
 
 template<typename F, size_t N>
 struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __half call(F fun, const tensor_storage<__half, N>& input) {
-        __half2 accum = {input[0], input[1]};
+    KERNEL_FLOAT_INLINE static __half call(F fun, const vector_storage<__half, N>& input) {
+        __half2 accum = {input.data()[0], input.data()[1]};
 
 #pragma unroll
         for (size_t i = 2; i < N; i += 2) {
-            __half2 a = {input[i], input[i + 1]};
+            __half2 a = {input.data()[i], input.data()[i + 1]};
             accum = zip_halfx2<F>::call(fun, accum, a);
         }
 
         __half result = fun(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            result = fun(result, input[N - 1]);
+            result = fun(result, input.data()[N - 1]);
         }
 
         return result;
