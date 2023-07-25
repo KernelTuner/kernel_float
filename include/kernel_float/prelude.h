@@ -1,6 +1,7 @@
 #ifndef KERNEL_FLOAT_PRELUDE_H
 #define KERNEL_FLOAT_PRELUDE_H
 
+#include "constant.h"
 #include "tensor.h"
 
 namespace kernel_float {
@@ -81,6 +82,15 @@ template<typename... Args>
 KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&... args) {
     return make_vec(std::forward<Args>(args)...);
 };
+
+template<typename T = double>
+using kconstant = constant<T>;
+
+template<typename T = double>
+KERNEL_FLOAT_INLINE constexpr kconstant<T> kconst(T value) {
+    return value;
+}
+
 }  // namespace prelude
 }  // namespace kernel_float
 

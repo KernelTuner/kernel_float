@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-07-25 14:36:17.388029
-// git hash: 5475ee68121976f8b9be212c15de4dcdd66248ad
+// date: 2023-07-25 14:50:15.560873
+// git hash: df48350ff5f4362e8220188c09f48c37ba9d0335
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1600,6 +1600,64 @@ struct bit_xor<double> {
 }  // namespace kernel_float
 
 #endif
+#ifndef KERNEL_FLOAT_CONSTANT
+#define KERNEL_FLOAT_CONSTANT
+
+
+
+namespace kernel_float {
+
+template<typename T = double>
+struct constant {
+    KERNEL_FLOAT_INLINE
+    constexpr constant(T value = {}) : value_(value) {}
+
+    KERNEL_FLOAT_INLINE
+    constexpr T get() const {
+        return value_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    constexpr operator T() const {
+        return value_;
+    }
+
+  private:
+    T value_;
+};
+
+template<typename T = double>
+KERNEL_FLOAT_INLINE constexpr constant<T> make_constant(T value) {
+    return value;
+}
+
+template<typename L, typename R>
+struct promote_type<constant<L>, constant<R>> {
+    using type = typename promote_type<L, R>::type;
+};
+
+template<typename L, typename R>
+struct promote_type<constant<L>, R> {
+    using type = typename promote_type<L, R>::type;
+};
+
+template<typename L, typename R>
+struct promote_type<L, constant<R>> {
+    using type = typename promote_type<L, R>::type;
+};
+
+namespace ops {
+template<typename T, typename R, RoundingMode m>
+struct cast<constant<T>, R, m> {
+    KERNEL_FLOAT_INLINE R operator()(const T& input) noexcept {
+        return cast<T, R, m> {}(input);
+    }
+};
+}  // namespace ops
+
+}  // namespace kernel_float
+
+#endif
 #ifndef KERNEL_FLOAT_REDUCE_H
 #define KERNEL_FLOAT_REDUCE_H
 
@@ -2538,6 +2596,7 @@ KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input))
 
 
 
+
 namespace kernel_float {
 namespace prelude {
 namespace kf = ::kernel_float;
@@ -2616,6 +2675,15 @@ template<typename... Args>
 KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&... args) {
     return make_vec(std::forward<Args>(args)...);
 };
+
+template<typename T = double>
+using kconstant = constant<T>;
+
+template<typename T = double>
+KERNEL_FLOAT_INLINE constexpr kconstant<T> kconst(T value) {
+    return value;
+}
+
 }  // namespace prelude
 }  // namespace kernel_float
 
