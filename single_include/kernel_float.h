@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-07-25 14:25:22.766896
-// git hash: eacf58401b70e1d94bf315e7e192708267f4e9e0
+// date: 2023-07-25 14:36:17.388029
+// git hash: 5475ee68121976f8b9be212c15de4dcdd66248ad
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2703,6 +2703,53 @@ KERNEL_FLOAT_INLINE tensor<T, E> where(const C& cond) {
     tensor<T, extents<>> true_values = T {true};
     tensor<T, extents<>> false_values = T {false};
     return where(cond, true_values, false_values);
+}
+
+namespace ops {
+template<typename T>
+struct fma {
+    KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
+        return a + b * c;
+    }
+};
+
+#if KERNEL_FLOAT_IS_DEVICE
+template<>
+struct fma<float> {
+    KERNEL_FLOAT_INLINE float operator()(float a, float b, float c) {
+        return __fmaf_rn(a, b, c);
+    }
+};
+
+template<>
+struct fma<double> {
+    KERNEL_FLOAT_INLINE double operator()(double a, double b, double c) {
+        return __fma_rn(a, b, c);
+    }
+};
+#endif
+}  // namespace ops
+
+/**
+ * Computes the result of `a * b + c`. This is done in a single operation if possible.
+ */
+template<
+    typename A,
+    typename B,
+    typename C,
+    typename T = promoted_tensor_value_type<A, B, C>,
+    typename E = broadcast_extents<tensor_extents<A>, broadcast_tensor_extents<B, C>>>
+KERNEL_FLOAT_INLINE tensor<T, E> fma(const A& a, const B& b, const C& c) {
+    using F = ops::fma<T>;
+
+    return detail::apply_impl<F, E::volume, T, T, T, T>::call(
+        F {},
+        detail::convert_helper<tensor_value_type<A>, tensor_extents<A>, T, E>::call(
+            into_tensor_storage(a)),
+        detail::convert_helper<tensor_value_type<B>, tensor_extents<B>, T, E>::call(
+            into_tensor_storage(b)),
+        detail::convert_helper<tensor_value_type<C>, tensor_extents<C>, T, E>::call(
+            into_tensor_storage(c)));
 }
 
 }  // namespace kernel_float
