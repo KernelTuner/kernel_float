@@ -218,6 +218,17 @@ using scalar = vector<T, extent<1>>;
 template<typename T, size_t N>
 using vec = vector<T, extent<N>>;
 
+// clang-format off
+template<typename T> using vec1 = vec<T, 1>;
+template<typename T> using vec2 = vec<T, 2>;
+template<typename T> using vec3 = vec<T, 3>;
+template<typename T> using vec4 = vec<T, 4>;
+template<typename T> using vec5 = vec<T, 5>;
+template<typename T> using vec6 = vec<T, 6>;
+template<typename T> using vec7 = vec<T, 7>;
+template<typename T> using vec8 = vec<T, 8>;
+// clang-format on
+
 template<typename... Args>
 KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
     using T = promote_t<Args...>;

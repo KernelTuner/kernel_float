@@ -8,3 +8,4 @@ API Reference
    api/reductions.rst
    api/shuffling.rst
    api/mathematical.rst
+   api/conditional.rst

@@ -11,6 +11,10 @@ using zip_type = vector<
     result_t<F, vector_value_type<L>, vector_value_type<R>>,
     broadcast_vector_extent_type<L, R>>;
 
+/**
+ * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
+ * function (`fun`) to each pair of corresponding elements.
+ */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
     using A = vector_value_type<L>;
@@ -29,6 +33,10 @@ using zip_common_type = vector<
     result_t<F, promoted_vector_value_type<L, R>, promoted_vector_value_type<L, R>>,
     broadcast_vector_extent_type<L, R>>;
 
+/**
+ * Similar to `zip`, except `zip_common` promotes the element types of the inputs to a common type before applying the
+ * binary function.
+ */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {
     using T = promoted_vector_value_type<L, R>;

@@ -14,9 +14,6 @@ using kscalar = vector<T, extent<1>>;
 template<typename T, size_t N>
 using kvec = vector<T, extent<N>>;
 
-template<typename T, size_t N>
-using kvector = vector<T, extent<N>>;
-
 // clang-format off
 template<typename T> using kvec1 = kvec<T, 1>;
 template<typename T> using kvec2 = kvec<T, 2>;

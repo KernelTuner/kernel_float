@@ -22,9 +22,9 @@ struct conditional {
 /**
  * Return elements chosen from `true_values` and `false_values` depending on `cond`.
  *
- * This function broadcasts all arguments to the same size and it promotes the values of `true_values` and
+ * This function broadcasts all arguments to the same size and then promotes the values of `true_values` and
  * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a vector where
- * the values are taken from `true_values` if the condition is true and `false_values` otherwise.
+ * the values are taken from `true_values` where the condition is true and `false_values` otherwise.
  *
  * @param cond The condition used for selection.
  * @param true_values The vector of values to choose from when the condition is true.
@@ -71,16 +71,14 @@ KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
 }
 
 /**
- * Returns a vector where the values are `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
+ * Returns a vector having the value `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
  *
  * @param cond The condition used for selection.
  * @return A vector containing elements as per the condition.
  */
 template<typename T = bool, typename C, typename E = vector_extent_type<C>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond) {
-    vector<T, extent<1>> true_values = T {true};
-    vector<T, extent<1>> false_values = T {false};
-    return where(cond, true_values, false_values);
+    return cast<T>(cast<bool>(cond));
 }
 
 namespace ops {

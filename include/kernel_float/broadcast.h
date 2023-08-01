@@ -69,6 +69,10 @@ struct broadcast_impl<T, extent<N>, extent<N>> {
 
 }  // namespace detail
 
+/**
+ * Takes the given vector `input` and extends its size to a length of `N`. This is only valid if the size of `input`
+ * is 1 or `N`.
+ */
 template<size_t N, typename V>
 KERNEL_FLOAT_INLINE vector<vector_value_type<V>, extent<N>>
 broadcast(const V& input, extent<N> new_size = {}) {
@@ -77,39 +81,64 @@ broadcast(const V& input, extent<N> new_size = {}) {
         into_vector_storage(input));
 }
 
+/**
+ * Takes the given vector `input` and extends its size to the same length as vector `other`. This is only valid if the
+ * size of `input` is 1 or the same as `other`.
+ */
 template<typename V, typename R>
 KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<R>>
-broadcast_like(const V& input, const R&) {
-    using T = vector_value_type<V>;
-    return detail::broadcast_impl<T, vector_extent_type<V>, vector_extent_type<R>>::call(
-        into_vector_storage(input));
+broadcast_like(const V& input, const R& other) {
+    return broadcast(input, vector_extent_type<R> {});
 }
 
+/**
+ * Returns a vector containing `N` copies of `value`.
+ */
 template<size_t N, typename T>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
     vector_storage<T, 1> input = {value};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
+/**
+ * Returns a vector containing `N` copies of `T(0)`.
+ */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> zeros(extent<N> = {}) {
     vector_storage<T, 1> input = {T {}};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
+/**
+ * Returns a vector containing `N` copies of `T(1)`.
+ */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> ones(extent<N> = {}) {
     vector_storage<T, 1> input = {T {1}};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
+/**
+ * Returns a vector filled with `value` having the same type and size as input vector `V`.
+ */
 template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
-KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V&) {
+KERNEL_FLOAT_INLINE vector<T, E> fill_like(const V&, T value) {
+    return fill(value, E {});
+}
+
+/**
+ * Returns a vector filled with zeros having the same type and size as input vector `V`.
+ */
+template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
+KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V& = {}) {
     return zeros<T>(E {});
 }
 
+/**
+ * Returns a vector filled with ones having the same type and size as input vector `V`.
+ */
 template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
-KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V&) {
+KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V& = {}) {
     return ones<T>(E {});
 }
 
@@ -159,6 +188,8 @@ KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<
 
 /**
  * Cast the values of the given input vector to type `R` and then broadcast the result to the given size `N`.
+ *
+ * This function is essentially a `cast` followed by a `broadcast`.
  */
 template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_size = {}) {
