@@ -9,112 +9,99 @@
 
 namespace kernel_float {
 
-template<typename Derived, typename T, size_t N>
-struct vector_extension {};
-
-template<typename T, typename E, template<typename, size_t> class S>
-struct vector: vector_extension<vector<T, E, S>, T, E::value> {
+template<typename T, typename E, class S>
+struct vector: S {
     using value_type = T;
     using extent_type = E;
-    using storage_type = S<T, E::value>;
+    using storage_type = S;
+
+    // Copy another `vector<T, E>`
+    vector(const vector&) = default;
+
+    // Copy anything of type `storage_type`
+    KERNEL_FLOAT_INLINE
+    vector(const storage_type& storage) : storage_type(storage) {}
+
+    // Copy anything of type `storage_type`
+    KERNEL_FLOAT_INLINE
+    vector(const value_type& input = {}) :
+        storage_type(detail::broadcast_impl<T, extent<1>, E>::call(input)) {}
+
+    // For all other arguments, we convert it using `convert_storage` according to broadcast rules
+    template<typename U, enabled_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    KERNEL_FLOAT_INLINE vector(U&& input) : storage_type(convert_storage<T, E::size>(input)) {}
+
+    template<typename U, enabled_t<!is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    KERNEL_FLOAT_INLINE explicit vector(U&& input) :
+        storage_type(convert_storage<T, E::size>(input)) {}
+
+    // List of `N` (where N >= 2), simply pass forward to the storage
+    template<
+        typename A,
+        typename B,
+        typename... Rest,
+        typename = enabled_t<sizeof...(Rest) + 2 == E::size>>
+    KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
+        storage_type {a, b, rest...} {}
 
     KERNEL_FLOAT_INLINE
     static constexpr size_t size() {
-        return E::value;
+        return E::size;
     }
-
-    vector(const vector&) = default;
-
-    KERNEL_FLOAT_INLINE
-    vector(storage_type storage) : storage_(storage) {}
-
-    template<typename... Args, enabled_t<sizeof...(Args) == size() && size() >= 2, int> = 0>
-    KERNEL_FLOAT_INLINE vector(Args&&... args) : storage_ {std::forward<Args>(args)...} {}
-
-    template<
-        typename U,
-        typename F,
-        enabled_t<
-            is_implicit_convertible<U, value_type> && is_vector_broadcastable<F, extent_type>,
-            int> = 0>
-    KERNEL_FLOAT_INLINE vector(const vector<U, F>& input) :
-        vector(convert<T>(input, extent_type {})) {}
-
-    template<
-        typename U,
-        typename F,
-        enabled_t<
-            !is_implicit_convertible<U, value_type> && is_vector_broadcastable<F, extent_type>,
-            int> = 0>
-    explicit KERNEL_FLOAT_INLINE vector(const vector<U, F>& input) :
-        vector(convert<T>(input, extent_type {})) {}
-
-    KERNEL_FLOAT_INLINE vector(const value_type& input = {}) :
-        vector(convert<T>(input, extent_type {})) {}
 
     KERNEL_FLOAT_INLINE
     storage_type& storage() {
-        return storage_;
+        return *this;
     }
 
     KERNEL_FLOAT_INLINE
     const storage_type& storage() const {
-        return storage_;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return storage_.data();
+        return *this;
     }
 
     KERNEL_FLOAT_INLINE
     const T* cdata() const {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     T* begin() {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     const T* begin() const {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     const T* cbegin() const {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     T* end() {
-        return storage_.data() + size();
+        return this->data() + size();
     }
 
     KERNEL_FLOAT_INLINE
     const T* end() const {
-        return storage_.data() + size();
+        return this->data() + size();
     }
 
     KERNEL_FLOAT_INLINE
     const T* cend() const {
-        return storage_.data() + size();
+        return this->data() + size();
     }
 
     KERNEL_FLOAT_INLINE
     T& at(size_t x) {
-        return *(data() + x);
+        return *(this->data() + x);
     }
 
     KERNEL_FLOAT_INLINE
     const T& at(size_t x) const {
-        return *(data() + x);
+        return *(this->data() + x);
     }
 
     KERNEL_FLOAT_INLINE
@@ -147,6 +134,11 @@ struct vector: vector_extension<vector<T, E, S>, T, E::value> {
         return at(x);
     }
 
+    template<typename R, RoundingMode Mode = RoundingMode::ANY>
+    KERNEL_FLOAT_INLINE vector<T, E2> cast() const {
+        return kernel_float::cast<R, Mode>(*this);
+    }
+
     template<size_t N>
     KERNEL_FLOAT_INLINE vector<T, extent<N>> broadcast(extent<N> new_size = {}) const {
         return kernel_float::broadcast(*this, new_size);
@@ -164,24 +156,6 @@ struct vector: vector_extension<vector<T, E, S>, T, E::value> {
 
   private:
     storage_type storage_;
-};
-
-template<typename Derived, typename T>
-struct vector_extension<Derived, T, 1> {
-    KERNEL_FLOAT_INLINE
-    T get() const {
-        return static_cast<const Derived*>(this)->get({});
-    }
-
-    KERNEL_FLOAT_INLINE
-    void set(T value) {
-        static_cast<Derived*>(this)->set({}, value);
-    }
-
-    KERNEL_FLOAT_INLINE
-    operator T() const {
-        return get();
-    }
 };
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
@@ -217,6 +191,11 @@ struct vector_extension<Derived, T, 1> {
             return {v.x, v.y, v.z, v.w};                   \
         }                                                  \
     };
+
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
+    return into_vector_traits<V>::call(std::forward<V>(input));
+}
 
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)

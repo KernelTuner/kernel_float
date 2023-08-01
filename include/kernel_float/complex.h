@@ -177,7 +177,7 @@ KERNEL_FLOAT_INLINE T real(complex_type<T> v) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE T imag(complex_type<T> v) {
-    return v.real();
+    return v.imag();
 }
 
 template<typename T>

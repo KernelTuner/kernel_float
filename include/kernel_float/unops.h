@@ -31,7 +31,7 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     using Output = result_t<F, Input>;
     return detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
         fun,
-        into_vector(input).storage());
+        into_vector_storage(input));
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                      \

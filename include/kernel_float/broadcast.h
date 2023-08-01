@@ -74,7 +74,7 @@ KERNEL_FLOAT_INLINE vector<vector_value_type<V>, extent<N>>
 broadcast(const V& input, extent<N> new_size = {}) {
     using T = vector_value_type<V>;
     return detail::broadcast_impl<T, vector_extent_type<V>, extent<N>>::call(
-        into_vector(input).storage());
+        into_vector_storage(input));
 }
 
 template<typename V, typename R>
@@ -82,7 +82,7 @@ KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<R>>
 broadcast_like(const V& input, const R&) {
     using T = vector_value_type<V>;
     return detail::broadcast_impl<T, vector_extent_type<V>, vector_extent_type<R>>::call(
-        into_vector(input).storage());
+        into_vector_storage(input));
 }
 
 template<size_t N, typename T>
@@ -151,13 +151,18 @@ struct convert_helper<T, E, T2, E, M> {
 };
 }  // namespace detail
 
+template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
+KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<N> new_size = {}) {
+    return detail::convert_helper<vector_value_type<V>, vector_extent_type<V>, R, extent<N>, M>::
+        call(into_vector_storage(input));
+}
+
 /**
  * Cast the values of the given input vector to type `R` and then broadcast the result to the given size `N`.
  */
 template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_size = {}) {
-    return detail::convert_helper<vector_value_type<V>, vector_extent_type<V>, R, extent<N>, M>::
-        call(into_vector(input).storage());
+    return convert_storage(input);
 }
 
 }  // namespace kernel_float

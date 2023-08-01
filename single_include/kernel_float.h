@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-07-25 14:50:15.560873
-// git hash: df48350ff5f4362e8220188c09f48c37ba9d0335
+// date: 2023-08-01 16:03:54.596340
+// git hash: 0cf26708f3b17b2f74940e5806bad2aeaae4c076
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -307,8 +307,8 @@ using enabled_t = typename detail::enabled_helper<C, T>::type;
 }  // namespace kernel_float
 
 #endif
-#ifndef KERNEL_FLOAT_BASE
-#define KERNEL_FLOAT_BASE
+#ifndef KERNEL_FLOAT_BASE_H
+#define KERNEL_FLOAT_BASE_H
 
 
 
@@ -316,7 +316,7 @@ using enabled_t = typename detail::enabled_helper<C, T>::type;
 namespace kernel_float {
 
 template<typename T, size_t N, size_t Alignment = alignof(T)>
-struct alignas(Alignment) array {
+struct alignas(Alignment) aligned_array {
     KERNEL_FLOAT_INLINE
     T* data() {
         return items_;
@@ -327,81 +327,130 @@ struct alignas(Alignment) array {
         return items_;
     }
 
-    KERNEL_FLOAT_INLINE
-    T& operator[](size_t i) {
-        return items_[i];
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& operator[](size_t i) const {
-        return items_[i];
-    }
-
-    T items_[N];
+    T items_[N] = {};
 };
 
 template<typename T, size_t Alignment>
-struct array<T, 1, Alignment> {
+struct aligned_array<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
-    array(T value = {}) : value_(value) {}
+    T* data() {
+        while (true)
+            ;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        while (true)
+            ;
+    }
+};
+
+template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 1, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T value = {}) : x(value) {}
 
     KERNEL_FLOAT_INLINE
     operator T() const {
-        return value_;
+        return x;
     }
 
     KERNEL_FLOAT_INLINE
     T* data() {
-        return &value_;
+        return &x;
     }
 
     KERNEL_FLOAT_INLINE
     const T* data() const {
-        return &value_;
+        return &x;
     }
 
-    KERNEL_FLOAT_INLINE
-    T& operator[](size_t) {
-        return value_;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& operator[](size_t) const {
-        return value_;
-    }
-
-    T value_;
+    T x;
 };
 
 template<typename T, size_t Alignment>
-struct array<T, 0, Alignment> {
+struct alignas(Alignment) aligned_array<T, 2, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T x, T y) : x(x), y(y) {}
+
+    KERNEL_FLOAT_INLINE
+    aligned_array() : aligned_array(T {}, T {}) {}
+
     KERNEL_FLOAT_INLINE
     T* data() {
-        while (true)
-            ;
+        return items;
     }
 
     KERNEL_FLOAT_INLINE
     const T* data() const {
-        while (true)
-            ;
+        return items;
     }
 
-    KERNEL_FLOAT_INLINE
-    T& operator[](size_t i) {
-        while (true)
-            ;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& operator[](size_t i) const {
-        while (true)
-            ;
-    }
+    union {
+        T items[2];
+        struct {
+            T x;
+            T y;
+        };
+    };
 };
 
-template<size_t N>
-using ndindex = array<size_t, N>;
+template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 3, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T x, T y, T z) : x(x), y(y), z(z) {}
+
+    KERNEL_FLOAT_INLINE
+    aligned_array() : aligned_array(T {}, T {}, T {}) {}
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return items;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return items;
+    }
+
+    union {
+        T items[3];
+        struct {
+            T x;
+            T y;
+            T z;
+        };
+    };
+};
+
+template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 4, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
+
+    KERNEL_FLOAT_INLINE
+    aligned_array() : aligned_array(T {}, T {}, T {}, T {}) {}
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return items;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return items;
+    }
+
+    union {
+        T items[4];
+        struct {
+            T x;
+            T y;
+            T z;
+            T w;
+        };
+    };
+};
 
 KERNEL_FLOAT_INLINE
 static constexpr size_t compute_max_alignment(size_t total_size, size_t min_align) {
@@ -421,230 +470,94 @@ static constexpr size_t compute_max_alignment(size_t total_size, size_t min_alig
 }
 
 template<typename T, size_t N>
-using tensor_storage = array<T, N, compute_max_alignment(sizeof(T) * N, alignof(T))>;
-
-template<typename T, typename D, template<typename, size_t> class S = tensor_storage>
-struct tensor;
-
-template<size_t... Ns>
-struct extents;
-
-template<>
-struct extents<> {
-    static constexpr size_t rank = 0;
-    static constexpr size_t volume = 1;
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t size(size_t axis) {
-        return 1;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t stride(size_t axis) {
-        return 1;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static size_t ravel_index(ndindex<0>) {
-        return 0;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static ndindex<0> unravel_index(size_t i) {
-        return {};
-    }
-};
+using vector_storage = aligned_array<T, N, compute_max_alignment(sizeof(T) * N, alignof(T))>;
 
 template<size_t N>
-struct extents<N> {
-    static constexpr size_t rank = 1;
-    static constexpr size_t volume = N;
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t size(size_t axis) {
-        return axis == 0 ? N : 1;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t stride(size_t axis) {
-        return 1;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static size_t ravel_index(ndindex<1> ind) {
-        return ind[0];
-    }
-
-    KERNEL_FLOAT_INLINE
-    static ndindex<1> unravel_index(size_t i) {
-        return {i};
-    }
-};
-
-template<size_t N, size_t M>
-struct extents<N, M> {
-    static constexpr size_t rank = 2;
-    static constexpr size_t volume = N * M;
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t size(size_t axis) {
-        return axis == 0 ? N : axis == 1 ? M : 1;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t stride(size_t axis) {
-        return axis == 0 ? M : 1;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static size_t ravel_index(ndindex<2> x) {
-        return x[0] * M + x[1];
-    }
-
-    KERNEL_FLOAT_INLINE
-    static ndindex<2> unravel_index(size_t i) {
-        return {i / M, i % M};
-    }
-};
-
-template<size_t N, size_t M, size_t K>
-struct extents<N, M, K> {
-    static constexpr size_t rank = 3;
-    static constexpr size_t volume = N * M * K;
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t size(size_t axis) {
-        return axis == 0 ? N : axis == 1 ? M : axis == 2 ? K : 1;
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t stride(size_t axis) {
-        return axis == 0 ? M * K  //
-            : axis == 1  ? K  //
-                         : 1;  //
-    }
-
-    KERNEL_FLOAT_INLINE
-    static size_t ravel_index(ndindex<3> x) {
-        return (x[0] * M + x[1]) * K + x[2];
-    }
-
-    KERNEL_FLOAT_INLINE
-    static ndindex<3> unravel_index(size_t i) {
-        return {i / (K * M), (i / K) % M, i % K};
-    }
+struct extent {
+    static constexpr size_t value = N;
+    static constexpr size_t size = N;
 };
 
 template<typename T>
-struct into_tensor_traits {
-    using type = tensor<T, extents<>>;
+struct into_vector_traits {
+    using value_type = T;
+    using extent_type = extent<1>;
 
     KERNEL_FLOAT_INLINE
-    static type call(const T& input) {
-        return tensor_storage<T, 1> {input};
+    static vector_storage<T, 1> call(const T& input) {
+        return vector_storage<T, 1> {input};
     }
 };
 
 template<typename V>
-struct into_tensor_traits<const V> {
-    using type = typename into_tensor_traits<V>::type;
-
-    KERNEL_FLOAT_INLINE
-    static type call(const V input) {
-        return into_tensor_traits<V>::call(input);
-    }
-};
+struct into_vector_traits<const V>: into_vector_traits<V> {};
 
 template<typename V>
-struct into_tensor_traits<V&> {
-    using type = typename into_tensor_traits<V>::type;
-
-    KERNEL_FLOAT_INLINE
-    static type call(V& input) {
-        return into_tensor_traits<V>::call(input);
-    }
-};
+struct into_vector_traits<V&>: into_vector_traits<V> {};
 
 template<typename V>
-struct into_tensor_traits<const V&> {
-    using type = typename into_tensor_traits<V>::type;
-
-    KERNEL_FLOAT_INLINE
-    static type call(const V& input) {
-        return into_tensor_traits<V>::call(input);
-    }
-};
+struct into_vector_traits<const V&>: into_vector_traits<V> {};
 
 template<typename V>
-struct into_tensor_traits<V&&> {
-    using type = typename into_tensor_traits<V>::type;
-
-    KERNEL_FLOAT_INLINE
-    static type call(V&& input) {
-        return into_tensor_traits<V>::call(std::move(input));
-    }
-};
-
-template<typename T, typename D, template<typename, size_t> class S>
-struct into_tensor_traits<tensor<T, D, S>> {
-    using type = tensor<T, D>;
-
-    KERNEL_FLOAT_INLINE
-    static type call(const tensor<T, D, S>& input) {
-        return input;
-    }
-};
+struct into_vector_traits<V&&>: into_vector_traits<V> {};
 
 template<typename T, size_t N, size_t A>
-struct into_tensor_traits<array<T, N, A>> {
-    using type = tensor<T, extents<N>>;
+struct into_vector_traits<aligned_array<T, N, A>> {
+    using value_type = T;
+    using extent_type = extent<N>;
 
     KERNEL_FLOAT_INLINE
-    static type call(const array<T, N, A>& input) {
+    static vector_storage<T, N> call(const aligned_array<T, N, A>& input) {
         return input;
     }
 };
 
 template<typename V>
-struct tensor_traits;
+struct vector_traits;
 
-template<typename T, typename D, template<typename, size_t> class S>
-struct tensor_traits<tensor<T, D, S>> {
+template<typename T, typename E, typename S = vector_storage<T, E::size>>
+struct vector;
+
+template<typename T, typename E, typename S>
+struct into_vector_traits<vector<T, E, S>> {
     using value_type = T;
-    using extents_type = D;
-    using storage_type = S<T, D::volume>;
+    using extent_type = E;
+
+    KERNEL_FLOAT_INLINE
+    static vector_storage<T, E::value> call(const vector<T, E, S>& input) {
+        return input.storage();
+    }
+};
+
+template<typename T, typename E, typename S>
+struct vector_traits<vector<T, E, S>> {
+    using value_type = T;
+    using extent_type = E;
+    using storage_type = S;
+    using vector_type = vector<T, E, S>;
 };
 
 template<typename V>
-using into_tensor_type = typename into_tensor_traits<V>::type;
+using vector_value_type = typename into_vector_traits<V>::value_type;
 
 template<typename V>
-using tensor_extents = typename tensor_traits<into_tensor_type<V>>::extents_type;
+using vector_extent_type = typename into_vector_traits<V>::extent_type;
 
 template<typename V>
-static constexpr size_t tensor_rank = tensor_extents<V>::rank;
+static constexpr size_t vector_extent = vector_extent_type<V>::value;
 
 template<typename V>
-static constexpr size_t tensor_volume = tensor_extents<V>::volume;
+using into_vector_type = vector<vector_value_type<V>, vector_extent_type<V>>;
 
 template<typename V>
-using tensor_value_type = typename tensor_traits<into_tensor_type<V>>::value_type;
-
-template<typename V>
-using tensor_storage_type = tensor_storage<tensor_value_type<V>, tensor_volume<V>>;
+using vector_storage_type = vector_storage<vector_value_type<V>, vector_extent<V>>;
 
 template<typename... Vs>
-using promoted_tensor_value_type =
-    promote_t<typename tensor_traits<into_tensor_type<Vs>>::value_type...>;
+using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
 
 template<typename V>
-KERNEL_FLOAT_INLINE into_tensor_type<V> into_tensor(V&& input) {
-    return into_tensor_traits<V>::call(std::forward<V>(input));
-}
-
-template<typename V>
-KERNEL_FLOAT_INLINE tensor_storage_type<V> into_tensor_storage(V&& input) {
-    return into_tensor_traits<V>::call(std::forward<V>(input)).storage();
+KERNEL_FLOAT_INLINE vector_storage_type<V> into_vector_storage(V&& input) {
+    return into_vector_traits<V>::call(std::forward<V>(input));
 }
 
 }  // namespace kernel_float
@@ -829,7 +742,7 @@ KERNEL_FLOAT_INLINE T real(complex_type<T> v) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE T imag(complex_type<T> v) {
-    return v.real();
+    return v.imag();
 }
 
 template<typename T>
@@ -920,13 +833,13 @@ namespace detail {
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_impl {
-    KERNEL_FLOAT_INLINE static tensor_storage<Output, N>
-    call(F fun, const tensor_storage<Args, N>&... inputs) {
-        tensor_storage<Output, N> result;
+    KERNEL_FLOAT_INLINE static vector_storage<Output, N>
+    call(F fun, const vector_storage<Args, N>&... inputs) {
+        vector_storage<Output, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            result[i] = fun(inputs[i]...);
+            result.data()[i] = fun(inputs.data()[i]...);
         }
 
         return result;
@@ -935,15 +848,15 @@ struct apply_impl {
 }  // namespace detail
 
 template<typename F, typename V>
-using map_type = tensor<result_t<F, tensor_value_type<V>>, tensor_extents<V>>;
+using map_type = vector<result_t<F, vector_value_type<V>>, vector_extent_type<V>>;
 
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
-    using Input = tensor_value_type<V>;
+    using Input = vector_value_type<V>;
     using Output = result_t<F, Input>;
-    return detail::apply_impl<F, tensor_volume<V>, Output, Input>::call(
+    return detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
         fun,
-        into_tensor(input).storage());
+        into_vector_storage(input));
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                      \
@@ -956,15 +869,15 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     };                                                             \
     }                                                              \
     template<typename V>                                           \
-    KERNEL_FLOAT_INLINE into_tensor_type<V> NAME(const V& input) { \
-        using F = ops::NAME<tensor_value_type<V>>;                 \
+    KERNEL_FLOAT_INLINE into_vector_type<V> NAME(const V& input) { \
+        using F = ops::NAME<vector_value_type<V>>;                 \
         return map(F {}, input);                                   \
     }
 
 #define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                        \
     KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                   \
     template<typename T, typename D>                                        \
-    KERNEL_FLOAT_INLINE tensor<T, D> operator OP(const tensor<T, D>& vec) { \
+    KERNEL_FLOAT_INLINE vector<T, D> operator OP(const vector<T, D>& vec) { \
         return NAME(vec);                                                   \
     }
 
@@ -1073,8 +986,8 @@ struct cast<T, T, RoundingMode::ANY> {
 }  // namespace ops
 
 template<typename R, RoundingMode Mode = RoundingMode::ANY, typename V>
-KERNEL_FLOAT_INLINE tensor<R, tensor_extents<V>> cast(const V& input) {
-    using F = ops::cast<tensor_value_type<V>, R, Mode>;
+KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
+    using F = ops::cast<vector_value_type<V>, R, Mode>;
     return map(F {}, input);
 }
 }  // namespace kernel_float
@@ -1089,237 +1002,109 @@ KERNEL_FLOAT_INLINE tensor<R, tensor_extents<V>> cast(const V& input) {
 namespace kernel_float {
 namespace detail {
 
-template<size_t N, size_t M>
-struct unify_dimension_helper;
+template<typename A, typename B>
+struct broadcast_extent_helper;
+
+template<size_t N>
+struct broadcast_extent_helper<extent<N>, extent<N>> {
+    using type = extent<N>;
+};
+
+template<size_t N>
+struct broadcast_extent_helper<extent<1>, extent<N>> {
+    using type = extent<N>;
+};
+
+template<size_t N>
+struct broadcast_extent_helper<extent<N>, extent<1>> {
+    using type = extent<N>;
+};
 
 template<>
-struct unify_dimension_helper<1, 1> {
-    static constexpr size_t value = 1;
-};
-
-template<size_t N>
-struct unify_dimension_helper<N, N> {
-    static constexpr size_t value = N;
-};
-
-template<size_t N>
-struct unify_dimension_helper<N, 1> {
-    static constexpr size_t value = N;
-};
-
-template<size_t N>
-struct unify_dimension_helper<1, N> {
-    static constexpr size_t value = N;
-};
-
-template<typename A, typename B>
-struct unify_extents_helper;
-
-template<size_t... Ns, size_t... Ms>
-struct unify_extents_helper<extents<Ns...>, extents<Ms...>> {
-    using type = extents<unify_dimension_helper<Ns, Ms>::value...>;
-};
-
-template<typename E, size_t N, typename = void>
-struct extents_to_rank {
-    using type = E;
-};
-
-template<size_t... Ns, size_t N>
-struct extents_to_rank<extents<Ns...>, N, enabled_t<(sizeof...(Ns) < N)>>:
-    extents_to_rank<extents<1, Ns...>, N> {};
-
-template<typename A, typename B>
-struct broadcast_extents_helper {
-    using type = typename unify_extents_helper<
-        typename extents_to_rank<A, B::rank>::type,  //
-        typename extents_to_rank<B, A::rank>::type  //
-        >::type;
-};
-
-template<typename E>
-struct broadcast_extents_helper<E, E> {
-    using type = E;
+struct broadcast_extent_helper<extent<1>, extent<1>> {
+    using type = extent<1>;
 };
 
 }  // namespace detail
 
 template<typename A, typename B>
-using broadcast_extents = typename detail::broadcast_extents_helper<A, B>::type;
+using broadcast_extent = typename detail::broadcast_extent_helper<A, B>::type;
 
 template<typename A, typename B>
-using broadcast_tensor_extents = broadcast_extents<tensor_extents<A>, tensor_extents<B>>;
+using broadcast_vector_extent_type = broadcast_extent<vector_extent_type<A>, vector_extent_type<B>>;
 
 template<typename From, typename To>
-static constexpr bool is_broadcastable = is_same<broadcast_extents<From, To>, To>;
+static constexpr bool is_broadcastable = is_same<broadcast_extent<From, To>, To>;
 
 template<typename V, typename To>
-static constexpr bool is_tensor_broadcastable = is_broadcastable<tensor_extents<V>, To>;
+static constexpr bool is_vector_broadcastable = is_broadcastable<vector_extent_type<V>, To>;
 
 namespace detail {
 
-template<typename E, typename IS, typename OS>
-struct copy_helper;
-
-template<typename IS, typename OS>
-struct copy_helper<extents<>, IS, OS> {
-    template<typename T>
-    KERNEL_FLOAT_INLINE static void call(T* output, const T* input) {
-        ndindex<0> x;
-        size_t input_index = IS::call(x);
-        size_t output_index = OS::call(x);
-        output[output_index] = input[input_index];
-    }
-};
-
-template<size_t N, typename IS, typename OS>
-struct copy_helper<extents<N>, IS, OS> {
-    template<typename T>
-    KERNEL_FLOAT_INLINE static void call(T* output, const T* input) {
-        for (size_t i = 0; i < N; i++) {
-            ndindex<1> x = {i};
-            size_t input_index = IS::call(x);
-            size_t output_index = OS::call(x);
-            output[output_index] = input[input_index];
-        }
-    }
-};
-
-template<size_t N, size_t M, typename IS, typename OS>
-struct copy_helper<extents<N, M>, IS, OS> {
-    template<typename T>
-    KERNEL_FLOAT_INLINE static void call(T* output, const T* input) {
-        for (size_t i = 0; i < N; i++) {
-            for (size_t j = 0; j < M; j++) {
-                ndindex<2> x = {i, j};
-                size_t input_index = IS::call(x);
-                size_t output_index = OS::call(x);
-                output[output_index] = input[input_index];
-            }
-        }
-    }
-};
-
-template<size_t N, size_t M, size_t K, typename IS, typename OS>
-struct copy_helper<extents<N, M, K>, IS, OS> {
-    template<typename T>
-    KERNEL_FLOAT_INLINE static void call(T* output, const T* input) {
-        for (size_t i = 0; i < N; i++) {
-            for (size_t j = 0; j < M; j++) {
-                for (size_t k = 0; k < K; k++) {
-                    ndindex<3> x = {i, j, k};
-                    size_t input_index = IS::call(x);
-                    size_t output_index = OS::call(x);
-                    output[output_index] = input[input_index];
-                }
-            }
-        }
-    }
-};
-
-template<typename E>
-struct strides_helper;
-
-template<>
-struct strides_helper<extents<>> {
-    KERNEL_FLOAT_INLINE
-    static size_t call(ndindex<0>) {
-        return 0;
-    }
-};
-
-template<size_t N>
-struct strides_helper<extents<N>> {
-    KERNEL_FLOAT_INLINE
-    static size_t call(ndindex<1> x) {
-        return (N != 1 ? x[0] : 0);
-    }
-};
-
-template<size_t N, size_t M>
-struct strides_helper<extents<N, M>> {
-    KERNEL_FLOAT_INLINE
-    static size_t call(ndindex<2> x) {
-        return (N != 1 ? x[0] * M : 0) +  //
-            (M != 1 ? x[1] : 0);
-    }
-};
-
-template<size_t N, size_t M, size_t K>
-struct strides_helper<extents<N, M, K>> {
-    KERNEL_FLOAT_INLINE
-    static size_t call(ndindex<3> x) {
-        return (N != 1 ? x[0] * M * K : 0) +  //
-            (M != 1 ? x[1] * K : 0) +  //
-            (K != 1 ? x[2] : 0);
-    }
-};
-
 template<typename T, typename From, typename To>
-struct broadcast_impl {
-    KERNEL_FLOAT_INLINE static tensor_storage<T, To::volume>
-    call(tensor_storage<T, From::volume> input) {
-        static_assert(is_broadcastable<From, To>, "cannot broadcast to required shape");
-        using IS = strides_helper<typename extents_to_rank<From, To::rank>::type>;
-        using OS = strides_helper<To>;
+struct broadcast_impl;
 
-        tensor_storage<T, To::volume> output;
-        copy_helper<To, IS, OS>::call(output.data(), input.data());
+template<typename T, size_t N>
+struct broadcast_impl<T, extent<1>, extent<N>> {
+    KERNEL_FLOAT_INLINE static vector_storage<T, N> call(const vector_storage<T, 1>& input) {
+        vector_storage<T, N> output;
+        for (size_t i = 0; i < N; i++) {
+            output.data()[i] = input.data()[0];
+        }
         return output;
     }
 };
 
-template<typename T, typename E>
-struct broadcast_impl<T, E, E> {
-    KERNEL_FLOAT_INLINE static tensor_storage<T, E::volume>
-    call(tensor_storage<T, E::volume> input) {
+template<typename T, size_t N>
+struct broadcast_impl<T, extent<N>, extent<N>> {
+    KERNEL_FLOAT_INLINE static vector_storage<T, N> call(vector_storage<T, N> input) {
         return input;
     }
 };
 
 }  // namespace detail
 
-template<size_t... Ns, typename V>
-KERNEL_FLOAT_INLINE tensor<tensor_value_type<V>, extents<Ns...>>
-broadcast(const V& input, extents<Ns...> new_extents = {}) {
-    using T = tensor_value_type<V>;
-    return detail::broadcast_impl<T, tensor_extents<V>, extents<Ns...>>::call(
-        into_tensor(input).storage());
+template<size_t N, typename V>
+KERNEL_FLOAT_INLINE vector<vector_value_type<V>, extent<N>>
+broadcast(const V& input, extent<N> new_size = {}) {
+    using T = vector_value_type<V>;
+    return detail::broadcast_impl<T, vector_extent_type<V>, extent<N>>::call(
+        into_vector_storage(input));
 }
 
 template<typename V, typename R>
-KERNEL_FLOAT_INLINE tensor<tensor_value_type<V>, tensor_extents<R>>
+KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<R>>
 broadcast_like(const V& input, const R&) {
-    using T = tensor_value_type<V>;
-    return detail::broadcast_impl<T, tensor_extents<V>, tensor_extents<R>>::call(
-        into_tensor(input).storage());
+    using T = vector_value_type<V>;
+    return detail::broadcast_impl<T, vector_extent_type<V>, vector_extent_type<R>>::call(
+        into_vector_storage(input));
 }
 
-template<size_t... Ns, typename T>
-KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> fill(T value = {}, extents<Ns...> = {}) {
-    tensor_storage<T, 1> input = {value};
-    return detail::broadcast_impl<T, extents<>, extents<Ns...>>::call(input);
+template<size_t N, typename T>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
+    vector_storage<T, 1> input = {value};
+    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
-template<typename T, size_t... Ns>
-KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> zeros(extents<Ns...> = {}) {
-    tensor_storage<T, 1> input = {T {}};
-    return detail::broadcast_impl<T, extents<>, extents<Ns...>>::call(input);
+template<typename T, size_t N>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> zeros(extent<N> = {}) {
+    vector_storage<T, 1> input = {T {}};
+    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
-template<typename T, size_t... Ns>
-KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> ones(extents<Ns...> = {}) {
-    tensor_storage<T, 1> input = {T {1}};
-    return detail::broadcast_impl<T, extents<>, extents<Ns...>>::call(input);
+template<typename T, size_t N>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> ones(extent<N> = {}) {
+    vector_storage<T, 1> input = {T {1}};
+    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
-template<typename V, typename T = tensor_value_type<V>, typename E = tensor_extents<V>>
-KERNEL_FLOAT_INLINE tensor<T, E> zeros_like(const V&) {
+template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
+KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V&) {
     return zeros<T>(E {});
 }
 
-template<typename V, typename T = tensor_value_type<V>, typename E = tensor_extents<V>>
-KERNEL_FLOAT_INLINE tensor<T, E> ones_like(const V&) {
+template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
+KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V&) {
     return ones<T>(E {});
 }
 
@@ -1327,10 +1112,10 @@ namespace detail {
 template<typename T, typename E, typename T2, typename E2, RoundingMode M = RoundingMode::ANY>
 struct convert_helper {
     KERNEL_FLOAT_INLINE
-    static tensor_storage<T2, E2::volume> call(tensor_storage<T, E::volume> input) {
+    static vector_storage<T2, E2::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
-        tensor_storage<T2, E::volume> intermediate =
-            detail::apply_impl<F, E::volume, T2, T>::call(F {}, input);
+        vector_storage<T2, E::value> intermediate =
+            detail::apply_impl<F, E::value, T2, T>::call(F {}, input);
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -1338,7 +1123,7 @@ struct convert_helper {
 template<typename T, typename E, RoundingMode M>
 struct convert_helper<T, E, T, E, M> {
     KERNEL_FLOAT_INLINE
-    static tensor_storage<T, E::volume> call(tensor_storage<T, E::volume> input) {
+    static vector_storage<T, E::value> call(vector_storage<T, E::value> input) {
         return input;
     }
 };
@@ -1346,7 +1131,7 @@ struct convert_helper<T, E, T, E, M> {
 template<typename T, typename E, typename E2, RoundingMode M>
 struct convert_helper<T, E, T, E2, M> {
     KERNEL_FLOAT_INLINE
-    static tensor_storage<T, E2::volume> call(tensor_storage<T, E::volume> input) {
+    static vector_storage<T, E2::value> call(vector_storage<T, E::value> input) {
         return detail::broadcast_impl<T, E, E2>::call(input);
     }
 };
@@ -1354,21 +1139,25 @@ struct convert_helper<T, E, T, E2, M> {
 template<typename T, typename E, typename T2, RoundingMode M>
 struct convert_helper<T, E, T2, E, M> {
     KERNEL_FLOAT_INLINE
-    static tensor_storage<T2, E::volume> call(tensor_storage<T, E::volume> input) {
+    static vector_storage<T2, E::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
-        return detail::apply_impl<F, E::volume, T2, T>::call(F {}, input);
+        return detail::apply_impl<F, E::value, T2, T>::call(F {}, input);
     }
 };
 }  // namespace detail
 
+template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
+KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<N> new_size = {}) {
+    return detail::convert_helper<vector_value_type<V>, vector_extent_type<V>, R, extent<N>, M>::
+        call(into_vector_storage(input));
+}
+
 /**
- * Cast the values of the given input tensor to type `R` and then broadcast the result to the given shape `(Ns...)`.
+ * Cast the values of the given input vector to type `R` and then broadcast the result to the given size `N`.
  */
-template<typename R, size_t... Ns, RoundingMode M = RoundingMode::ANY, typename V>
-KERNEL_FLOAT_INLINE tensor<R, extents<Ns...>>
-convert(const V& input, extents<Ns...> new_shape = {}) {
-    return detail::convert_helper<tensor_value_type<V>, tensor_extents<V>, R, extents<Ns...>, M>::
-        call(into_tensor(input).storage());
+template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
+KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_size = {}) {
+    return convert_storage(input);
 }
 
 }  // namespace kernel_float
@@ -1383,39 +1172,40 @@ convert(const V& input, extents<Ns...> new_shape = {}) {
 namespace kernel_float {
 
 template<typename F, typename L, typename R>
-using zip_type =
-    tensor<result_t<F, tensor_value_type<L>, tensor_value_type<R>>, broadcast_tensor_extents<L, R>>;
+using zip_type = vector<
+    result_t<F, vector_value_type<L>, vector_value_type<R>>,
+    broadcast_vector_extent_type<L, R>>;
 
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
-    using A = tensor_value_type<L>;
-    using B = tensor_value_type<R>;
+    using A = vector_value_type<L>;
+    using B = vector_value_type<R>;
     using O = result_t<F, A, B>;
-    using E = broadcast_tensor_extents<L, R>;
+    using E = broadcast_vector_extent_type<L, R>;
 
-    return detail::apply_impl<F, E::volume, O, A, B>::call(
+    return detail::apply_impl<F, E::value, O, A, B>::call(
         fun,
         broadcast<E>(left).storage(),
         broadcast<E>(right).storage());
 }
 
 template<typename F, typename L, typename R>
-using zip_common_type = tensor<
-    result_t<F, promoted_tensor_value_type<L, R>, promoted_tensor_value_type<L, R>>,
-    broadcast_tensor_extents<L, R>>;
+using zip_common_type = vector<
+    result_t<F, promoted_vector_value_type<L, R>, promoted_vector_value_type<L, R>>,
+    broadcast_vector_extent_type<L, R>>;
 
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {
-    using T = promoted_tensor_value_type<L, R>;
+    using T = promoted_vector_value_type<L, R>;
     using O = result_t<F, T, T>;
-    using E = broadcast_tensor_extents<L, R>;
+    using E = broadcast_vector_extent_type<L, R>;
 
-    return detail::apply_impl<F, E::volume, O, T, T>::call(
+    return detail::apply_impl<F, E::value, O, T, T>::call(
         fun,
-        detail::convert_helper<tensor_value_type<L>, tensor_extents<L>, T, E>::call(
-            into_tensor_storage(left)),
-        detail::convert_helper<tensor_value_type<R>, tensor_extents<R>, T, E>::call(
-            into_tensor_storage(right)));
+        detail::convert_helper<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(left)),
+        detail::convert_helper<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(right)));
 }
 
 #define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \
@@ -1427,7 +1217,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
         }                                                                                  \
     };                                                                                     \
     }                                                                                      \
-    template<typename L, typename R, typename C = promoted_tensor_value_type<L, R>>        \
+    template<typename L, typename R, typename C = promoted_vector_value_type<L, R>>        \
     KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
         return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
     }
@@ -1435,21 +1225,21 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 #define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                                   \
     KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                                               \
     template<typename L, typename R, typename C = promote_t<L, R>, typename E1, typename E2>      \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, tensor<L, E1>, tensor<R, E2>> operator OP(  \
-        const tensor<L, E1>& left,                                                                \
-        const tensor<R, E2>& right) {                                                             \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E1>, vector<R, E2>> operator OP(  \
+        const vector<L, E1>& left,                                                                \
+        const vector<R, E2>& right) {                                                             \
         return zip_common(ops::NAME<C> {}, left, right);                                          \
     }                                                                                             \
-    template<typename L, typename R, typename C = promote_t<L, tensor_value_type<R>>, typename E> \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, tensor<L, E>, R> operator OP(               \
-        const tensor<L, E>& left,                                                                 \
+    template<typename L, typename R, typename C = promote_t<L, vector_value_type<R>>, typename E> \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E>, R> operator OP(               \
+        const vector<L, E>& left,                                                                 \
         const R& right) {                                                                         \
         return zip_common(ops::NAME<C> {}, left, right);                                          \
     }                                                                                             \
-    template<typename L, typename R, typename C = promote_t<tensor_value_type<L>, R>, typename E> \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, tensor<R, E>> operator OP(               \
+    template<typename L, typename R, typename C = promote_t<vector_value_type<L>, R>, typename E> \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, vector<R, E>> operator OP(               \
         const L& left,                                                                            \
-        const tensor<R, E>& right) {                                                              \
+        const vector<R, E>& right) {                                                              \
         return zip_common(ops::NAME<C> {}, left, right);                                          \
     }
 
@@ -1472,13 +1262,13 @@ KERNEL_FLOAT_DEFINE_BINARY_OP(bit_xor, ^)
 
 // clang-format off
 template<template<typename> typename F, typename T, typename E, typename R>
-static constexpr bool is_tensor_assign_allowed =
-        is_tensor_broadcastable<R, E> &&
+static constexpr bool is_vector_assign_allowed =
+        is_vector_broadcastable<R, E> &&
         is_implicit_convertible<
             result_t<
-                F<promote_t<T, tensor_value_type<R>>>,
+                F<promote_t<T, vector_value_type<R>>>,
                     T,
-                    tensor_value_type<R>
+                    vector_value_type<R>
                 >,
             T
         >;
@@ -1489,8 +1279,8 @@ static constexpr bool is_tensor_assign_allowed =
         typename T,                                                                  \
         typename E,                                                                  \
         typename R,                                                                  \
-        typename = enabled_t<is_tensor_assign_allowed<ops::NAME, T, E, R>>>          \
-    KERNEL_FLOAT_INLINE tensor<T, E>& operator OP(tensor<T, E>& lhs, const R& rhs) { \
+        typename = enabled_t<is_vector_assign_allowed<ops::NAME, T, E, R>>>          \
+    KERNEL_FLOAT_INLINE vector<T, E>& operator OP(vector<T, E>& lhs, const R& rhs) { \
         using F = ops::NAME<T>;                                                      \
         lhs = zip_common(F {}, lhs, rhs);                                            \
         return lhs;                                                                  \
@@ -1667,18 +1457,18 @@ namespace kernel_float {
 namespace detail {
 template<typename F, size_t N, typename T, typename = void>
 struct reduce_helper {
-    KERNEL_FLOAT_INLINE static T call(F fun, const tensor_storage<T, N>& input) {
+    KERNEL_FLOAT_INLINE static T call(F fun, const vector_storage<T, N>& input) {
         return call(fun, input, make_index_sequence<N> {});
     }
 
   private:
     template<size_t... Is>
     KERNEL_FLOAT_INLINE static T
-    call(F fun, const tensor_storage<T, N>& input, index_sequence<0, Is...>) {
-        T result = input[0];
+    call(F fun, const vector_storage<T, N>& input, index_sequence<0, Is...>) {
+        T result = input.data()[0];
 #pragma unroll
         for (size_t i = 1; i < N; i++) {
-            result = fun(result, input[i]);
+            result = fun(result, input.data()[i]);
         }
         return result;
     }
@@ -1700,10 +1490,10 @@ struct reduce_helper {
  * ```
  */
 template<typename F, typename V>
-KERNEL_FLOAT_INLINE tensor_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_helper<F, tensor_volume<V>, tensor_value_type<V>>::call(
+KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
+    return detail::reduce_helper<F, vector_extent<V>, vector_value_type<V>>::call(
         fun,
-        into_tensor_storage(input));
+        into_vector_storage(input));
 }
 
 /**
@@ -1716,7 +1506,7 @@ KERNEL_FLOAT_INLINE tensor_value_type<V> reduce(F fun, const V& input) {
  * int y = min(x);  // Returns 0
  * ```
  */
-template<typename V, typename T = tensor_value_type<V>>
+template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T min(const V& input) {
     return reduce(ops::min<T> {}, input);
 }
@@ -1731,7 +1521,7 @@ KERNEL_FLOAT_INLINE T min(const V& input) {
  * int y = max(x);  // Returns 5
  * ```
  */
-template<typename V, typename T = tensor_value_type<V>>
+template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T max(const V& input) {
     return reduce(ops::max<T> {}, input);
 }
@@ -1746,7 +1536,7 @@ KERNEL_FLOAT_INLINE T max(const V& input) {
  * int y = sum(x);  // Returns 8
  * ```
  */
-template<typename V, typename T = tensor_value_type<V>>
+template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T sum(const V& input) {
     return reduce(ops::add<T> {}, input);
 }
@@ -1762,7 +1552,7 @@ KERNEL_FLOAT_INLINE T sum(const V& input) {
  * int y = dot(x, y);  // Returns 1*4+2*5+3*6 = 32
  * ```
  */
-template<typename L, typename R, typename T = promoted_tensor_value_type<L, R>>
+template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     return reduce(ops::add<T> {}, zip_common(ops::multiply<T> {}, left, right));
 }
@@ -1777,7 +1567,7 @@ KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
  * int y = sum(x);  // Returns 5*0*2*1*0 = 0
  * ```
  */
-template<typename V, typename T = tensor_value_type<V>>
+template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T product(const V& input) {
     return reduce(ops::multiply<T> {}, input);
 }
@@ -1818,8 +1608,143 @@ KERNEL_FLOAT_INLINE int count(const V& input) {
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_REDUCE_H
-#ifndef KERNEL_FLOAT_BASE_H
-#define KERNEL_FLOAT_BASE_H
+#ifndef KERNEL_FLOAT_TRIOPS_H
+#define KERNEL_FLOAT_TRIOPS_H
+
+
+
+
+namespace kernel_float {
+
+namespace ops {
+template<typename T>
+struct conditional {
+    KERNEL_FLOAT_INLINE T operator()(bool cond, T true_value, T false_value) {
+        if (cond) {
+            return true_value;
+        } else {
+            return false_value;
+        }
+    }
+};
+}  // namespace ops
+
+/**
+ * Return elements chosen from `true_values` and `false_values` depending on `cond`.
+ *
+ * This function broadcasts all arguments to the same size and it promotes the values of `true_values` and
+ * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a vector where
+ * the values are taken from `true_values` if the condition is true and `false_values` otherwise.
+ *
+ * @param cond The condition used for selection.
+ * @param true_values The vector of values to choose from when the condition is true.
+ * @param false_values The vector of values to choose from when the condition is false.
+ * @return A vector containing selected elements as per the condition.
+ */
+template<
+    typename C,
+    typename L,
+    typename R,
+    typename T = promoted_vector_value_type<L, R>,
+    typename E = broadcast_extent<vector_extent_type<C>, broadcast_vector_extent_type<L, R>>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
+    using F = ops::conditional<T>;
+
+    return detail::apply_impl<F, E::value, T, bool, T, T>::call(
+        F {},
+        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
+            into_vector_storage(cond)),
+        detail::convert_helper<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(true_values)),
+        detail::convert_helper<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(false_values)));
+}
+
+/**
+ * Selects elements from `true_values` depending on `cond`.
+ *
+ * This function returns a vector where the values are taken from `true_values` where `cond` is `true` and `0` where
+ * `cond is `false`.
+ *
+ * @param cond The condition used for selection.
+ * @param true_values The vector of values to choose from when the condition is true.
+ * @return A vector containing selected elements as per the condition.
+ */
+template<
+    typename C,
+    typename L,
+    typename T = vector_value_type<L>,
+    typename E = broadcast_extent<vector_extent_type<C>, vector_extent_type<L>>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
+    vector<T, extent<1>> false_values = T {};
+    return where(cond, true_values, false_values);
+}
+
+/**
+ * Returns a vector where the values are `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
+ *
+ * @param cond The condition used for selection.
+ * @return A vector containing elements as per the condition.
+ */
+template<typename T = bool, typename C, typename E = vector_extent_type<C>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond) {
+    vector<T, extent<1>> true_values = T {true};
+    vector<T, extent<1>> false_values = T {false};
+    return where(cond, true_values, false_values);
+}
+
+namespace ops {
+template<typename T>
+struct fma {
+    KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
+        return a + b * c;
+    }
+};
+
+#if KERNEL_FLOAT_IS_DEVICE
+template<>
+struct fma<float> {
+    KERNEL_FLOAT_INLINE float operator()(float a, float b, float c) {
+        return __fmaf_rn(a, b, c);
+    }
+};
+
+template<>
+struct fma<double> {
+    KERNEL_FLOAT_INLINE double operator()(double a, double b, double c) {
+        return __fma_rn(a, b, c);
+    }
+};
+#endif
+}  // namespace ops
+
+/**
+ * Computes the result of `a * b + c`. This is done in a single operation if possible.
+ */
+template<
+    typename A,
+    typename B,
+    typename C,
+    typename T = promoted_vector_value_type<A, B, C>,
+    typename E = broadcast_extent<vector_extent_type<A>, broadcast_vector_extent_type<B, C>>>
+KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
+    using F = ops::fma<T>;
+
+    return detail::apply_impl<F, E::value, T, T, T, T>::call(
+        F {},
+        detail::convert_helper<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
+            into_vector_storage(a)),
+        detail::convert_helper<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
+            into_vector_storage(b)),
+        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
+            into_vector_storage(c)));
+}
+
+}  // namespace kernel_float
+
+#endif  //KERNEL_FLOAT_TRIOPS_H
+#ifndef KERNEL_FLOAT_VECTOR_H
+#define KERNEL_FLOAT_VECTOR_H
 
 
 
@@ -1829,186 +1754,143 @@ KERNEL_FLOAT_INLINE int count(const V& input) {
 
 namespace kernel_float {
 
-template<typename Derived, typename T, size_t N>
-struct tensor_extension {};
-
-template<typename T, typename E, template<typename, size_t> class S>
-struct tensor: tensor_extension<tensor<T, E, S>, T, E::volume> {
-    static constexpr size_t rank = E::rank;
-    static constexpr size_t volume = E::volume;
-
+template<typename T, typename E, class S>
+struct vector: S {
     using value_type = T;
-    using extents_type = E;
-    using ndindex_type = ndindex<rank>;
-    using storage_type = S<T, volume>;
+    using extent_type = E;
+    using storage_type = S;
+
+    // Copy another `vector<T, E>`
+    vector(const vector&) = default;
+
+    // Copy anything of type `storage_type`
+    KERNEL_FLOAT_INLINE
+    vector(const storage_type& storage) : storage_type(storage) {}
+
+    // Copy anything of type `storage_type`
+    KERNEL_FLOAT_INLINE
+    vector(const value_type& input = {}) :
+        storage_type(detail::broadcast_impl<T, extent<1>, E>::call(input)) {}
+
+    // For all other arguments, we convert it using `convert_storage` according to broadcast rules
+    template<typename U, enabled_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    KERNEL_FLOAT_INLINE vector(U&& input) : storage_type(convert_storage<T, E::size>(input)) {}
+
+    template<typename U, enabled_t<!is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    KERNEL_FLOAT_INLINE explicit vector(U&& input) :
+        storage_type(convert_storage<T, E::size>(input)) {}
+
+    // List of `N` (where N >= 2), simply pass forward to the storage
+    template<
+        typename A,
+        typename B,
+        typename... Rest,
+        typename = enabled_t<sizeof...(Rest) + 2 == E::size>>
+    KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
+        storage_type {a, b, rest...} {}
 
     KERNEL_FLOAT_INLINE
     static constexpr size_t size() {
-        return E::volume;
+        return E::size;
     }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t size(size_t axis) {
-        return E::size(axis);
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr extents_type shape() {
-        return {};
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t stride(size_t axis) {
-        return E::stride(axis);
-    }
-
-    KERNEL_FLOAT_INLINE
-    static constexpr size_t linearize_index(ndindex_type index) {
-        return E::ravel_index(index);
-    }
-
-    tensor(const tensor&) = default;
-
-    KERNEL_FLOAT_INLINE
-    tensor(storage_type storage) : storage_(storage) {}
-
-    template<typename... Args, enabled_t<sizeof...(Args) == volume && volume >= 2, int> = 0>
-    KERNEL_FLOAT_INLINE tensor(Args&&... args) : storage_ {std::forward<Args>(args)...} {}
-
-    template<
-        typename U,
-        typename F,
-        enabled_t<
-            is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
-            int> = 0>
-    KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
-        tensor(convert<T>(input, extents_type {})) {}
-
-    template<
-        typename U,
-        typename F,
-        enabled_t<
-            !is_implicit_convertible<U, value_type> && is_tensor_broadcastable<F, extents_type>,
-            int> = 0>
-    explicit KERNEL_FLOAT_INLINE tensor(const tensor<U, F>& input) :
-        tensor(convert<T>(input, extents_type {})) {}
-
-    KERNEL_FLOAT_INLINE tensor(const value_type& input = {}) :
-        tensor(convert<T>(input, extents_type {})) {}
 
     KERNEL_FLOAT_INLINE
     storage_type& storage() {
-        return storage_;
+        return *this;
     }
 
     KERNEL_FLOAT_INLINE
     const storage_type& storage() const {
-        return storage_;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return storage_.data();
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return storage_.data();
+        return *this;
     }
 
     KERNEL_FLOAT_INLINE
     const T* cdata() const {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     T* begin() {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     const T* begin() const {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     const T* cbegin() const {
-        return storage_.data();
+        return this->data();
     }
 
     KERNEL_FLOAT_INLINE
     T* end() {
-        return storage_.data() + E::volume;
+        return this->data() + size();
     }
 
     KERNEL_FLOAT_INLINE
     const T* end() const {
-        return storage_.data() + E::volume;
+        return this->data() + size();
     }
 
     KERNEL_FLOAT_INLINE
     const T* cend() const {
-        return storage_.data() + E::volume;
+        return this->data() + size();
     }
 
     KERNEL_FLOAT_INLINE
-    T& at(ndindex_type x) {
-        return *(data() + linearize_index(x));
+    T& at(size_t x) {
+        return *(this->data() + x);
     }
 
     KERNEL_FLOAT_INLINE
-    const T& at(ndindex_type x) const {
-        return *(data() + linearize_index(x));
+    const T& at(size_t x) const {
+        return *(this->data() + x);
     }
 
     KERNEL_FLOAT_INLINE
-    T get(ndindex_type x) const {
+    T get(size_t x) const {
         return at(x);
     }
 
     KERNEL_FLOAT_INLINE
-    void set(ndindex_type x, T value) {
+    void set(size_t x, T value) {
         at(x) = std::move(value);
     }
 
     KERNEL_FLOAT_INLINE
-    T& operator[](ndindex_type x) {
+    T& operator[](size_t x) {
         return at(x);
     }
 
     KERNEL_FLOAT_INLINE
-    const T& operator[](ndindex_type x) const {
+    const T& operator[](size_t x) const {
         return at(x);
     }
 
     KERNEL_FLOAT_INLINE
-    T& operator()(ndindex_type x) {
+    T& operator()(size_t x) {
         return at(x);
     }
 
     KERNEL_FLOAT_INLINE
-    const T& operator()(ndindex_type x) const {
+    const T& operator()(size_t x) const {
         return at(x);
     }
 
-    KERNEL_FLOAT_INLINE
-    tensor<T, extents<volume>> flatten() const {
-        return storage_;
+    template<typename R, RoundingMode Mode = RoundingMode::ANY>
+    KERNEL_FLOAT_INLINE vector<T, E2> cast() const {
+        return kernel_float::cast<R, Mode>(*this);
     }
 
-    template<size_t... Ns>
-    KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> reshape(extents<Ns...> = {}) const {
-        static_assert(extents<Ns...>::volume == volume, "invalid reshape shape");
-        return storage_;
-    }
-
-    template<size_t... Ns>
-    KERNEL_FLOAT_INLINE tensor<T, extents<Ns...>> broadcast(extents<Ns...> new_shape = {}) const {
-        return kernel_float::broadcast(*this, new_shape);
+    template<size_t N>
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> broadcast(extent<N> new_size = {}) const {
+        return kernel_float::broadcast(*this, new_size);
     }
 
     template<typename F>
-    KERNEL_FLOAT_INLINE tensor<result_t<F, T>, E> map(F fun = {}) const {
+    KERNEL_FLOAT_INLINE vector<result_t<F, T>, E> map(F fun = {}) const {
         return kernel_float::map(fun, *this);
     }
 
@@ -2021,54 +1903,44 @@ struct tensor: tensor_extension<tensor<T, E, S>, T, E::volume> {
     storage_type storage_;
 };
 
-template<typename Derived, typename T>
-struct tensor_extension<Derived, T, 1> {
-    KERNEL_FLOAT_INLINE
-    T get() const {
-        return static_cast<const Derived*>(this)->get({});
-    }
-
-    KERNEL_FLOAT_INLINE
-    void set(T value) {
-        static_cast<Derived*>(this)->set({}, value);
-    }
-
-    KERNEL_FLOAT_INLINE
-    operator T() const {
-        return get();
-    }
-};
-
-#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4)    \
-    template<>                                                \
-    struct into_tensor_traits<::T2> {                         \
-        using type = tensor<T, extents<2>>;                   \
-                                                              \
-        KERNEL_FLOAT_INLINE                                   \
-        static type call(::T2 v) {                            \
-            return tensor_storage<T, 2> {v.x, v.y};           \
-        }                                                     \
-    };                                                        \
-                                                              \
-    template<>                                                \
-    struct into_tensor_traits<::T3> {                         \
-        using type = tensor<T, extents<3>>;                   \
-                                                              \
-        KERNEL_FLOAT_INLINE                                   \
-        static type call(::T3 v) {                            \
-            return tensor_storage<T, 3> {v.x, v.y, v.z};      \
-        }                                                     \
-    };                                                        \
-                                                              \
-    template<>                                                \
-    struct into_tensor_traits<::T4> {                         \
-        using type = tensor<T, extents<4>>;                   \
-                                                              \
-        KERNEL_FLOAT_INLINE                                   \
-        static type call(::T4 v) {                            \
-            return tensor_storage<T, 4> {v.x, v.y, v.z, v.w}; \
-        }                                                     \
+#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
+    template<>                                             \
+    struct into_vector_traits<::T2> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<2>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 2> call(::T2 v) {         \
+            return {v.x, v.y};                             \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct into_vector_traits<::T3> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<3>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 3> call(::T3 v) {         \
+            return {v.x, v.y, v.z};                        \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct into_vector_traits<::T4> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<4>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 4> call(::T4 v) {         \
+            return {v.x, v.y, v.z, v.w};                   \
+        }                                                  \
     };
+
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
+    return into_vector_traits<V>::call(std::forward<V>(input));
+}
 
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)
@@ -2086,18 +1958,15 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
 template<typename T>
-using scalar = tensor<T, extents<>>;
+using scalar = vector<T, extent<1>>;
 
 template<typename T, size_t N>
-using vec = tensor<T, extents<N>>;
-
-template<typename T, size_t N, size_t M>
-using mat = tensor<T, extents<N, M>>;
+using vec = vector<T, extent<N>>;
 
 template<typename... Args>
 KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
     using T = promote_t<Args...>;
-    return tensor_storage<T, sizeof...(Args)> {T {args}...};
+    return vector_storage<T, sizeof...(Args)> {T {args}...};
 };
 
 }  // namespace kernel_float
@@ -2119,12 +1988,13 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)
 
 template<>
-struct into_tensor_traits<__half2> {
-    using type = tensor<__half, extents<2>>;
+struct into_vector_traits<__half2> {
+    using value_type = __half;
+    using extent_type = extent<2>;
 
     KERNEL_FLOAT_INLINE
-    static type call(__half2 input) {
-        return tensor_storage<__half, 2> {input.x, input.y};
+    static vector_storage<__half, 2> call(__half2 input) {
+        return {input.x, input.y};
     }
 };
 
@@ -2151,20 +2021,20 @@ struct zip_halfx2 {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half> {
-    KERNEL_FLOAT_INLINE static tensor_storage<__half, N>
-    call(F fun, const tensor_storage<__half, N>& input) {
-        tensor_storage<__half, N> result;
+    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
+    call(F fun, const vector_storage<__half, N>& input) {
+        vector_storage<__half, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i += 2) {
-            __half2 a = {input[i], input[i + 1]};
+            __half2 a = {input.data()[i], input.data()[i + 1]};
             __half2 b = map_halfx2<F>::call(fun, a);
-            result[i + 0] = b.x;
-            result[i + 1] = b.y;
+            result.data()[i + 0] = b.x;
+            result.data()[i + 1] = b.y;
         }
 
         if (N % 2 != 0) {
-            result[N - 1] = fun(input[N - 1]);
+            result.data()[N - 1] = fun(input.data()[N - 1]);
         }
 
         return result;
@@ -2173,20 +2043,20 @@ struct apply_impl<F, N, __half, __half> {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half, __half> {
-    KERNEL_FLOAT_INLINE static tensor_storage<__half, N>
-    call(F fun, const tensor_storage<__half, N>& left, const tensor_storage<__half, N>& right) {
-        tensor_storage<__half, N> result;
+    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
+    call(F fun, const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
+        vector_storage<__half, N> result;
 #pragma unroll
         for (size_t i = 0; i < N; i += 2) {
-            __half2 a = {left[i], left[i + 1]};
-            __half2 b = {right[i], right[i + 1]};
+            __half2 a = {left.data()[i], left.data()[i + 1]};
+            __half2 b = {right.data()[i], right.data()[i + 1]};
             __half2 c = zip_halfx2<F>::call(fun, a, b);
-            result[i + 0] = c.x;
-            result[i + 1] = c.y;
+            result.data()[i + 0] = c.x;
+            result.data()[i + 1] = c.y;
         }
 
         if (N % 2 != 0) {
-            result[N - 1] = fun(left[N - 1], right[N - 1]);
+            result.data()[N - 1] = fun(left.data()[N - 1], right.data()[N - 1]);
         }
 
         return result;
@@ -2195,19 +2065,19 @@ struct apply_impl<F, N, __half, __half, __half> {
 
 template<typename F, size_t N>
 struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __half call(F fun, const tensor_storage<__half, N>& input) {
-        __half2 accum = {input[0], input[1]};
+    KERNEL_FLOAT_INLINE static __half call(F fun, const vector_storage<__half, N>& input) {
+        __half2 accum = {input.data()[0], input.data()[1]};
 
 #pragma unroll
         for (size_t i = 2; i < N; i += 2) {
-            __half2 a = {input[i], input[i + 1]};
+            __half2 a = {input.data()[i], input.data()[i + 1]};
             accum = zip_halfx2<F>::call(fun, accum, a);
         }
 
         __half result = fun(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            result = fun(result, input[N - 1]);
+            result = fun(result, input.data()[N - 1]);
         }
 
         return result;
@@ -2345,18 +2215,20 @@ using half = __half;
 
 
 
+
 namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_bfloat16)
 
 template<>
-struct into_tensor_traits<__nv_bfloat162> {
-    using type = tensor<__nv_bfloat16, extents<2>>;
+struct into_vector_traits<__nv_bfloat162> {
+    using value_type = __nv_bfloat16;
+    using extent_type = extent<2>;
 
     KERNEL_FLOAT_INLINE
-    static type call(__nv_bfloat162 input) {
-        return tensor_storage<__nv_bfloat16, 2> {input.x, input.y};
+    static vector_storage<__nv_bfloat16, 2> call(__nv_bfloat162 input) {
+        return {input.x, input.y};
     }
 };
 
@@ -2383,20 +2255,20 @@ struct zip_bfloat16x2 {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static tensor_storage<__nv_bfloat16, N>
-    call(F fun, const tensor_storage<__nv_bfloat16, N>& input) {
-        tensor_storage<__nv_bfloat16, N> result;
+    KERNEL_FLOAT_INLINE static vector_storage<__nv_bfloat16, N>
+    call(F fun, const vector_storage<__nv_bfloat16, N>& input) {
+        vector_storage<__nv_bfloat16, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i += 2) {
-            __nv_bfloat162 a = {input[i], input[i + 1]};
+            __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
             __nv_bfloat162 b = map_bfloat16x2<F>::call(fun, a);
-            result[i + 0] = b.x;
-            result[i + 1] = b.y;
+            result.data()[i + 0] = b.x;
+            result.data()[i + 1] = b.y;
         }
 
         if (N % 2 != 0) {
-            result[N - 1] = fun(input[N - 1]);
+            result.data()[N - 1] = fun(input.data()[N - 1]);
         }
 
         return result;
@@ -2405,22 +2277,22 @@ struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16> {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static tensor_storage<__nv_bfloat16, N> call(
+    KERNEL_FLOAT_INLINE static vector_storage<__nv_bfloat16, N> call(
         F fun,
-        const tensor_storage<__nv_bfloat16, N>& left,
-        const tensor_storage<__nv_bfloat16, N>& right) {
-        tensor_storage<__nv_bfloat16, N> result;
+        const vector_storage<__nv_bfloat16, N>& left,
+        const vector_storage<__nv_bfloat16, N>& right) {
+        vector_storage<__nv_bfloat16, N> result;
 #pragma unroll
         for (size_t i = 0; i < N; i += 2) {
-            __nv_bfloat162 a = {left[i], left[i + 1]};
-            __nv_bfloat162 b = {right[i], right[i + 1]};
+            __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
+            __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
             __nv_bfloat162 c = zip_bfloat16x2<F>::call(fun, a, b);
-            result[i + 0] = c.x;
-            result[i + 1] = c.y;
+            result.data()[i + 0] = c.x;
+            result.data()[i + 1] = c.y;
         }
 
         if (N % 2 != 0) {
-            result[N - 1] = fun(left[N - 1], right[N - 1]);
+            result.data()[N - 1] = fun(left.data()[N - 1], right.data()[N - 1]);
         }
 
         return result;
@@ -2430,19 +2302,19 @@ struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
 template<typename F, size_t N>
 struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
     KERNEL_FLOAT_INLINE static __nv_bfloat16
-    call(F fun, const tensor_storage<__nv_bfloat16, N>& input) {
-        __nv_bfloat162 accum = {input[0], input[1]};
+    call(F fun, const vector_storage<__nv_bfloat16, N>& input) {
+        __nv_bfloat162 accum = {input.data()[0], input.data()[1]};
 
 #pragma unroll
         for (size_t i = 2; i < N; i += 2) {
-            __nv_bfloat162 a = {input[i], input[i + 1]};
+            __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
             accum = zip_bfloat16x2<F>::call(fun, accum, a);
         }
 
         __nv_bfloat16 result = fun(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            result = fun(result, input[N - 1]);
+            result = fun(result, input.data()[N - 1]);
         }
 
         return result;
@@ -2602,16 +2474,13 @@ namespace prelude {
 namespace kf = ::kernel_float;
 
 template<typename T>
-using kscalar = tensor<T, extents<>>;
+using kscalar = vector<T, extent<1>>;
 
 template<typename T, size_t N>
-using kvec = tensor<T, extents<N>>;
+using kvec = vector<T, extent<N>>;
 
-template<typename T, size_t N, size_t M>
-using kmat = tensor<T, extents<N, M>>;
-
-template<typename T, size_t... Ns>
-using ktensor = tensor<T, extents<Ns...>>;
+template<typename T, size_t N>
+using kvector = vector<T, extent<N>>;
 
 // clang-format off
 template<typename T> using kvec1 = kvec<T, 1>;
@@ -2624,17 +2493,16 @@ template<typename T> using kvec7 = kvec<T, 7>;
 template<typename T> using kvec8 = kvec<T, 8>;
 // clang-format on
 
-#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)          \
-    using k##NAME = tensor<T, extents<>>;         \
-    template<size_t... Ns>                        \
-    using k##NAME##N = tensor<T, extents<Ns...>>; \
-    using k##NAME##1 = vec<T, 1>;                 \
-    using k##NAME##2 = vec<T, 2>;                 \
-    using k##NAME##3 = vec<T, 3>;                 \
-    using k##NAME##4 = vec<T, 4>;                 \
-    using k##NAME##5 = vec<T, 5>;                 \
-    using k##NAME##6 = vec<T, 6>;                 \
-    using k##NAME##7 = vec<T, 7>;                 \
+#define KERNEL_FLOAT_TYPE_ALIAS(NAME, T)  \
+    template<size_t N>                    \
+    using k##NAME = vector<T, extent<N>>; \
+    using k##NAME##1 = vec<T, 1>;         \
+    using k##NAME##2 = vec<T, 2>;         \
+    using k##NAME##3 = vec<T, 3>;         \
+    using k##NAME##4 = vec<T, 4>;         \
+    using k##NAME##5 = vec<T, 5>;         \
+    using k##NAME##6 = vec<T, 6>;         \
+    using k##NAME##7 = vec<T, 7>;         \
     using k##NAME##8 = vec<T, 8>;
 
 KERNEL_FLOAT_TYPE_ALIAS(char, char)
@@ -2668,8 +2536,8 @@ KERNEL_FLOAT_TYPE_ALIAS(bfloat16, __nv_bfloat16)
 KERNEL_FLOAT_TYPE_ALIAS(bf16, __nv_bfloat16)
 #endif
 
-template<size_t... Ns>
-static constexpr extents<Ns...> kshape = {};
+template<size_t N>
+static constexpr extent<N> kextent = {};
 
 template<typename... Args>
 KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&... args) {
@@ -2688,138 +2556,3 @@ KERNEL_FLOAT_INLINE constexpr kconstant<T> kconst(T value) {
 }  // namespace kernel_float
 
 #endif
-#ifndef KERNEL_FLOAT_TRIOPS_H
-#define KERNEL_FLOAT_TRIOPS_H
-
-
-
-
-namespace kernel_float {
-
-namespace ops {
-template<typename T>
-struct conditional {
-    KERNEL_FLOAT_INLINE T operator()(bool cond, T true_value, T false_value) {
-        if (cond) {
-            return true_value;
-        } else {
-            return false_value;
-        }
-    }
-};
-}  // namespace ops
-
-/**
- * Return elements chosen from `true_values` and `false_values` depending on `cond`.
- *
- * This function broadcasts all arguments to the same shape and it promotes the values of `true_values` and
- * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a tensor where
- * the values are taken from `true_values` if the condition is true and `false_values` otherwise.
- *
- * @param cond The condition used for selection.
- * @param true_values The tensor of values to choose from when the condition is true.
- * @param false_values The tensor of values to choose from when the condition is false.
- * @return A tensor containing selected elements as per the condition.
- */
-template<
-    typename C,
-    typename L,
-    typename R,
-    typename T = promoted_tensor_value_type<L, R>,
-    typename E = broadcast_extents<tensor_extents<C>, broadcast_tensor_extents<L, R>>>
-KERNEL_FLOAT_INLINE tensor<T, E> where(const C& cond, const L& true_values, const R& false_values) {
-    using F = ops::conditional<T>;
-
-    return detail::apply_impl<F, E::volume, T, bool, T, T>::call(
-        F {},
-        detail::convert_helper<tensor_value_type<C>, tensor_extents<C>, bool, E>::call(
-            into_tensor_storage(cond)),
-        detail::convert_helper<tensor_value_type<L>, tensor_extents<L>, T, E>::call(
-            into_tensor_storage(true_values)),
-        detail::convert_helper<tensor_value_type<R>, tensor_extents<R>, T, E>::call(
-            into_tensor_storage(false_values)));
-}
-
-/**
- * Selects elements from `true_values` depending on `cond`.
- *
- * This function returns a tensor where the values are taken from `true_values` where `cond` is `true` and `0` where
- * `cond is `false`.
- *
- * @param cond The condition used for selection.
- * @param true_values The tensor of values to choose from when the condition is true.
- * @return A tensor containing selected elements as per the condition.
- */
-template<
-    typename C,
-    typename L,
-    typename T = tensor_value_type<L>,
-    typename E = broadcast_extents<tensor_extents<C>, tensor_extents<L>>>
-KERNEL_FLOAT_INLINE tensor<T, E> where(const C& cond, const L& true_values) {
-    tensor<T, extents<>> false_values = T {};
-    return where(cond, true_values, false_values);
-}
-
-/**
- * Returns a tensor where the values are `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
- *
- * @param cond The condition used for selection.
- * @return A tensor containing elements as per the condition.
- */
-template<typename T = bool, typename C, typename E = tensor_extents<C>>
-KERNEL_FLOAT_INLINE tensor<T, E> where(const C& cond) {
-    tensor<T, extents<>> true_values = T {true};
-    tensor<T, extents<>> false_values = T {false};
-    return where(cond, true_values, false_values);
-}
-
-namespace ops {
-template<typename T>
-struct fma {
-    KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
-        return a + b * c;
-    }
-};
-
-#if KERNEL_FLOAT_IS_DEVICE
-template<>
-struct fma<float> {
-    KERNEL_FLOAT_INLINE float operator()(float a, float b, float c) {
-        return __fmaf_rn(a, b, c);
-    }
-};
-
-template<>
-struct fma<double> {
-    KERNEL_FLOAT_INLINE double operator()(double a, double b, double c) {
-        return __fma_rn(a, b, c);
-    }
-};
-#endif
-}  // namespace ops
-
-/**
- * Computes the result of `a * b + c`. This is done in a single operation if possible.
- */
-template<
-    typename A,
-    typename B,
-    typename C,
-    typename T = promoted_tensor_value_type<A, B, C>,
-    typename E = broadcast_extents<tensor_extents<A>, broadcast_tensor_extents<B, C>>>
-KERNEL_FLOAT_INLINE tensor<T, E> fma(const A& a, const B& b, const C& c) {
-    using F = ops::fma<T>;
-
-    return detail::apply_impl<F, E::volume, T, T, T, T>::call(
-        F {},
-        detail::convert_helper<tensor_value_type<A>, tensor_extents<A>, T, E>::call(
-            into_tensor_storage(a)),
-        detail::convert_helper<tensor_value_type<B>, tensor_extents<B>, T, E>::call(
-            into_tensor_storage(b)),
-        detail::convert_helper<tensor_value_type<C>, tensor_extents<C>, T, E>::call(
-            into_tensor_storage(c)));
-}
-
-}  // namespace kernel_float
-
-#endif  //KERNEL_FLOAT_TRIOPS_H

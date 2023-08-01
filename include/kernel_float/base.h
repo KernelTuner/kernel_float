@@ -18,30 +18,7 @@ struct alignas(Alignment) aligned_array {
         return items_;
     }
 
-    T items_[N];
-};
-
-template<typename T, size_t Alignment>
-struct aligned_array<T, 1, Alignment> {
-    KERNEL_FLOAT_INLINE
-    aligned_array(T value = {}) : value_(value) {}
-
-    KERNEL_FLOAT_INLINE
-    operator T() const {
-        return value_;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return &value_;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return &value_;
-    }
-
-    T value_;
+    T items_[N] = {};
 };
 
 template<typename T, size_t Alignment>
@@ -57,6 +34,113 @@ struct aligned_array<T, 0, Alignment> {
         while (true)
             ;
     }
+};
+
+template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 1, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T value = {}) : x(value) {}
+
+    KERNEL_FLOAT_INLINE
+    operator T() const {
+        return x;
+    }
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return &x;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return &x;
+    }
+
+    T x;
+};
+
+template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 2, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T x, T y) : x(x), y(y) {}
+
+    KERNEL_FLOAT_INLINE
+    aligned_array() : aligned_array(T {}, T {}) {}
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return items;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return items;
+    }
+
+    union {
+        T items[2];
+        struct {
+            T x;
+            T y;
+        };
+    };
+};
+
+template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 3, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T x, T y, T z) : x(x), y(y), z(z) {}
+
+    KERNEL_FLOAT_INLINE
+    aligned_array() : aligned_array(T {}, T {}, T {}) {}
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return items;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return items;
+    }
+
+    union {
+        T items[3];
+        struct {
+            T x;
+            T y;
+            T z;
+        };
+    };
+};
+
+template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 4, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
+
+    KERNEL_FLOAT_INLINE
+    aligned_array() : aligned_array(T {}, T {}, T {}, T {}) {}
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return items;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return items;
+    }
+
+    union {
+        T items[4];
+        struct {
+            T x;
+            T y;
+            T z;
+            T w;
+        };
+    };
 };
 
 KERNEL_FLOAT_INLINE
@@ -78,9 +162,6 @@ static constexpr size_t compute_max_alignment(size_t total_size, size_t min_alig
 
 template<typename T, size_t N>
 using vector_storage = aligned_array<T, N, compute_max_alignment(sizeof(T) * N, alignof(T))>;
-
-template<typename T, typename D, template<typename, size_t> class S = vector_storage>
-struct vector;
 
 template<size_t N>
 struct extent {
@@ -111,17 +192,6 @@ struct into_vector_traits<const V&>: into_vector_traits<V> {};
 template<typename V>
 struct into_vector_traits<V&&>: into_vector_traits<V> {};
 
-template<typename T, typename E, template<typename, size_t> class S>
-struct into_vector_traits<vector<T, E, S>> {
-    using value_type = T;
-    using extent_type = E;
-
-    KERNEL_FLOAT_INLINE
-    static vector_storage<T, E::value> call(const vector<T, E, S>& input) {
-        return input.storage();
-    }
-};
-
 template<typename T, size_t N, size_t A>
 struct into_vector_traits<aligned_array<T, N, A>> {
     using value_type = T;
@@ -136,11 +206,25 @@ struct into_vector_traits<aligned_array<T, N, A>> {
 template<typename V>
 struct vector_traits;
 
-template<typename T, typename E, template<typename, size_t> class S>
+template<typename T, typename E, typename S = vector_storage<T, E::size>>
+struct vector;
+
+template<typename T, typename E, typename S>
+struct into_vector_traits<vector<T, E, S>> {
+    using value_type = T;
+    using extent_type = E;
+
+    KERNEL_FLOAT_INLINE
+    static vector_storage<T, E::value> call(const vector<T, E, S>& input) {
+        return input.storage();
+    }
+};
+
+template<typename T, typename E, typename S>
 struct vector_traits<vector<T, E, S>> {
     using value_type = T;
     using extent_type = E;
-    using storage_type = S<T, E::value>;
+    using storage_type = S;
     using vector_type = vector<T, E, S>;
 };
 
@@ -164,11 +248,6 @@ using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
 
 template<typename V>
 KERNEL_FLOAT_INLINE vector_storage_type<V> into_vector_storage(V&& input) {
-    return into_vector_traits<V>::call(std::forward<V>(input));
-}
-
-template<typename V>
-KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
     return into_vector_traits<V>::call(std::forward<V>(input));
 }
 
