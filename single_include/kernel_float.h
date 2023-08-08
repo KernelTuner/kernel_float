@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-01 16:03:54.596340
-// git hash: 0cf26708f3b17b2f74940e5806bad2aeaae4c076
+// date: 2023-08-08 14:35:09.747868
+// git hash: 3b34b7e0c69015b61ca88387f2430b845dff3c4a
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -823,6 +823,57 @@ struct promote_type<L, complex_type<R>> {
 }  // namespace kernel_float
 
 #endif
+#ifndef KERNEL_FLOAT_ITERATE_H
+#define KERNEL_FLOAT_ITERATE_H
+
+
+
+namespace kernel_float {
+
+namespace detail {
+template<typename V, typename T = vector_value_type<V>, size_t N = vector_extent<V>>
+struct flatten_helper {
+    using value_type = typename flatten_helper<T>::value_type;
+    static constexpr size_t size = N * flatten_helper<T>::size;
+
+    static void call(const V& input, value_type* output) {
+        vector_storage<T, N> storage = into_vector_storage(input);
+
+        for (size_t i = 0; i < N; i++) {
+            flatten_helper<T>::call(storage.data()[i], output + flatten_helper<T>::size * i);
+        }
+    }
+};
+
+template<typename T>
+struct flatten_helper<T, T, 1> {
+    using value_type = T;
+    static constexpr size_t size = 1;
+
+    static void call(const T& input, T* output) {
+        *output = input;
+    }
+};
+}  // namespace detail
+
+template<typename V>
+using flatten_value_type = typename detail::flatten_helper<V>::value_type;
+
+template<typename V>
+static constexpr size_t flatten_size = detail::flatten_helper<V>::size;
+
+template<typename V>
+using flatten_type = vector<flatten_value_type<V>, extent<flatten_size<V>>>;
+
+template<typename V>
+flatten_type<V> flatten(const V& input) {
+    vector_storage<flatten_value_type<V>, flatten_size<V>> output;
+    detail::flatten_helper<V>::call(input, output.data());
+    return output;
+}
+}  // namespace kernel_float
+
+#endif
 #ifndef KERNEL_FLOAT_UNOPS_H
 #define KERNEL_FLOAT_UNOPS_H
 
@@ -1062,8 +1113,19 @@ struct broadcast_impl<T, extent<N>, extent<N>> {
     }
 };
 
+template<typename T>
+struct broadcast_impl<T, extent<1>, extent<1>> {
+    KERNEL_FLOAT_INLINE static vector_storage<T, 1> call(vector_storage<T, 1> input) {
+        return input;
+    }
+};
+
 }  // namespace detail
 
+/**
+ * Takes the given vector `input` and extends its size to a length of `N`. This is only valid if the size of `input`
+ * is 1 or `N`.
+ */
 template<size_t N, typename V>
 KERNEL_FLOAT_INLINE vector<vector_value_type<V>, extent<N>>
 broadcast(const V& input, extent<N> new_size = {}) {
@@ -1072,39 +1134,64 @@ broadcast(const V& input, extent<N> new_size = {}) {
         into_vector_storage(input));
 }
 
+/**
+ * Takes the given vector `input` and extends its size to the same length as vector `other`. This is only valid if the
+ * size of `input` is 1 or the same as `other`.
+ */
 template<typename V, typename R>
 KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<R>>
-broadcast_like(const V& input, const R&) {
-    using T = vector_value_type<V>;
-    return detail::broadcast_impl<T, vector_extent_type<V>, vector_extent_type<R>>::call(
-        into_vector_storage(input));
+broadcast_like(const V& input, const R& other) {
+    return broadcast(input, vector_extent_type<R> {});
 }
 
+/**
+ * Returns a vector containing `N` copies of `value`.
+ */
 template<size_t N, typename T>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
     vector_storage<T, 1> input = {value};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
+/**
+ * Returns a vector containing `N` copies of `T(0)`.
+ */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> zeros(extent<N> = {}) {
     vector_storage<T, 1> input = {T {}};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
+/**
+ * Returns a vector containing `N` copies of `T(1)`.
+ */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> ones(extent<N> = {}) {
     vector_storage<T, 1> input = {T {1}};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
 
+/**
+ * Returns a vector filled with `value` having the same type and size as input vector `V`.
+ */
 template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
-KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V&) {
+KERNEL_FLOAT_INLINE vector<T, E> fill_like(const V&, T value) {
+    return fill(value, E {});
+}
+
+/**
+ * Returns a vector filled with zeros having the same type and size as input vector `V`.
+ */
+template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
+KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V& = {}) {
     return zeros<T>(E {});
 }
 
+/**
+ * Returns a vector filled with ones having the same type and size as input vector `V`.
+ */
 template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
-KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V&) {
+KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V& = {}) {
     return ones<T>(E {});
 }
 
@@ -1154,6 +1241,8 @@ KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<
 
 /**
  * Cast the values of the given input vector to type `R` and then broadcast the result to the given size `N`.
+ *
+ * This function is essentially a `cast` followed by a `broadcast`.
  */
 template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_size = {}) {
@@ -1176,6 +1265,10 @@ using zip_type = vector<
     result_t<F, vector_value_type<L>, vector_value_type<R>>,
     broadcast_vector_extent_type<L, R>>;
 
+/**
+ * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
+ * function (`fun`) to each pair of corresponding elements.
+ */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
     using A = vector_value_type<L>;
@@ -1194,6 +1287,10 @@ using zip_common_type = vector<
     result_t<F, promoted_vector_value_type<L, R>, promoted_vector_value_type<L, R>>,
     broadcast_vector_extent_type<L, R>>;
 
+/**
+ * Similar to `zip`, except `zip_common` promotes the element types of the inputs to a common type before applying the
+ * binary function.
+ */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {
     using T = promoted_vector_value_type<L, R>;
@@ -1632,9 +1729,9 @@ struct conditional {
 /**
  * Return elements chosen from `true_values` and `false_values` depending on `cond`.
  *
- * This function broadcasts all arguments to the same size and it promotes the values of `true_values` and
+ * This function broadcasts all arguments to the same size and then promotes the values of `true_values` and
  * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a vector where
- * the values are taken from `true_values` if the condition is true and `false_values` otherwise.
+ * the values are taken from `true_values` where the condition is true and `false_values` otherwise.
  *
  * @param cond The condition used for selection.
  * @param true_values The vector of values to choose from when the condition is true.
@@ -1681,16 +1778,14 @@ KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
 }
 
 /**
- * Returns a vector where the values are `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
+ * Returns a vector having the value `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
  *
  * @param cond The condition used for selection.
  * @return A vector containing elements as per the condition.
  */
 template<typename T = bool, typename C, typename E = vector_extent_type<C>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond) {
-    vector<T, extent<1>> true_values = T {true};
-    vector<T, extent<1>> false_values = T {false};
-    return where(cond, true_values, false_values);
+    return cast<T>(cast<bool>(cond));
 }
 
 namespace ops {
@@ -1745,6 +1840,7 @@ KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
 #endif  //KERNEL_FLOAT_TRIOPS_H
 #ifndef KERNEL_FLOAT_VECTOR_H
 #define KERNEL_FLOAT_VECTOR_H
+
 
 
 
@@ -1880,7 +1976,7 @@ struct vector: S {
     }
 
     template<typename R, RoundingMode Mode = RoundingMode::ANY>
-    KERNEL_FLOAT_INLINE vector<T, E2> cast() const {
+    KERNEL_FLOAT_INLINE vector<R, extent_type> cast() const {
         return kernel_float::cast<R, Mode>(*this);
     }
 
@@ -1899,8 +1995,9 @@ struct vector: S {
         return kernel_float::reduce(fun, *this);
     }
 
-  private:
-    storage_type storage_;
+    KERNEL_FLOAT_INLINE flatten_type<vector> flatten() const {
+        return kernel_float::flatten(*this);
+    }
 };
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
@@ -1962,6 +2059,17 @@ using scalar = vector<T, extent<1>>;
 
 template<typename T, size_t N>
 using vec = vector<T, extent<N>>;
+
+// clang-format off
+template<typename T> using vec1 = vec<T, 1>;
+template<typename T> using vec2 = vec<T, 2>;
+template<typename T> using vec3 = vec<T, 3>;
+template<typename T> using vec4 = vec<T, 4>;
+template<typename T> using vec5 = vec<T, 5>;
+template<typename T> using vec6 = vec<T, 6>;
+template<typename T> using vec7 = vec<T, 7>;
+template<typename T> using vec8 = vec<T, 8>;
+// clang-format on
 
 template<typename... Args>
 KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
@@ -2478,9 +2586,6 @@ using kscalar = vector<T, extent<1>>;
 
 template<typename T, size_t N>
 using kvec = vector<T, extent<N>>;
-
-template<typename T, size_t N>
-using kvector = vector<T, extent<N>>;
 
 // clang-format off
 template<typename T> using kvec1 = kvec<T, 1>;

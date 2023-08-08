@@ -3,6 +3,7 @@
 
 #include "base.h"
 #include "broadcast.h"
+#include "iterate.h"
 #include "macros.h"
 #include "reduce.h"
 #include "unops.h"
@@ -135,7 +136,7 @@ struct vector: S {
     }
 
     template<typename R, RoundingMode Mode = RoundingMode::ANY>
-    KERNEL_FLOAT_INLINE vector<T, E2> cast() const {
+    KERNEL_FLOAT_INLINE vector<R, extent_type> cast() const {
         return kernel_float::cast<R, Mode>(*this);
     }
 
@@ -154,8 +155,9 @@ struct vector: S {
         return kernel_float::reduce(fun, *this);
     }
 
-  private:
-    storage_type storage_;
+    KERNEL_FLOAT_INLINE flatten_type<vector> flatten() const {
+        return kernel_float::flatten(*this);
+    }
 };
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \

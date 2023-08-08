@@ -67,6 +67,13 @@ struct broadcast_impl<T, extent<N>, extent<N>> {
     }
 };
 
+template<typename T>
+struct broadcast_impl<T, extent<1>, extent<1>> {
+    KERNEL_FLOAT_INLINE static vector_storage<T, 1> call(vector_storage<T, 1> input) {
+        return input;
+    }
+};
+
 }  // namespace detail
 
 /**
