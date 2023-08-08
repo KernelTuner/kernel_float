@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-08 14:35:09.747868
-// git hash: 3b34b7e0c69015b61ca88387f2430b845dff3c4a
+// date: 2023-08-08 18:25:16.753085
+// git hash: 2405950e91d545eda4affdfad84336d4247a3553
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1534,6 +1534,13 @@ struct promote_type<L, constant<R>> {
 };
 
 namespace ops {
+template<typename T, typename R>
+struct cast<constant<T>, R> {
+    KERNEL_FLOAT_INLINE R operator()(const T& input) noexcept {
+        return cast<T, R> {}(input);
+    }
+};
+
 template<typename T, typename R, RoundingMode m>
 struct cast<constant<T>, R, m> {
     KERNEL_FLOAT_INLINE R operator()(const T& input) noexcept {

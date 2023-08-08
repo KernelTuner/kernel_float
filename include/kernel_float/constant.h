@@ -45,6 +45,13 @@ struct promote_type<L, constant<R>> {
 };
 
 namespace ops {
+template<typename T, typename R>
+struct cast<constant<T>, R> {
+    KERNEL_FLOAT_INLINE R operator()(const T& input) noexcept {
+        return cast<T, R> {}(input);
+    }
+};
+
 template<typename T, typename R, RoundingMode m>
 struct cast<constant<T>, R, m> {
     KERNEL_FLOAT_INLINE R operator()(const T& input) noexcept {
