@@ -146,17 +146,22 @@ struct vector: S {
     }
 
     template<typename F>
-    KERNEL_FLOAT_INLINE vector<result_t<F, T>, E> map(F fun = {}) const {
+    KERNEL_FLOAT_INLINE vector<result_t<F, T>, E> map(F fun) const {
         return kernel_float::map(fun, *this);
     }
 
     template<typename F>
-    KERNEL_FLOAT_INLINE T reduce(F fun = {}) const {
+    KERNEL_FLOAT_INLINE T reduce(F fun) const {
         return kernel_float::reduce(fun, *this);
     }
 
     KERNEL_FLOAT_INLINE flatten_type<vector> flatten() const {
         return kernel_float::flatten(*this);
+    }
+
+    template<typename F>
+    KERNEL_FLOAT_INLINE void for_each(F fun) const {
+        return kernel_float::for_each(*this, std::move(fun));
     }
 };
 

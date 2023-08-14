@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-08 18:25:16.753085
-// git hash: 2405950e91d545eda4affdfad84336d4247a3553
+// date: 2023-08-14 12:28:08.921323
+// git hash: 2ce8b7dabc15c263791b6ad736915c5a724f1d35
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -830,15 +830,93 @@ struct promote_type<L, complex_type<R>> {
 
 namespace kernel_float {
 
+/**
+ * Apply the function fun for each element from input.
+ *
+ * ```
+ * for_each(range<int, 3>(), [&](auto i) {
+ *    printf("element: %d\n", i);
+ * });
+ * ```
+ */
+template<typename V, typename F>
+void for_each(V&& input, F fun) {
+    auto storage = into_vector_storage(input);
+
+#pragma unroll
+    for (size_t i = 0; i < vector_extent<V>; i++) {
+        fun(storage.data()[i]);
+    }
+}
+
+namespace detail {
+template<typename T, size_t N>
+struct range_helper {
+    KERNEL_FLOAT_INLINE
+    static vector_storage<T, N> call() {
+        vector_storage<T, N> result;
+
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            result.data()[i] = T(i);
+        }
+
+        return result;
+    }
+};
+}  // namespace detail
+
+/**
+ * Generate vector consisting of the numbers 0...N-1 of type T
+ *
+ * ```
+ * // Returns [0, 1, 2]
+ * vector<float, 3> vec = range<float, 3>();
+ * ```
+ */
+template<typename T, size_t N>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
+    return detail::range_helper<T, N>::call();
+}
+
+/**
+ * Takes a vector of size ``N`` and element type ``T`` and returns a new vector consisting of the numbers ``0...N-1``
+ * of type ``T``
+ *
+ * ```
+ * // Returns [0.0f, 1.0f, 2.0f]
+ * vector<float, 3> vec = range<float, 3>();
+ * ```
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
+    return detail::range_helper<vector_value_type<V>, vector_extent<V>>::call();
+}
+
+/**
+ * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0...N-1`` of type ``size_t``
+ *
+ * ```
+ * // Returns [0, 1, 2]
+ * vector<size_t, 3> vec = enumerate(float3(6, 4, 2));
+ * ```
+ */
+template<typename V>
+KERNEL_FLOAT_INLINE vector<size_t, vector_extent<V>> enumerate(const V& = {}) {
+    return detail::range_helper<size_t, vector_extent<V>>::call();
+}
+
 namespace detail {
 template<typename V, typename T = vector_value_type<V>, size_t N = vector_extent<V>>
 struct flatten_helper {
     using value_type = typename flatten_helper<T>::value_type;
     static constexpr size_t size = N * flatten_helper<T>::size;
 
+    KERNEL_FLOAT_INLINE
     static void call(const V& input, value_type* output) {
         vector_storage<T, N> storage = into_vector_storage(input);
 
+#pragma unroll
         for (size_t i = 0; i < N; i++) {
             flatten_helper<T>::call(storage.data()[i], output + flatten_helper<T>::size * i);
         }
@@ -850,6 +928,7 @@ struct flatten_helper<T, T, 1> {
     using value_type = T;
     static constexpr size_t size = 1;
 
+    KERNEL_FLOAT_INLINE
     static void call(const T& input, T* output) {
         *output = input;
     }
@@ -866,7 +945,7 @@ template<typename V>
 using flatten_type = vector<flatten_value_type<V>, extent<flatten_size<V>>>;
 
 template<typename V>
-flatten_type<V> flatten(const V& input) {
+KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
     vector_storage<flatten_value_type<V>, flatten_size<V>> output;
     detail::flatten_helper<V>::call(input, output.data());
     return output;
@@ -1552,6 +1631,274 @@ struct cast<constant<T>, R, m> {
 }  // namespace kernel_float
 
 #endif
+#ifndef KERNEL_FLOAT_MEMORY_H
+#define KERNEL_FLOAT_MEMORY_H
+
+/*
+
+
+
+
+namespace kernel_float {
+
+    namespace detail {
+        template <typename T, size_t N, typename Is = make_index_sequence_helper<N>>
+        struct load_helper;
+
+        template <typename T, size_t N, size_t... Is>
+        struct load_helper<T, N, index_sequence<Is...>> {
+            KERNEL_FLOAT_INLINE
+            vector_storage<T, N> call(
+                    T* base,
+                    vector_storage<ptrdiff_t, N> offsets
+            ) {
+                return {base[offsets.data()[Is]]...};
+            }
+
+            KERNEL_FLOAT_INLINE
+            vector_storage<T, N> call(
+                    T* base,
+                    vector_storage<ptrdiff_t, N> offsets,
+                    vector_storage<bool, N> mask
+            ) {
+                if (all(mask)) {
+                    return call(base, offsets);
+                } else {
+                    return {
+                            (mask.data()[Is] ? base[offsets.data()[Is]] : T())...
+                    };
+                }
+            }
+        };
+    }
+
+    template <
+            typename T,
+            typename I,
+            typename M,
+            typename E = broadcast_vector_extent_type<I, M>
+    >
+    KERNEL_FLOAT_INLINE
+    vector<T, E> load(const T* ptr, const I& indices, const M& mask) {
+        static constexpr E new_size = {};
+
+        return detail::load_helper<T, E::value>::call(
+                ptr,
+                convert_storage<ptrdiff_t>(indices, new_size),
+                convert_storage<bool>(mask, new_size)
+        );
+    }
+
+    template <typename T, typename I>
+    KERNEL_FLOAT_INLINE
+    vector<T, vector_extent<I>> load(const T* ptr, const I& indices) {
+        return detail::load_helper<T, vector_extent<I>::value>::call(
+                ptr,
+                cast<ptrdiff_t>(indices)
+        );
+    }
+
+    template <size_t N, typename T>
+    KERNEL_FLOAT_INLINE
+    vector<T, extent<N>> load(const T* ptr, ptrdiff_t length) {
+        using index_type = vector_value_type<I>;
+        return load_masked(ptr, range<ptrdiff_t, N>(), range<ptrdiff_t, N>() < length);
+    }
+
+    template <size_t N, typename T>
+    KERNEL_FLOAT_INLINE
+    vector<T, extent<N>> load(const T* ptr) {
+        return load(ptr, range<ptrdiff_t, N>());
+    }
+
+    namespace detail {
+        template <typename T, size_t N>
+        struct store_helper {
+            KERNEL_FLOAT_INLINE
+            vector_storage<T, N> call(
+                    T* base,
+                    vector_storage<ptrdiff_t, N> offsets,
+                    vector_storage<bool, N> mask,
+                    vector_storage<T, N> values
+            ) {
+                for (size_t i = 0; i < N; i++) {
+                    if (mask.data()[i]) {
+                        base[offset.data()[i]] = values.data()[i];
+                    }
+                }
+            }
+
+            KERNEL_FLOAT_INLINE
+            vector_storage<T, N> call(
+                    T* base,
+                    vector_storage<ptrdiff_t, N> offsets,
+                    vector_storage<T, N> values
+            ) {
+                for (size_t i = 0; i < N; i++) {
+                    base[offset.data()[i]] = values.data()[i];
+                }
+            }
+        };
+    }
+
+    template <
+            typename T,
+            typename I,
+            typename M,
+            typename V,
+            typename E = broadcast_extent<vector_extent_type<V>, broadcast_vector_extent_type<M, I>>>
+    >
+    KERNEL_FLOAT_INLINE
+    void store(const T* ptr, const I& indices, const M& mask, const V& values) {
+        static constexpr E new_size = {};
+
+        return detail::store_helper<T, E::value>::call(
+                ptr,
+                convert_storage<ptrdiff_t>(indices, new_size),
+                convert_storage<bool>(mask, new_size),
+                convert_storage<T>(values, new_size)
+        );
+    }
+
+    template <
+            typename T,
+            typename I,
+            typename V,
+            typename E = broadcast_vector_extent_type<V, I>
+    >
+    KERNEL_FLOAT_INLINE
+    void store(const T* ptr, const I& indices, const V& values) {
+        static constexpr E new_size = {};
+
+        return detail::store_helper<T, E::value>::call(
+                ptr,
+                convert_storage<ptrdiff_t>(indices, new_size),
+                convert_storage<T>(values, new_size)
+        );
+    }
+
+
+    template <
+            typename T,
+            typename V
+    >
+    KERNEL_FLOAT_INLINE
+    void store(const T* ptr, const V& values) {
+        using E = vector_extent<V>;
+        return store(ptr, range<ptrdiff_t, E::value>(), values);
+    }
+
+    template <typename T, typename I, typename S, typename V>
+    KERNEL_FLOAT_INLINE
+    void store(const T* ptr, const I& indices, const S& length, const V& values) {
+        using index_type = vector_value_type<I>;
+        return store(ptr, indices, (indices >= I(0)) & (indices < length), values);
+    }
+
+
+    template <typename T, size_t alignment>
+    struct aligned_ptr_base {
+        static_assert(alignof(T) % alignment == 0, "invalid alignment, must be multiple of alignment of `T`");
+
+        KERNEL_FLOAT_INLINE
+        aligned_ptr_base(): ptr_(nullptr) {}
+
+        KERNEL_FLOAT_INLINE
+        explicit aligned_ptr_base(T* ptr): ptr_(ptr) {}
+
+        KERNEL_FLOAT_INLINE
+        T* get() const {
+            // TOOD: check if this way is support across all compilers
+#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
+            return __builtin_assume_aligned(ptr_, alignment);
+#else
+            return ptr_;
+#endif
+        }
+
+        KERNEL_FLOAT_INLINE
+        operator T*() const {
+            return get();
+        }
+
+        KERNEL_FLOAT_INLINE
+        T& operator*() const {
+            return *get();
+        }
+
+        template <typename I>
+        KERNEL_FLOAT_INLINE
+        T& operator[](I index) const {
+            return get()[index);
+        }
+
+    private:
+        T* ptr_ = nullptr;
+    };
+
+    template <typename T, size_t alignment = 256>
+    struct aligned_ptr;
+
+    template <typename T, size_t alignment>
+    struct aligned_ptr: aligned_ptr_base<T, alignment> {
+        using base_type = aligned_ptr_base<T, alignment>;
+
+        KERNEL_FLOAT_INLINE
+        aligned_ptr(): base_type(nullptr) {}
+
+        KERNEL_FLOAT_INLINE
+        explicit aligned_ptr(T* ptr): base_type(ptr) {}
+
+        KERNEL_FLOAT_INLINE
+        aligned_ptr(aligned_ptr<T, alignment> ptr): base_type(ptr.get()) {}
+    };
+
+    template <typename T, size_t alignment>
+    struct aligned_ptr<const T, alignment>: aligned_ptr_base<const T, alignment> {
+        using base_type = aligned_ptr_base<const T, alignment>;
+
+        KERNEL_FLOAT_INLINE
+        aligned_ptr(): base_type(nullptr) {}
+
+        KERNEL_FLOAT_INLINE
+        explicit aligned_ptr(T* ptr): base_type(ptr) {}
+
+        KERNEL_FLOAT_INLINE
+        explicit aligned_ptr(const T* ptr): base_type(ptr) {}
+
+        KERNEL_FLOAT_INLINE
+        aligned_ptr(aligned_ptr<T, alignment> ptr): base_type(ptr.get()) {}
+
+        KERNEL_FLOAT_INLINE
+        aligned_ptr(aligned_ptr<const T, alignment> ptr): base_type(ptr.get()) {}
+    };
+
+
+    template <typename T, size_t alignment>
+    KERNEL_FLOAT_INLINE
+    T* operator+(aligned_ptr<T, alignment> ptr, ptrdiff_t index) {
+        return ptr.get() + index;
+    }
+
+    template <typename T, size_t alignment>
+    KERNEL_FLOAT_INLINE
+    T* operator+(ptrdiff_t index, aligned_ptr<T, alignment> ptr) {
+        return ptr.get() + index;
+    }
+
+    template <typename T, size_t alignment, size_t alignment2>
+    KERNEL_FLOAT_INLINE
+    ptrdiff_t operator-(aligned_ptr<T, alignment> left, aligned_ptr<T, alignment2> right) {
+        return left.get() - right.get();
+    }
+
+    template <typename T>
+    using unaligned_ptr = aligned_ptr<T, alignof(T)>;
+
+}
+*/
+
+#endif  //KERNEL_FLOAT_MEMORY_H
 #ifndef KERNEL_FLOAT_REDUCE_H
 #define KERNEL_FLOAT_REDUCE_H
 
@@ -1993,17 +2340,22 @@ struct vector: S {
     }
 
     template<typename F>
-    KERNEL_FLOAT_INLINE vector<result_t<F, T>, E> map(F fun = {}) const {
+    KERNEL_FLOAT_INLINE vector<result_t<F, T>, E> map(F fun) const {
         return kernel_float::map(fun, *this);
     }
 
     template<typename F>
-    KERNEL_FLOAT_INLINE T reduce(F fun = {}) const {
+    KERNEL_FLOAT_INLINE T reduce(F fun) const {
         return kernel_float::reduce(fun, *this);
     }
 
     KERNEL_FLOAT_INLINE flatten_type<vector> flatten() const {
         return kernel_float::flatten(*this);
+    }
+
+    template<typename F>
+    KERNEL_FLOAT_INLINE void for_each(F fun) const {
+        return kernel_float::for_each(*this, std::move(fun));
     }
 };
 
