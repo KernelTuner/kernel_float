@@ -141,7 +141,7 @@ KERNEL_FLOAT_INLINE complex_type<T> operator*(T a, complex_type<T> b) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, complex_type<T> b) {
-    T normi = 1 / b.norm();
+    T normi = T(1) / b.norm();
 
     return {
         (a.real() * b.real() + a.imag() * b.imag()) * normi,
@@ -150,12 +150,12 @@ KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, complex_type<T>
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, T b) {
-    return {a.real() * (1 / b), a.imag() * (1 / b)};
+    return a * (T(1) / b);
 }
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator/(T a, complex_type<T> b) {
-    T normi = 1 / b.norm();
+    T normi = T(1) / b.norm();
 
     return {a * b.real() * normi, -a * b.imag() * normi};
 }

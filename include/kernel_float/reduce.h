@@ -145,7 +145,7 @@ template<typename T, size_t N>
 struct dot_helper {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, N>& left, const vector_storage<T, N>& right) {
-        return reduce(ops::add<T> {}, zip(ops::multiply<T> {}, left, right));
+        return sum(zip(ops::multiply<T> {}, left, right));
     }
 };
 }  // namespace detail
@@ -167,6 +167,77 @@ KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     return detail::dot_helper<T, E::value>::call(
         convert_storage<T>(left, E {}),
         convert_storage<T>(right, E {}));
+}
+}  // namespace kernel_float
+
+namespace detail {
+template<typename T, size_t N>
+struct magnitude_helper {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, N>& input) {
+        return ops::sqrt<T> {}(detail::dot_helper<T, N>::call(input, input));
+    }
+};
+
+template<typename T>
+struct magnitude_helper<T, 0> {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, 0>& input) {
+        return T {};
+    }
+};
+
+template<typename T>
+struct magnitude_helper<T, 1> {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, 1>& input) {
+        return ops::abs<T> {}(input);
+    }
+};
+
+template<typename T>
+struct magnitude_helper<T, 2> {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, 2>& input) {
+        return ops::hypot<T> {}(input[0], input[1]);
+    }
+};
+
+// The 3-argument overload of hypot is only available from C++17
+#ifdef __cpp_lib_hypot
+template<>
+struct magnitude_helper<float, 3> {
+    KERNEL_FLOAT_INLINE
+    static float call(const vector_storage<float, 3>& input) {
+        return std::hypot(input[0], input[1], input[2]);
+    }
+};
+
+template<>
+struct magnitude_helper<double, 3> {
+    KERNEL_FLOAT_INLINE
+    static float call(const vector_storage<double, 3>& input) {
+        return std::hypot(input[0], input[1], input[2]);
+    }
+};
+#endif
+
+}  // namespace detail
+
+/**
+ * Compute the magnitude of the given input vector. This calculates the square root of the sum of squares, also
+ * known as the Euclidian norm of the vector.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 3> x = {2, 3, 6};
+ * float y = mag(x);  // Returns sqrt(2*2 + 3*3 + 6*6) = 7
+ * ```
+ */
+template<typename V, typename T = vector_value_type<V>>
+KERNEL_FLOAT_INLINE T mag(const V& input) {
+    return detail::magnitude_helper<T, vector_extent<V>>::call(into_vector_storage(input));
 }
 }  // namespace kernel_float
 

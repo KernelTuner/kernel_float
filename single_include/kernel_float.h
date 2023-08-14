@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-14 13:38:46.811169
-// git hash: cc83e9218cc246853b9137cfb6835171f47bb5b0
+// date: 2023-08-14 14:47:10.123460
+// git hash: d9efc31a72c17f7885f305176f2ab7e08e088e18
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -706,7 +706,7 @@ KERNEL_FLOAT_INLINE complex_type<T> operator*(T a, complex_type<T> b) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, complex_type<T> b) {
-    T normi = 1 / b.norm();
+    T normi = T(1) / b.norm();
 
     return {
         (a.real() * b.real() + a.imag() * b.imag()) * normi,
@@ -715,12 +715,12 @@ KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, complex_type<T>
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator/(complex_type<T> a, T b) {
-    return {a.real() * (1 / b), a.imag() * (1 / b)};
+    return a * (T(1) / b);
 }
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator/(T a, complex_type<T> b) {
-    T normi = 1 / b.norm();
+    T normi = T(1) / b.norm();
 
     return {a * b.real() * normi, -a * b.imag() * normi};
 }
@@ -901,9 +901,9 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  * vector<size_t, 3> vec = enumerate(float3(6, 4, 2));
  * ```
  */
-template<typename V>
-KERNEL_FLOAT_INLINE vector<size_t, vector_extent_type<V>> enumerate(const V& = {}) {
-    return detail::range_helper<size_t, vector_extent<V>>::call();
+template<typename T = size_t, typename V>
+KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> enumerate(const V& = {}) {
+    return detail::range_helper<T, vector_extent<V>>::call();
 }
 
 namespace detail {
@@ -2075,7 +2075,7 @@ template<typename T, size_t N>
 struct dot_helper {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, N>& left, const vector_storage<T, N>& right) {
-        return reduce(ops::add<T> {}, zip(ops::multiply<T> {}, left, right));
+        return sum(zip(ops::multiply<T> {}, left, right));
     }
 };
 }  // namespace detail
@@ -2097,6 +2097,77 @@ KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     return detail::dot_helper<T, E::value>::call(
         convert_storage<T>(left, E {}),
         convert_storage<T>(right, E {}));
+}
+}  // namespace kernel_float
+
+namespace detail {
+template<typename T, size_t N>
+struct magnitude_helper {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, N>& input) {
+        return ops::sqrt<T> {}(detail::dot_helper<T, N>::call(input, input));
+    }
+};
+
+template<typename T>
+struct magnitude_helper<T, 0> {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, 0>& input) {
+        return T {};
+    }
+};
+
+template<typename T>
+struct magnitude_helper<T, 1> {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, 1>& input) {
+        return ops::abs<T> {}(input);
+    }
+};
+
+template<typename T>
+struct magnitude_helper<T, 2> {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, 2>& input) {
+        return ops::hypot<T> {}(input[0], input[1]);
+    }
+};
+
+// The 3-argument overload of hypot is only available from C++17
+#ifdef __cpp_lib_hypot
+template<>
+struct magnitude_helper<float, 3> {
+    KERNEL_FLOAT_INLINE
+    static float call(const vector_storage<float, 3>& input) {
+        return std::hypot(input[0], input[1], input[2]);
+    }
+};
+
+template<>
+struct magnitude_helper<double, 3> {
+    KERNEL_FLOAT_INLINE
+    static float call(const vector_storage<float, 3>& input) {
+        return std::hypot(input[0], input[1], input[2]);
+    }
+};
+#endif
+
+}  // namespace detail
+
+/**
+ * Compute the magnitude of the given input vector. This calculates the square root of the sum of squares, also
+ * known as the Euclidian norm of the vector.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 3> x = {2, 3, 6};
+ * float y = mag(x);  // Returns sqrt(2*2 + 3*3 + 6*6) = 7
+ * ```
+ */
+template<typename V, typename T = vector_value_type<V>>
+KERNEL_FLOAT_INLINE T mag(const V& input) {
+    return detail::magnitude_helper<T, vector_extent<V>>::call(into_vector_storage(input));
 }
 }  // namespace kernel_float
 
