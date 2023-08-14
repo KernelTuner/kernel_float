@@ -232,10 +232,10 @@ struct dot_helper<__half, N> {
     KERNEL_FLOAT_INLINE
     static __half
     call(const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
-        if constexpr (N == 0) {
+        if (N == 0) {
             return __half(0);
-        } else if constexpr (N == 1) {
-            return __hmul(left.data()[0], right.data()[0], );
+        } else if (N == 1) {
+            return __hmul(left.data()[0], right.data()[0]);
         } else {
             __half2 first_a = {left.data()[0], left.data()[1]};
             __half2 first_b = {right.data()[0], right.data()[1]};
@@ -250,10 +250,10 @@ struct dot_helper<__half, N> {
 
             __half result = __hadd(accum.x, accum.y);
 
-            if constexpr (N % 2 != 0) {
+            if (N % 2 != 0) {
                 __half a = left.data()[N - 1];
-                    __half b = right.data()[N - 1]);
-                    result = __hfma(a, b, result);
+                __half b = right.data()[N - 1];
+                result = __hfma(a, b, result);
             }
 
             return result;

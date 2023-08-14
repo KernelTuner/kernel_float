@@ -168,7 +168,6 @@ KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
         convert_storage<T>(left, E {}),
         convert_storage<T>(right, E {}));
 }
-}  // namespace kernel_float
 
 namespace detail {
 template<typename T, size_t N>
@@ -199,7 +198,7 @@ template<typename T>
 struct magnitude_helper<T, 2> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 2>& input) {
-        return ops::hypot<T> {}(input[0], input[1]);
+        return ops::hypot<T> {}(input.data()[0], input.data()[1]);
     }
 };
 
@@ -209,7 +208,7 @@ template<>
 struct magnitude_helper<float, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<float, 3>& input) {
-        return std::hypot(input[0], input[1], input[2]);
+        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 
@@ -217,7 +216,7 @@ template<>
 struct magnitude_helper<double, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<double, 3>& input) {
-        return std::hypot(input[0], input[1], input[2]);
+        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 #endif

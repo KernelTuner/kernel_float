@@ -24,8 +24,8 @@ KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) 
 
     return detail::apply_impl<F, E::value, O, A, B>::call(
         fun,
-        broadcast<E>(left).storage(),
-        broadcast<E>(right).storage());
+        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)),
+        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right)));
 }
 
 template<typename F, typename L, typename R>
@@ -234,11 +234,15 @@ namespace detail {
 template<typename T>
 struct cross_helper {
     KERNEL_FLOAT_INLINE
-    static vector<T, extent<3>> call(const vector_storage<T, 3>& a, const vector_storage<T, 3>& b) {
+    static vector<T, extent<3>>
+    call(const vector_storage<T, 3>& av, const vector_storage<T, 3>& bv) {
+        auto a = av.data();
+        auto b = bv.data();
         vector<T, extent<6>> v0 = {a[1], a[2], a[0], a[2], a[0], a[1]};
         vector<T, extent<6>> v1 = {b[2], b[0], b[1], b[1], b[2], b[0]};
-        vector<T, extent<6>> r = v0 * v1;
+        vector<T, extent<6>> rv = v0 * v1;
 
+        auto r = rv.data();
         vector<T, extent<3>> r0 = {r[0], r[1], r[2]};
         vector<T, extent<3>> r1 = {r[3], r[4], r[5]};
         return r0 - r1;

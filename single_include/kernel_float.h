@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-14 14:47:10.123460
-// git hash: d9efc31a72c17f7885f305176f2ab7e08e088e18
+// date: 2023-08-14 15:47:42.801950
+// git hash: d13ee37ff80691e77dab5f71cf27600dbdad6f2f
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1357,8 +1357,8 @@ KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) 
 
     return detail::apply_impl<F, E::value, O, A, B>::call(
         fun,
-        broadcast<E>(left).storage(),
-        broadcast<E>(right).storage());
+        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)),
+        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right)));
 }
 
 template<typename F, typename L, typename R>
@@ -1567,11 +1567,15 @@ namespace detail {
 template<typename T>
 struct cross_helper {
     KERNEL_FLOAT_INLINE
-    static vector<T, extent<3>> call(const vector_storage<T, 3>& a, const vector_storage<T, 3>& b) {
+    static vector<T, extent<3>>
+    call(const vector_storage<T, 3>& av, const vector_storage<T, 3>& bv) {
+        auto a = av.data();
+        auto b = bv.data();
         vector<T, extent<6>> v0 = {a[1], a[2], a[0], a[2], a[0], a[1]};
         vector<T, extent<6>> v1 = {b[2], b[0], b[1], b[1], b[2], b[0]};
-        vector<T, extent<6>> r = v0 * v1;
+        vector<T, extent<6>> rv = v0 * v1;
 
+        auto r = rv.data();
         vector<T, extent<3>> r0 = {r[0], r[1], r[2]};
         vector<T, extent<3>> r1 = {r[3], r[4], r[5]};
         return r0 - r1;
@@ -2098,7 +2102,6 @@ KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
         convert_storage<T>(left, E {}),
         convert_storage<T>(right, E {}));
 }
-}  // namespace kernel_float
 
 namespace detail {
 template<typename T, size_t N>
@@ -2129,7 +2132,7 @@ template<typename T>
 struct magnitude_helper<T, 2> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 2>& input) {
-        return ops::hypot<T> {}(input[0], input[1]);
+        return ops::hypot<T> {}(input.data()[0], input.data()[1]);
     }
 };
 
@@ -2139,15 +2142,15 @@ template<>
 struct magnitude_helper<float, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<float, 3>& input) {
-        return std::hypot(input[0], input[1], input[2]);
+        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 
 template<>
 struct magnitude_helper<double, 3> {
     KERNEL_FLOAT_INLINE
-    static float call(const vector_storage<float, 3>& input) {
-        return std::hypot(input[0], input[1], input[2]);
+    static float call(const vector_storage<double, 3>& input) {
+        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 #endif
@@ -2786,10 +2789,10 @@ struct dot_helper<__half, N> {
     KERNEL_FLOAT_INLINE
     static __half
     call(const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
-        if constexpr (N == 0) {
+        if (N == 0) {
             return __half(0);
-        } else if constexpr (N == 1) {
-            return __hmul(left.data()[0], right.data()[0], );
+        } else if (N == 1) {
+            return __hmul(left.data()[0], right.data()[0]);
         } else {
             __half2 first_a = {left.data()[0], left.data()[1]};
             __half2 first_b = {right.data()[0], right.data()[1]};
@@ -2804,10 +2807,10 @@ struct dot_helper<__half, N> {
 
             __half result = __hadd(accum.x, accum.y);
 
-            if constexpr (N % 2 != 0) {
+            if (N % 2 != 0) {
                 __half a = left.data()[N - 1];
-                    __half b = right.data()[N - 1]);
-                    result = __hfma(a, b, result);
+                __half b = right.data()[N - 1];
+                result = __hfma(a, b, result);
             }
 
             return result;
@@ -3076,10 +3079,10 @@ struct dot_helper<__nv_bfloat16, N> {
     static __nv_bfloat16 call(
         const vector_storage<__nv_bfloat16, N>& left,
         const vector_storage<__nv_bfloat16, N>& right) {
-        if constexpr (N == 0) {
+        if (N == 0) {
             return __nv_bfloat16(0);
-        } else if constexpr (N == 1) {
-            return __hmul(left.data()[0], right.data()[0], );
+        } else if (N == 1) {
+            return __hmul(left.data()[0], right.data()[0]);
         } else {
             __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
             __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
@@ -3094,10 +3097,10 @@ struct dot_helper<__nv_bfloat16, N> {
 
             __nv_bfloat16 result = __hadd(accum.x, accum.y);
 
-            if constexpr (N % 2 != 0) {
+            if (N % 2 != 0) {
                 __nv_bfloat16 a = left.data()[N - 1];
-                    __nv_bfloat16 b = right.data()[N - 1]);
-                    result = __hfma(a, b, result);
+                __nv_bfloat16 b = right.data()[N - 1];
+                result = __hfma(a, b, result);
             }
 
             return result;

@@ -252,10 +252,10 @@ struct dot_helper<__nv_bfloat16, N> {
     static __nv_bfloat16 call(
         const vector_storage<__nv_bfloat16, N>& left,
         const vector_storage<__nv_bfloat16, N>& right) {
-        if constexpr (N == 0) {
+        if (N == 0) {
             return __nv_bfloat16(0);
-        } else if constexpr (N == 1) {
-            return __hmul(left.data()[0], right.data()[0], );
+        } else if (N == 1) {
+            return __hmul(left.data()[0], right.data()[0]);
         } else {
             __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
             __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
@@ -270,10 +270,10 @@ struct dot_helper<__nv_bfloat16, N> {
 
             __nv_bfloat16 result = __hadd(accum.x, accum.y);
 
-            if constexpr (N % 2 != 0) {
+            if (N % 2 != 0) {
                 __nv_bfloat16 a = left.data()[N - 1];
-                    __nv_bfloat16 b = right.data()[N - 1]);
-                    result = __hfma(a, b, result);
+                __nv_bfloat16 b = right.data()[N - 1];
+                result = __hfma(a, b, result);
             }
 
             return result;
