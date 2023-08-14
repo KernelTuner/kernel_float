@@ -92,22 +92,6 @@ KERNEL_FLOAT_INLINE T sum(const V& input) {
 }
 
 /**
- * Compute the dot product of the given vectors ``left`` and ``right``
- *
- * Example
- * =======
- * ```
- * vec<int, 3> x = {1, 2, 3};
- * vec<int, 3> y = {4, 5, 6};
- * int y = dot(x, y);  // Returns 1*4+2*5+3*6 = 32
- * ```
- */
-template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
-KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
-    return reduce(ops::add<T> {}, zip_common(ops::multiply<T> {}, left, right));
-}
-
-/**
  * Multiply the items in the given vector ``input``.
  *
  * Example
@@ -151,9 +135,38 @@ KERNEL_FLOAT_INLINE bool any(const V& input) {
  * int y = count(x);  // Returns 3 (5, 2, 1 are non-zero)
  * ```
  */
-template<typename V>
-KERNEL_FLOAT_INLINE int count(const V& input) {
-    return sum(cast<int>(cast<bool>(input)));
+template<typename T = int, typename V>
+KERNEL_FLOAT_INLINE T count(const V& input) {
+    return sum(cast<T>(cast<bool>(input)));
+}
+
+namespace detail {
+template<typename T, size_t N>
+struct dot_helper {
+    KERNEL_FLOAT_INLINE
+    static T call(const vector_storage<T, N>& left, const vector_storage<T, N>& right) {
+        return reduce(ops::add<T> {}, zip(ops::multiply<T> {}, left, right));
+    }
+};
+}  // namespace detail
+
+/**
+ * Compute the dot product of the given vectors ``left`` and ``right``
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> x = {1, 2, 3};
+ * vec<int, 3> y = {4, 5, 6};
+ * int y = dot(x, y);  // Returns 1*4+2*5+3*6 = 32
+ * ```
+ */
+template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
+KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
+    using E = broadcast_vector_extent_type<L, R>;
+    return detail::dot_helper<T, E::value>::call(
+        convert_storage<T>(left, E {}),
+        convert_storage<T>(right, E {}));
 }
 }  // namespace kernel_float
 

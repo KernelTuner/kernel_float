@@ -54,7 +54,7 @@ struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16> {
         vector_storage<__nv_bfloat16, N> result;
 
 #pragma unroll
-        for (size_t i = 0; i < N; i += 2) {
+        for (size_t i = 0; i + 2 <= N; i += 2) {
             __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
             __nv_bfloat162 b = map_bfloat16x2<F>::call(fun, a);
             result.data()[i + 0] = b.x;
@@ -77,7 +77,7 @@ struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
         const vector_storage<__nv_bfloat16, N>& right) {
         vector_storage<__nv_bfloat16, N> result;
 #pragma unroll
-        for (size_t i = 0; i < N; i += 2) {
+        for (size_t i = 0; i + 2 <= N; i += 2) {
             __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
             __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
             __nv_bfloat162 c = zip_bfloat16x2<F>::call(fun, a, b);
@@ -100,7 +100,7 @@ struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
         __nv_bfloat162 accum = {input.data()[0], input.data()[1]};
 
 #pragma unroll
-        for (size_t i = 2; i < N; i += 2) {
+        for (size_t i = 2; i + 2 <= N; i += 2) {
             __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
             accum = zip_bfloat16x2<F>::call(fun, accum, a);
         }
@@ -243,6 +243,45 @@ KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162
 using bfloat16 = __nv_bfloat16;
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
+
+#if KERNEL_FLOAT_IS_DEVICE
+namespace detail {
+template<size_t N>
+struct dot_helper<__nv_bfloat16, N> {
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat16 call(
+        const vector_storage<__nv_bfloat16, N>& left,
+        const vector_storage<__nv_bfloat16, N>& right) {
+        if constexpr (N == 0) {
+            return __nv_bfloat16(0);
+        } else if constexpr (N == 1) {
+            return __hmul(left.data()[0], right.data()[0], );
+        } else {
+            __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
+            __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
+            __nv_bfloat162 accum = __hmul2(first_a, first_b);
+
+#pragma unroll
+            for (size_t i = 2; i + 2 <= N; i += 2) {
+                __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
+                __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
+                accum = __hfma2(a, b, accum);
+            }
+
+            __nv_bfloat16 result = __hadd(accum.x, accum.y);
+
+            if constexpr (N % 2 != 0) {
+                __nv_bfloat16 a = left.data()[N - 1];
+                    __nv_bfloat16 b = right.data()[N - 1]);
+                    result = __hfma(a, b, result);
+            }
+
+            return result;
+        }
+    }
+};
+}  // namespace detail
+#endif
 
 }  // namespace kernel_float
 
