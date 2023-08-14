@@ -77,7 +77,7 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  * ```
  */
 template<typename V>
-KERNEL_FLOAT_INLINE vector<size_t, vector_extent<V>> enumerate(const V& = {}) {
+KERNEL_FLOAT_INLINE vector<size_t, vector_extent_type<V>> enumerate(const V& = {}) {
     return detail::range_helper<size_t, vector_extent<V>>::call();
 }
 

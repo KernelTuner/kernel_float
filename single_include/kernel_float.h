@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-14 13:32:29.526813
-// git hash: b3e93f16bc6caaaf46571085c774d1af3dec8265
+// date: 2023-08-14 13:38:46.811169
+// git hash: cc83e9218cc246853b9137cfb6835171f47bb5b0
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -902,7 +902,7 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  * ```
  */
 template<typename V>
-KERNEL_FLOAT_INLINE vector<size_t, vector_extent<V>> enumerate(const V& = {}) {
+KERNEL_FLOAT_INLINE vector<size_t, vector_extent_type<V>> enumerate(const V& = {}) {
     return detail::range_helper<size_t, vector_extent<V>>::call();
 }
 
@@ -1567,13 +1567,13 @@ namespace detail {
 template<typename T>
 struct cross_helper {
     KERNEL_FLOAT_INLINE
-    static vector<T, 3> call(const vector_storage<T, 3>& a, const vector_storage<T, 3>& b) {
-        vector<T, 6> v0 = {a[1], a[2], a[0], a[2], a[0], a[1]};
-        vector<T, 6> v1 = {b[2], b[0], b[1], b[1], b[2], b[0]};
-        vector<T, 6> r = v0 * v1;
+    static vector<T, extent<3>> call(const vector_storage<T, 3>& a, const vector_storage<T, 3>& b) {
+        vector<T, extent<6>> v0 = {a[1], a[2], a[0], a[2], a[0], a[1]};
+        vector<T, extent<6>> v1 = {b[2], b[0], b[1], b[1], b[2], b[0]};
+        vector<T, extent<6>> r = v0 * v1;
 
-        vector<T, 3> r0 = {r[0], r[1], r[2]};
-        vector<T, 3> r1 = {r[3], r[4], r[5]};
+        vector<T, extent<3>> r0 = {r[0], r[1], r[2]};
+        vector<T, extent<3>> r1 = {r[3], r[4], r[5]};
         return r0 - r1;
     }
 };
@@ -1586,8 +1586,9 @@ template<
     typename L,
     typename R,
     typename T = promoted_vector_value_type<L, R>,
-    typename = enabled_t<broadcast_vector_extent_type<L, R>::value == 3>>
-KERNEL_FLOAT_INLINE vector<T, 3> cross(const L& left, const R& right) {
+    typename =
+        enabled_t<is_vector_broadcastable<L, extent<3>> && is_vector_broadcastable<R, extent<3>>>>
+KERNEL_FLOAT_INLINE vector<T, extent<3>> cross(const L& left, const R& right) {
     return detail::cross_helper<T>::call(convert_storage<T, 3>(left), convert_storage<T, 3>(right));
 }
 
