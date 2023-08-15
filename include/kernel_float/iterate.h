@@ -8,6 +8,8 @@ namespace kernel_float {
 /**
  * Apply the function fun for each element from input.
  *
+ * Example
+ * =======
  * ```
  * for_each(range<int, 3>(), [&](auto i) {
  *    printf("element: %d\n", i);
@@ -42,11 +44,13 @@ struct range_helper {
 }  // namespace detail
 
 /**
- * Generate vector consisting of the numbers 0...N-1 of type T
+ * Generate vector consisting of the numbers `0...N-1` of type `T`
  *
+ * Example
+ * =======
  * ```
  * // Returns [0, 1, 2]
- * vector<float, 3> vec = range<float, 3>();
+ * vec<float, 3> vec = range<float, 3>();
  * ```
  */
 template<typename T, size_t N>
@@ -55,12 +59,13 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
 }
 
 /**
- * Takes a vector of size ``N`` and element type ``T`` and returns a new vector consisting of the numbers ``0...N-1``
- * of type ``T``
+ * Takes a vector `vec<T, N>` and returns a new vector consisting of the numbers ``0...N-1`` of type ``T``
  *
+ * Example
+ * =======
  * ```
- * // Returns [0.0f, 1.0f, 2.0f]
- * vector<float, 3> vec = range<float, 3>();
+ * auto input = vec<float, 3>(5.0f, 10.0f, -1.0f);
+ * auto indices = range_like(input);  // returns [0.0f, 1.0f, 2.0f]
  * ```
  */
 template<typename V>
@@ -69,15 +74,27 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
 }
 
 /**
- * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0...N-1`` of type ``size_t``
+ * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0...N-1``. The data type used
+ * for the indices is given by the first template argument, which is `size_t` by default. This function is useful when
+ * needing to iterate over the indices of a vector.
  *
+ * Example
+ * =======
  * ```
- * // Returns [0, 1, 2]
- * vector<size_t, 3> vec = enumerate(float3(6, 4, 2));
+ * // Returns [0, 1, 2] of type size_t
+ * vec<size_t, 3> a = each_index(float3(6, 4, 2));
+ *
+ * // Returns [0, 1, 2] of type int.
+ * vec<int, 3> b = each_index<int>(float3(6, 4, 2));
+ *
+ * vec<float, 3> input = {1.0f, 2.0f, 3.0f, 4.0f};
+ * for (auto index: each_index<int>(input)) {
+ *   printf("%d] %f\n", index, input[index]);
+ * }
  * ```
  */
 template<typename T = size_t, typename V>
-KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> enumerate(const V& = {}) {
+KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> each_index(const V& = {}) {
     return detail::range_helper<T, vector_extent<V>>::call();
 }
 
@@ -119,6 +136,16 @@ static constexpr size_t flatten_size = detail::flatten_helper<V>::size;
 template<typename V>
 using flatten_type = vector<flatten_value_type<V>, extent<flatten_size<V>>>;
 
+/**
+ * Flattens the elements of this vector. For example, this turns a `vec<vec<int, 2>, 3>` into a `vec<int, 6>`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float2, 3> input = {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}};
+ * vec<float, 6> result = flatten(input); // returns [1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f]
+ * ```
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
     vector_storage<flatten_value_type<V>, flatten_size<V>> output;

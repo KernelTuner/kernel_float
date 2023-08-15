@@ -1,7 +1,7 @@
 #ifndef KERNEL_FLOAT_BINOPS_H
 #define KERNEL_FLOAT_BINOPS_H
 
-#include "broadcast.h"
+#include "conversion.h"
 #include "unops.h"
 
 namespace kernel_float {
@@ -14,6 +14,14 @@ using zip_type = vector<
 /**
  * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
  * function (`fun`) to each pair of corresponding elements.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<bool, 3> make_negative = {true, false, true};
+ * vec<int, 3> input = {1, 2, 3};
+ * vec<int, 3> output = zip([](bool b, int n){ return b ? -n : +n; }, make_negative, input); // returns [-1, 2, -3]
+ * ```
  */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
@@ -34,8 +42,17 @@ using zip_common_type = vector<
     broadcast_vector_extent_type<L, R>>;
 
 /**
- * Similar to `zip`, except `zip_common` promotes the element types of the inputs to a common type before applying the
- * binary function.
+ * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
+ * function (`fun`) to each pair of corresponding elements. The elements are promoted to a common type before applying
+ * the binary function.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = {1.0f, 2.0f, 3.0f};
+ * vec<int, 3> b = {4, 5, 6};
+ * vec<int, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
+ * ```
  */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {

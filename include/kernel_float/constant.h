@@ -1,7 +1,8 @@
 #ifndef KERNEL_FLOAT_CONSTANT
 #define KERNEL_FLOAT_CONSTANT
 
-#include "broadcast.h"
+#include "base.h"
+#include "conversion.h"
 
 namespace kernel_float {
 
@@ -59,6 +60,29 @@ struct cast<constant<T>, R, m> {
     }
 };
 }  // namespace ops
+
+#define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                      \
+    template<typename L, typename R>                                             \
+    R operator OP(const constant<L>& left, const R& right) {                     \
+        using T = vector_value_type<R>;                                          \
+        return operator OP(T(left.get()), right);                                \
+    }                                                                            \
+                                                                                 \
+    template<typename L, typename R>                                             \
+    L operator OP(const L& left, const constant<R>& right) {                     \
+        using T = vector_value_type<L>;                                          \
+        return operator OP(left, T(right.get()));                                \
+    }                                                                            \
+                                                                                 \
+    template<typename L, typename R, typename T = promote_t<L, R>>               \
+    constant<T> operator OP(const constant<L>& left, const constant<R>& right) { \
+        return constant<T>(operator OP(T(left.get()), T(right.get())));          \
+    }
+
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
 
 }  // namespace kernel_float
 

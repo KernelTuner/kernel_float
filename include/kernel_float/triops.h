@@ -1,7 +1,7 @@
 #ifndef KERNEL_FLOAT_TRIOPS_H
 #define KERNEL_FLOAT_TRIOPS_H
 
-#include "broadcast.h"
+#include "conversion.h"
 #include "unops.h"
 
 namespace kernel_float {
@@ -36,7 +36,7 @@ template<
     typename L,
     typename R,
     typename T = promoted_vector_value_type<L, R>,
-    typename E = broadcast_extent<vector_extent_type<C>, broadcast_vector_extent_type<L, R>>>
+    typename E = broadcast_vector_extent_type<C, L, R>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
 
@@ -64,7 +64,7 @@ template<
     typename C,
     typename L,
     typename T = vector_value_type<L>,
-    typename E = broadcast_extent<vector_extent_type<C>, vector_extent_type<L>>>
+    typename E = broadcast_vector_extent_type<C, L>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
     vector<T, extent<1>> false_values = T {};
     return where(cond, true_values, false_values);
@@ -114,7 +114,7 @@ template<
     typename B,
     typename C,
     typename T = promoted_vector_value_type<A, B, C>,
-    typename E = broadcast_extent<vector_extent_type<A>, broadcast_vector_extent_type<B, C>>>
+    typename E = broadcast_vector_extent<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
 

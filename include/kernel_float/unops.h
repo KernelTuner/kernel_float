@@ -25,6 +25,16 @@ struct apply_impl {
 template<typename F, typename V>
 using map_type = vector<result_t<F, vector_value_type<V>>, vector_extent_type<V>>;
 
+/**
+ * Apply the function `F` to each element from the vector `input` and return the results as a new vector.
+ *
+ * Examples
+ * ========
+ * ```
+ * vec<float, 4> input = {1.0f, 2.0f, 3.0f, 4.0f};
+ * vec<float, 4> squared = map([](auto x) { return x * x; }, input); // [1.0f, 4.0f, 9.0f, 16.0f]
+ * ```
+ */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     using Input = vector_value_type<V>;
@@ -34,26 +44,26 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
         into_vector_storage(input));
 }
 
-#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                      \
-    namespace ops {                                                \
-    template<typename T>                                           \
-    struct NAME {                                                  \
-        KERNEL_FLOAT_INLINE T operator()(T input) {                \
-            return T(EXPR);                                        \
-        }                                                          \
-    };                                                             \
-    }                                                              \
-    template<typename V>                                           \
-    KERNEL_FLOAT_INLINE into_vector_type<V> NAME(const V& input) { \
-        using F = ops::NAME<vector_value_type<V>>;                 \
-        return map(F {}, input);                                   \
+#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                                      \
+    namespace ops {                                                                                \
+    template<typename T>                                                                           \
+    struct NAME {                                                                                  \
+        KERNEL_FLOAT_INLINE T operator()(T input) {                                                \
+            return T(EXPR);                                                                        \
+        }                                                                                          \
+    };                                                                                             \
+    }                                                                                              \
+    template<typename V>                                                                           \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
+        using F = ops::NAME<vector_value_type<V>>;                                                 \
+        return map(F {}, input);                                                                   \
     }
 
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                        \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                   \
-    template<typename T, typename D>                                        \
-    KERNEL_FLOAT_INLINE vector<T, D> operator OP(const vector<T, D>& vec) { \
-        return NAME(vec);                                                   \
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                           \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                      \
+    template<typename T, typename E, typename S>                               \
+    KERNEL_FLOAT_INLINE vector<T, E> operator OP(const vector<T, E, S>& vec) { \
+        return NAME(vec);                                                      \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
@@ -132,39 +142,6 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
 KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
 KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
 
-enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
-
-namespace ops {
-template<typename T, typename R, RoundingMode m = RoundingMode::ANY, typename = void>
-struct cast;
-
-template<typename T, typename R>
-struct cast<T, R, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return R(input);
-    }
-};
-
-template<typename T, RoundingMode m>
-struct cast<T, T, m> {
-    KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
-        return input;
-    }
-};
-
-template<typename T>
-struct cast<T, T, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
-        return input;
-    }
-};
-}  // namespace ops
-
-template<typename R, RoundingMode Mode = RoundingMode::ANY, typename V>
-KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
-    using F = ops::cast<vector_value_type<V>, R, Mode>;
-    return map(F {}, input);
-}
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_UNOPS_H

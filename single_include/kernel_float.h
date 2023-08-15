@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-14 15:47:42.801950
-// git hash: d13ee37ff80691e77dab5f71cf27600dbdad6f2f
+// date: 2023-08-15 12:29:08.022922
+// git hash: 9b71242d6c1cd9c4f8f6309824fe0a774bf9719d
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -472,8 +472,11 @@ static constexpr size_t compute_max_alignment(size_t total_size, size_t min_alig
 template<typename T, size_t N>
 using vector_storage = aligned_array<T, N, compute_max_alignment(sizeof(T) * N, alignof(T))>;
 
+template<size_t... Ns>
+struct extent;
+
 template<size_t N>
-struct extent {
+struct extent<N> {
     static constexpr size_t value = N;
     static constexpr size_t size = N;
 };
@@ -512,8 +515,54 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     }
 };
 
-template<typename V>
-struct vector_traits;
+#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
+    template<>                                             \
+    struct into_vector_traits<::T2> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<2>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 2> call(::T2 v) {         \
+            return {v.x, v.y};                             \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct into_vector_traits<::T3> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<3>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 3> call(::T3 v) {         \
+            return {v.x, v.y, v.z};                        \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct into_vector_traits<::T4> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<4>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 4> call(::T4 v) {         \
+            return {v.x, v.y, v.z, v.w};                   \
+        }                                                  \
+    };
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(int, int1, int2, int3, int4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long, long1, long2, long3, long4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long long, longlong1, longlong2, longlong3, longlong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned char, uchar1, uchar2, uchar3, uchar4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned short, ushort1, ushort2, ushort3, ushort4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned int, uint1, uint2, uint3, uint4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long, ulong1, ulong2, ulong3, ulong4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulonglong3, ulonglong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
 template<typename T, typename E, typename S = vector_storage<T, E::size>>
 struct vector;
@@ -528,6 +577,9 @@ struct into_vector_traits<vector<T, E, S>> {
         return input.storage();
     }
 };
+
+template<typename V>
+struct vector_traits;
 
 template<typename T, typename E, typename S>
 struct vector_traits<vector<T, E, S>> {
@@ -833,6 +885,8 @@ namespace kernel_float {
 /**
  * Apply the function fun for each element from input.
  *
+ * Example
+ * =======
  * ```
  * for_each(range<int, 3>(), [&](auto i) {
  *    printf("element: %d\n", i);
@@ -867,11 +921,13 @@ struct range_helper {
 }  // namespace detail
 
 /**
- * Generate vector consisting of the numbers 0...N-1 of type T
+ * Generate vector consisting of the numbers `0...N-1` of type `T`
  *
+ * Example
+ * =======
  * ```
  * // Returns [0, 1, 2]
- * vector<float, 3> vec = range<float, 3>();
+ * vec<float, 3> vec = range<float, 3>();
  * ```
  */
 template<typename T, size_t N>
@@ -880,12 +936,13 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
 }
 
 /**
- * Takes a vector of size ``N`` and element type ``T`` and returns a new vector consisting of the numbers ``0...N-1``
- * of type ``T``
+ * Takes a vector `vec<T, N>` and returns a new vector consisting of the numbers ``0...N-1`` of type ``T``
  *
+ * Example
+ * =======
  * ```
- * // Returns [0.0f, 1.0f, 2.0f]
- * vector<float, 3> vec = range<float, 3>();
+ * auto input = vec<float, 3>(5.0f, 10.0f, -1.0f);
+ * auto indices = range_like(input);  // returns [0.0f, 1.0f, 2.0f]
  * ```
  */
 template<typename V>
@@ -894,15 +951,27 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
 }
 
 /**
- * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0...N-1`` of type ``size_t``
+ * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0...N-1``. The data type used
+ * for the indices is given by the first template argument, which is `size_t` by default. This function is useful when
+ * needing to iterate over the indices of a vector.
  *
+ * Example
+ * =======
  * ```
- * // Returns [0, 1, 2]
- * vector<size_t, 3> vec = enumerate(float3(6, 4, 2));
+ * // Returns [0, 1, 2] of type size_t
+ * vec<size_t, 3> a = each_index(float3(6, 4, 2));
+ *
+ * // Returns [0, 1, 2] of type int.
+ * vec<int, 3> b = each_index<int>(float3(6, 4, 2));
+ *
+ * vec<float, 3> input = {1.0f, 2.0f, 3.0f, 4.0f};
+ * for (auto index: each_index<int>(input)) {
+ *   printf("%d] %f\n", index, input[index]);
+ * }
  * ```
  */
 template<typename T = size_t, typename V>
-KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> enumerate(const V& = {}) {
+KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> each_index(const V& = {}) {
     return detail::range_helper<T, vector_extent<V>>::call();
 }
 
@@ -944,6 +1013,16 @@ static constexpr size_t flatten_size = detail::flatten_helper<V>::size;
 template<typename V>
 using flatten_type = vector<flatten_value_type<V>, extent<flatten_size<V>>>;
 
+/**
+ * Flattens the elements of this vector. For example, this turns a `vec<vec<int, 2>, 3>` into a `vec<int, 6>`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float2, 3> input = {{1.0f, 2.0f}, {3.0f, 4.0f}, {5.0f, 6.0f}};
+ * vec<float, 6> result = flatten(input); // returns [1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f]
+ * ```
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
     vector_storage<flatten_value_type<V>, flatten_size<V>> output;
@@ -980,6 +1059,16 @@ struct apply_impl {
 template<typename F, typename V>
 using map_type = vector<result_t<F, vector_value_type<V>>, vector_extent_type<V>>;
 
+/**
+ * Apply the function `F` to each element from the vector `input` and return the results as a new vector.
+ *
+ * Examples
+ * ========
+ * ```
+ * vec<float, 4> input = {1.0f, 2.0f, 3.0f, 4.0f};
+ * vec<float, 4> squared = map([](auto x) { return x * x; }, input); // [1.0f, 4.0f, 9.0f, 16.0f]
+ * ```
+ */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     using Input = vector_value_type<V>;
@@ -989,26 +1078,26 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
         into_vector_storage(input));
 }
 
-#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                      \
-    namespace ops {                                                \
-    template<typename T>                                           \
-    struct NAME {                                                  \
-        KERNEL_FLOAT_INLINE T operator()(T input) {                \
-            return T(EXPR);                                        \
-        }                                                          \
-    };                                                             \
-    }                                                              \
-    template<typename V>                                           \
-    KERNEL_FLOAT_INLINE into_vector_type<V> NAME(const V& input) { \
-        using F = ops::NAME<vector_value_type<V>>;                 \
-        return map(F {}, input);                                   \
+#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                                      \
+    namespace ops {                                                                                \
+    template<typename T>                                                                           \
+    struct NAME {                                                                                  \
+        KERNEL_FLOAT_INLINE T operator()(T input) {                                                \
+            return T(EXPR);                                                                        \
+        }                                                                                          \
+    };                                                                                             \
+    }                                                                                              \
+    template<typename V>                                                                           \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
+        using F = ops::NAME<vector_value_type<V>>;                                                 \
+        return map(F {}, input);                                                                   \
     }
 
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                        \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                   \
-    template<typename T, typename D>                                        \
-    KERNEL_FLOAT_INLINE vector<T, D> operator OP(const vector<T, D>& vec) { \
-        return NAME(vec);                                                   \
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                           \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                      \
+    template<typename T, typename E, typename S>                               \
+    KERNEL_FLOAT_INLINE vector<T, E> operator OP(const vector<T, E, S>& vec) { \
+        return NAME(vec);                                                      \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
@@ -1087,6 +1176,17 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
 KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
 KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
 
+}  // namespace kernel_float
+
+#endif  //KERNEL_FLOAT_UNOPS_H
+#ifndef KERNEL_FLOAT_CAST_H
+#define KERNEL_FLOAT_CAST_H
+
+
+
+
+namespace kernel_float {
+
 enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
 
 namespace ops {
@@ -1115,25 +1215,37 @@ struct cast<T, T, RoundingMode::ANY> {
 };
 }  // namespace ops
 
+/**
+ * Cast the elements of the given vector `input` to a different type `R`.
+ *
+ * This function casts each element of the input vector to a different data type specified by
+ * template parameter `R`.
+ *
+ * Optionally, the rounding mode can be set using the `Mode` template parameter. The default mode is `ANY`, which
+ * uses the fastest rounding mode available.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 4> input {1.2f, 2.7f, 3.5f, 4.9f};
+ * auto casted = cast<int>(input); // [1, 2, 3, 4]
+ * ```
+ */
 template<typename R, RoundingMode Mode = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
     using F = ops::cast<vector_value_type<V>, R, Mode>;
     return map(F {}, input);
 }
-}  // namespace kernel_float
 
-#endif  //KERNEL_FLOAT_UNOPS_H
-#ifndef KERNEL_FLOAT_CAST_H
-#define KERNEL_FLOAT_CAST_H
-
-
-
-
-namespace kernel_float {
 namespace detail {
 
-template<typename A, typename B>
+template<typename... Es>
 struct broadcast_extent_helper;
+
+template<typename E>
+struct broadcast_extent_helper<E> {
+    using type = E;
+};
 
 template<size_t N>
 struct broadcast_extent_helper<extent<N>, extent<N>> {
@@ -1155,13 +1267,17 @@ struct broadcast_extent_helper<extent<1>, extent<1>> {
     using type = extent<1>;
 };
 
+template<typename A, typename B, typename C, typename... Rest>
+struct broadcast_extent_helper<A, B, C, Rest...>:
+    broadcast_extent_helper<typename broadcast_extent_helper<A, B>::type, C, Rest...> {};
+
 }  // namespace detail
 
-template<typename A, typename B>
-using broadcast_extent = typename detail::broadcast_extent_helper<A, B>::type;
+template<typename... Es>
+using broadcast_extent = typename detail::broadcast_extent_helper<Es...>::type;
 
-template<typename A, typename B>
-using broadcast_vector_extent_type = broadcast_extent<vector_extent_type<A>, vector_extent_type<B>>;
+template<typename... Vs>
+using broadcast_vector_extent_type = broadcast_extent<vector_extent_type<Vs>...>;
 
 template<typename From, typename To>
 static constexpr bool is_broadcastable = is_same<broadcast_extent<From, To>, To>;
@@ -1204,6 +1320,16 @@ struct broadcast_impl<T, extent<1>, extent<1>> {
 /**
  * Takes the given vector `input` and extends its size to a length of `N`. This is only valid if the size of `input`
  * is 1 or `N`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 1> a = {1.0f};
+ * vec<float, 5> x = broadcast<5>(a);  // Returns [1.0f, 1.0f, 1.0f, 1.0f, 1.0f]
+ *
+ * vec<float, 5> b = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+ * vec<float, 5> y = broadcast<5>(b);  // Returns [1.0f, 2.0f, 3.0f, 4.0f, 5.0f]
+ * ```
  */
 template<size_t N, typename V>
 KERNEL_FLOAT_INLINE vector<vector_value_type<V>, extent<N>>
@@ -1221,57 +1347,6 @@ template<typename V, typename R>
 KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<R>>
 broadcast_like(const V& input, const R& other) {
     return broadcast(input, vector_extent_type<R> {});
-}
-
-/**
- * Returns a vector containing `N` copies of `value`.
- */
-template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
-    vector_storage<T, 1> input = {value};
-    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
-}
-
-/**
- * Returns a vector containing `N` copies of `T(0)`.
- */
-template<typename T, size_t N>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> zeros(extent<N> = {}) {
-    vector_storage<T, 1> input = {T {}};
-    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
-}
-
-/**
- * Returns a vector containing `N` copies of `T(1)`.
- */
-template<typename T, size_t N>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> ones(extent<N> = {}) {
-    vector_storage<T, 1> input = {T {1}};
-    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
-}
-
-/**
- * Returns a vector filled with `value` having the same type and size as input vector `V`.
- */
-template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
-KERNEL_FLOAT_INLINE vector<T, E> fill_like(const V&, T value) {
-    return fill(value, E {});
-}
-
-/**
- * Returns a vector filled with zeros having the same type and size as input vector `V`.
- */
-template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
-KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V& = {}) {
-    return zeros<T>(E {});
-}
-
-/**
- * Returns a vector filled with ones having the same type and size as input vector `V`.
- */
-template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
-KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V& = {}) {
-    return ones<T>(E {});
 }
 
 namespace detail {
@@ -1321,11 +1396,112 @@ KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<
 /**
  * Cast the values of the given input vector to type `R` and then broadcast the result to the given size `N`.
  *
- * This function is essentially a `cast` followed by a `broadcast`.
+ * Example
+ * =======
+ * ```
+ * int a = 5;
+ * vec<float, 3> x = convert<float, 3>(a);  // returns [5.0f, 5.0f, 5.0f]
+ *
+ * float b = 5.0f;
+ * vec<float, 3> x = convert<float, 3>(b);  // returns [5.0f, 5.0f, 5.0f]
+ *
+ * vec<int, 3> c = {1, 2, 3};
+ * vec<float, 3> x = convert<float, 3>(c);  // returns [1.0f, 2.0f, 3.0f]
+ * ```
  */
 template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_size = {}) {
     return convert_storage(input);
+}
+
+/**
+ * Returns a vector containing `N` copies of `value`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = fill<3>(42); // return [42, 42, 42]
+ * ```
+ */
+template<size_t N, typename T>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
+    vector_storage<T, 1> input = {value};
+    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
+}
+
+/**
+ * Returns a vector containing `N` copies of `T(0)`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = zeros<int, 3>(); // return [0, 0, 0]
+ * ```
+ */
+template<typename T, size_t N>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> zeros(extent<N> = {}) {
+    vector_storage<T, 1> input = {T {}};
+    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
+}
+
+/**
+ * Returns a vector containing `N` copies of `T(1)`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = ones<int, 3>(); // return [1, 1, 1]
+ * ```
+ */
+template<typename T, size_t N>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> ones(extent<N> = {}) {
+    vector_storage<T, 1> input = {T {1}};
+    return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
+}
+
+/**
+ * Returns a vector filled with `value` having the same type and size as input vector `V`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = {1, 2, 3};
+ * vec<int, 3> b = fill_like(a, 42); // return [42, 42, 42]
+ * ```
+ */
+template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
+KERNEL_FLOAT_INLINE vector<T, E> fill_like(const V&, T value) {
+    return fill(value, E {});
+}
+
+/**
+ * Returns a vector filled with zeros having the same type and size as input vector `V`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = {1, 2, 3};
+ * vec<int, 3> b = zeros_like(a); // return [0, 0, 0]
+ * ```
+ */
+template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
+KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V& = {}) {
+    return zeros<T>(E {});
+}
+
+/**
+ * Returns a vector filled with ones having the same type and size as input vector `V`.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = {1, 2, 3};
+ * vec<int, 3> b = ones_like(a); // return [1, 1, 1]
+ * ```
+ */
+template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
+KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V& = {}) {
+    return ones<T>(E {});
 }
 
 }  // namespace kernel_float
@@ -1347,6 +1523,14 @@ using zip_type = vector<
 /**
  * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
  * function (`fun`) to each pair of corresponding elements.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<bool, 3> make_negative = {true, false, true};
+ * vec<int, 3> input = {1, 2, 3};
+ * vec<int, 3> output = zip([](bool b, int n){ return b ? -n : +n; }, make_negative, input); // returns [-1, 2, -3]
+ * ```
  */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
@@ -1367,8 +1551,17 @@ using zip_common_type = vector<
     broadcast_vector_extent_type<L, R>>;
 
 /**
- * Similar to `zip`, except `zip_common` promotes the element types of the inputs to a common type before applying the
- * binary function.
+ * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
+ * function (`fun`) to each pair of corresponding elements. The elements are promoted to a common type before applying
+ * the binary function.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<int, 3> a = {1.0f, 2.0f, 3.0f};
+ * vec<int, 3> b = {4, 5, 6};
+ * vec<int, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
+ * ```
  */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {
@@ -1604,6 +1797,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<3>> cross(const L& left, const R& right) {
 
 
 
+
 namespace kernel_float {
 
 template<typename T = double>
@@ -1660,6 +1854,29 @@ struct cast<constant<T>, R, m> {
     }
 };
 }  // namespace ops
+
+#define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                      \
+    template<typename L, typename R>                                             \
+    R operator OP(const constant<L>& left, const R& right) {                     \
+        using T = vector_value_type<R>;                                          \
+        return operator OP(T(left.get()), right);                                \
+    }                                                                            \
+                                                                                 \
+    template<typename L, typename R>                                             \
+    L operator OP(const L& left, const constant<R>& right) {                     \
+        using T = vector_value_type<L>;                                          \
+        return operator OP(left, T(right.get()));                                \
+    }                                                                            \
+                                                                                 \
+    template<typename L, typename R, typename T = promote_t<L, R>>               \
+    constant<T> operator OP(const constant<L>& left, const constant<R>& right) { \
+        return constant<T>(operator OP(T(left.get()), T(right.get())));          \
+    }
+
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
 
 }  // namespace kernel_float
 
@@ -2213,7 +2430,7 @@ template<
     typename L,
     typename R,
     typename T = promoted_vector_value_type<L, R>,
-    typename E = broadcast_extent<vector_extent_type<C>, broadcast_vector_extent_type<L, R>>>
+    typename E = broadcast_vector_extent_type<C, L, R>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
 
@@ -2241,7 +2458,7 @@ template<
     typename C,
     typename L,
     typename T = vector_value_type<L>,
-    typename E = broadcast_extent<vector_extent_type<C>, vector_extent_type<L>>>
+    typename E = broadcast_vector_extent_type<C, L>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
     vector<T, extent<1>> false_values = T {};
     return where(cond, true_values, false_values);
@@ -2291,7 +2508,7 @@ template<
     typename B,
     typename C,
     typename T = promoted_vector_value_type<A, B, C>,
-    typename E = broadcast_extent<vector_extent_type<A>, broadcast_vector_extent_type<B, C>>>
+    typename E = broadcast_vector_extent<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
 
@@ -2320,8 +2537,18 @@ KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
 
 namespace kernel_float {
 
+/**
+ * Container that stores ``N`` values of type ``T``.
+ *
+ * It is not recommended to use this class directly, but instead, use the type `vec<T, N>` which is an alias for
+ * `vector<T, extent<N>, vector_storage<T, E>>`.
+ *
+ * @tparam T The type of the values stored within the vector.
+ * @tparam E The size of this vector. Should be of type `extent<N>`.
+ * @tparam S The object's storage class. Should be the type `vector_storage<T, E>`
+ */
 template<typename T, typename E, class S>
-struct vector: S {
+struct vector: public S {
     using value_type = T;
     using extent_type = E;
     using storage_type = S;
@@ -2340,11 +2567,12 @@ struct vector: S {
 
     // For all other arguments, we convert it using `convert_storage` according to broadcast rules
     template<typename U, enabled_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
-    KERNEL_FLOAT_INLINE vector(U&& input) : storage_type(convert_storage<T, E::size>(input)) {}
+    KERNEL_FLOAT_INLINE vector(U&& input) :
+        storage_type(convert_storage<T>(input, extent_type {})) {}
 
     template<typename U, enabled_t<!is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
     KERNEL_FLOAT_INLINE explicit vector(U&& input) :
-        storage_type(convert_storage<T, E::size>(input)) {}
+        storage_type(convert_storage<T>(input, extent_type {})) {}
 
     // List of `N` (where N >= 2), simply pass forward to the storage
     template<
@@ -2355,6 +2583,9 @@ struct vector: S {
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
         storage_type {a, b, rest...} {}
 
+    /**
+     * Returns the number of elements in this vector.
+     */
     KERNEL_FLOAT_INLINE
     static constexpr size_t size() {
         return E::size;
@@ -2370,164 +2601,195 @@ struct vector: S {
         return *this;
     }
 
+    /**
+     * Returns a pointer to the underlying storage data.
+     */
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return storage().data();
+    }
+
+    /**
+     * Returns a pointer to the underlying storage data.
+     */
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return storage().data();
+    }
+
     KERNEL_FLOAT_INLINE
     const T* cdata() const {
         return this->data();
     }
 
+    /**
+     * Returns a reference to the item at index `i`.
+     */
+    KERNEL_FLOAT_INLINE
+    T& at(size_t i) {
+        return *(this->data() + i);
+    }
+
+    /**
+     * Returns a constant reference to the item at index `i`.
+     */
+    KERNEL_FLOAT_INLINE
+    const T& at(size_t i) const {
+        return *(this->data() + i);
+    }
+
+    /**
+     * Returns a reference to the item at index `i`.
+     */
+    KERNEL_FLOAT_INLINE
+    T& operator[](size_t i) {
+        return at(i);
+    }
+
+    /**
+     * Returns a constant reference to the item at index `i`.
+     */
+    KERNEL_FLOAT_INLINE
+    const T& operator[](size_t i) const {
+        return at(i);
+    }
+
+    KERNEL_FLOAT_INLINE
+    T& operator()(size_t i) {
+        return at(i);
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T& operator()(size_t i) const {
+        return at(i);
+    }
+
+    /**
+     * Returns a pointer to the first element.
+     */
     KERNEL_FLOAT_INLINE
     T* begin() {
         return this->data();
     }
 
+    /**
+     * Returns a pointer to the first element.
+     */
     KERNEL_FLOAT_INLINE
     const T* begin() const {
         return this->data();
     }
 
+    /**
+     * Returns a pointer to the first element.
+     */
     KERNEL_FLOAT_INLINE
     const T* cbegin() const {
         return this->data();
     }
 
+    /**
+     * Returns a pointer to one past the last element.
+     */
     KERNEL_FLOAT_INLINE
     T* end() {
         return this->data() + size();
     }
 
+    /**
+     * Returns a pointer to one past the last element.
+     */
     KERNEL_FLOAT_INLINE
     const T* end() const {
         return this->data() + size();
     }
 
+    /**
+     * Returns a pointer to one past the last element.
+     */
     KERNEL_FLOAT_INLINE
     const T* cend() const {
         return this->data() + size();
     }
 
-    KERNEL_FLOAT_INLINE
-    T& at(size_t x) {
-        return *(this->data() + x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& at(size_t x) const {
-        return *(this->data() + x);
-    }
-
+    /**
+     * Copy the element at index `i`.
+     */
     KERNEL_FLOAT_INLINE
     T get(size_t x) const {
         return at(x);
     }
 
+    /**
+     * Set the element at index `i`.
+     */
     KERNEL_FLOAT_INLINE
     void set(size_t x, T value) {
         at(x) = std::move(value);
     }
 
-    KERNEL_FLOAT_INLINE
-    T& operator[](size_t x) {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& operator[](size_t x) const {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    T& operator()(size_t x) {
-        return at(x);
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T& operator()(size_t x) const {
-        return at(x);
-    }
-
+    /**
+     * Cast the elements of this vector to type `R` and returns a new vector.
+     */
     template<typename R, RoundingMode Mode = RoundingMode::ANY>
     KERNEL_FLOAT_INLINE vector<R, extent_type> cast() const {
         return kernel_float::cast<R, Mode>(*this);
     }
 
-    template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> broadcast(extent<N> new_size = {}) const {
+    /**
+     * Broadcast this vector into a new size `(Ns...)`.
+     */
+    template<size_t... Ns>
+    KERNEL_FLOAT_INLINE vector<T, extent<Ns...>> broadcast(extent<Ns...> new_size = {}) const {
         return kernel_float::broadcast(*this, new_size);
     }
 
+    /**
+     * Apply the given function `F` to each element of this vector and returns a new vector with the results.
+     */
     template<typename F>
     KERNEL_FLOAT_INLINE vector<result_t<F, T>, E> map(F fun) const {
         return kernel_float::map(fun, *this);
     }
 
+    /**
+     * Reduce the elements of the given vector input into a single value using the function `F`.
+     *
+     * This function should be a binary function that takes two elements and returns one element. The order in which
+     * the elements are reduced is not specified and depends on the reduction function and the vector type.
+     */
     template<typename F>
     KERNEL_FLOAT_INLINE T reduce(F fun) const {
         return kernel_float::reduce(fun, *this);
     }
 
+    /**
+     * Flattens the elements of this vector. For example, this turns a `vec<vec<int, 2>, 3>` into a `vec<int, 6>`.
+     */
     KERNEL_FLOAT_INLINE flatten_type<vector> flatten() const {
         return kernel_float::flatten(*this);
     }
 
+    /**
+     * Apply the given function `F` to each element of this vector.
+     */
     template<typename F>
     KERNEL_FLOAT_INLINE void for_each(F fun) const {
         return kernel_float::for_each(*this, std::move(fun));
     }
 };
 
-#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
-    template<>                                             \
-    struct into_vector_traits<::T2> {                      \
-        using value_type = T;                              \
-        using extent_type = extent<2>;                     \
-                                                           \
-        KERNEL_FLOAT_INLINE                                \
-        static vector_storage<T, 2> call(::T2 v) {         \
-            return {v.x, v.y};                             \
-        }                                                  \
-    };                                                     \
-                                                           \
-    template<>                                             \
-    struct into_vector_traits<::T3> {                      \
-        using value_type = T;                              \
-        using extent_type = extent<3>;                     \
-                                                           \
-        KERNEL_FLOAT_INLINE                                \
-        static vector_storage<T, 3> call(::T3 v) {         \
-            return {v.x, v.y, v.z};                        \
-        }                                                  \
-    };                                                     \
-                                                           \
-    template<>                                             \
-    struct into_vector_traits<::T4> {                      \
-        using value_type = T;                              \
-        using extent_type = extent<4>;                     \
-                                                           \
-        KERNEL_FLOAT_INLINE                                \
-        static vector_storage<T, 4> call(::T4 v) {         \
-            return {v.x, v.y, v.z, v.w};                   \
-        }                                                  \
-    };
-
+/**
+ * Convert the given `input` into a vector. This function can perform one of the following actions:
+ *
+ * - For vectors `vec<T, N>`, it simply returns the original vector.
+ * - For primitive types `T` (e.g., `int`, `float`, `double`), it returns a `vec<T, 1>`.
+ * - For array-like types (e.g., `int2`, `std::array<float, 3>`, `T[N]`), it returns `vec<T, N>`.
+ */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
     return into_vector_traits<V>::call(std::forward<V>(input));
 }
-
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(int, int1, int2, int3, int4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long, long1, long2, long3, long4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long long, longlong1, longlong2, longlong3, longlong4)
-
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned char, uchar1, uchar2, uchar3, uchar4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned short, ushort1, ushort2, ushort3, ushort4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned int, uint1, uint2, uint3, uint4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long, ulong1, ulong2, ulong3, ulong4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulonglong3, ulonglong4)
-
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
-KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
 template<typename T>
 using scalar = vector<T, extent<1>>;
@@ -2546,6 +2808,19 @@ template<typename T> using vec7 = vec<T, 7>;
 template<typename T> using vec8 = vec<T, 8>;
 // clang-format on
 
+/**
+ * Create a vector from a variable number of input values.
+ *
+ * The resulting vector type is determined by promoting the types of the input values into a common type.
+ * The number of input values determines the dimension of the resulting vector.
+ *
+ * Example
+ * =======
+ * ```
+ * auto v1 = make_vec(1.0f, 2.0f, 3.0f); // Creates a vec<float, 3> [1.0f, 2.0f, 3.0f]
+ * auto v2 = make_vec(1, 2, 3, 4);       // Creates a vec<int, 4> [1, 2, 3, 4]
+ * ```
+ */
 template<typename... Args>
 KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
     using T = promote_t<Args...>;
@@ -3207,6 +3482,14 @@ using kconstant = constant<T>;
 template<typename T = double>
 KERNEL_FLOAT_INLINE constexpr kconstant<T> kconst(T value) {
     return value;
+}
+
+static constexpr kconstant<double> operator""_c(long double v) {
+    return static_cast<double>(v);
+}
+
+static constexpr kconstant<long long int> operator""_c(unsigned long long int v) {
+    return static_cast<long long int>(v);
 }
 
 }  // namespace prelude

@@ -84,6 +84,14 @@ KERNEL_FLOAT_INLINE constexpr kconstant<T> kconst(T value) {
     return value;
 }
 
+static constexpr kconstant<double> operator""_c(long double v) {
+    return static_cast<double>(v);
+}
+
+static constexpr kconstant<long long int> operator""_c(unsigned long long int v) {
+    return static_cast<long long int>(v);
+}
+
 }  // namespace prelude
 }  // namespace kernel_float
 

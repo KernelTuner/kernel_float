@@ -163,8 +163,11 @@ static constexpr size_t compute_max_alignment(size_t total_size, size_t min_alig
 template<typename T, size_t N>
 using vector_storage = aligned_array<T, N, compute_max_alignment(sizeof(T) * N, alignof(T))>;
 
+template<size_t... Ns>
+struct extent;
+
 template<size_t N>
-struct extent {
+struct extent<N> {
     static constexpr size_t value = N;
     static constexpr size_t size = N;
 };
@@ -203,8 +206,54 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     }
 };
 
-template<typename V>
-struct vector_traits;
+#define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
+    template<>                                             \
+    struct into_vector_traits<::T2> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<2>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 2> call(::T2 v) {         \
+            return {v.x, v.y};                             \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct into_vector_traits<::T3> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<3>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 3> call(::T3 v) {         \
+            return {v.x, v.y, v.z};                        \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
+    struct into_vector_traits<::T4> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<4>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 4> call(::T4 v) {         \
+            return {v.x, v.y, v.z, v.w};                   \
+        }                                                  \
+    };
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(char, char1, char2, char3, char4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(short, short1, short2, short3, short4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(int, int1, int2, int3, int4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long, long1, long2, long3, long4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(long long, longlong1, longlong2, longlong3, longlong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned char, uchar1, uchar2, uchar3, uchar4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned short, ushort1, ushort2, ushort3, ushort4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned int, uint1, uint2, uint3, uint4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long, ulong1, ulong2, ulong3, ulong4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulonglong3, ulonglong4)
+
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
+KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
 template<typename T, typename E, typename S = vector_storage<T, E::size>>
 struct vector;
@@ -219,6 +268,9 @@ struct into_vector_traits<vector<T, E, S>> {
         return input.storage();
     }
 };
+
+template<typename V>
+struct vector_traits;
 
 template<typename T, typename E, typename S>
 struct vector_traits<vector<T, E, S>> {
