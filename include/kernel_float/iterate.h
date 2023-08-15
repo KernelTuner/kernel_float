@@ -2,6 +2,7 @@
 #define KERNEL_FLOAT_ITERATE_H
 
 #include "base.h"
+#include "conversion.h"
 
 namespace kernel_float {
 
@@ -105,12 +106,12 @@ struct flatten_helper {
     static constexpr size_t size = N * flatten_helper<T>::size;
 
     template<typename U>
-    KERNEL_FLOAT_INLINE static void call(const V& input, U* output) {
+    KERNEL_FLOAT_INLINE static void call(U* output, const V& input) {
         vector_storage<T, N> storage = into_vector_storage(input);
 
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            flatten_helper<T>::call(storage.data()[i], output + flatten_helper<T>::size * i);
+            flatten_helper<T>::call(output + flatten_helper<T>::size * i, storage.data()[i]);
         }
     }
 };
@@ -121,12 +122,12 @@ struct flatten_helper<T, T, 1> {
     static constexpr size_t size = 1;
 
     KERNEL_FLOAT_INLINE
-    static void call(const T& input, T* output) {
+    static void call(T* output, const T& input) {
         *output = input;
     }
 
     template<typename U>
-    KERNEL_FLOAT_INLINE static void call(const T& input, U* output) {
+    KERNEL_FLOAT_INLINE static void call(U* output, const T& input) {
         *output = ops::cast<T, U> {}(input);
     }
 };
@@ -154,40 +155,66 @@ using flatten_type = vector<flatten_value_type<V>, extent<flatten_size<V>>>;
 template<typename V>
 KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
     vector_storage<flatten_value_type<V>, flatten_size<V>> output;
-    detail::flatten_helper<V>::call(input, output.data());
+    detail::flatten_helper<V>::call(output.data(), input);
     return output;
 }
 
 namespace detail {
+template<typename U, typename V = U, typename T = vector_value_type<V>>
+struct concat_base_helper {
+    static constexpr size_t size = vector_extent<V>;
+
+    KERNEL_FLOAT_INLINE static void call(U* output, const V& input) {
+        vector_storage<T, size> storage = into_vector_storage(input);
+
+        for (size_t i = 0; i < size; i++) {
+            output[i] = ops::cast<T, U> {}(storage.data()[i]);
+        }
+    }
+};
+
+template<typename U, typename T>
+struct concat_base_helper<U, T, T> {
+    static constexpr size_t size = 1;
+
+    KERNEL_FLOAT_INLINE static void call(U* output, const T& input) {
+        *output = ops::cast<T, U> {}(input);
+    }
+};
+
+template<typename T>
+struct concat_base_helper<T, T, T> {
+    static constexpr size_t size = 1;
+
+    KERNEL_FLOAT_INLINE static void call(T* output, const T& input) {
+        *output = input;
+    }
+};
+
 template<typename... Vs>
 struct concat_helper {};
 
 template<typename V, typename... Vs>
 struct concat_helper<V, Vs...> {
-    using value_type = typename promote_type<
-        typename flatten_helper<V>::value_type,
-        typename concat_helper<Vs...>::value_type>::type;
-    static constexpr size_t size = flatten_helper<V>::size + concat_helper<Vs...>::size;
+    using value_type =
+        typename promote_type<vector_value_type<V>, typename concat_helper<Vs...>::value_type>::
+            type;
+    static constexpr size_t size = concat_base_helper<V>::size + concat_helper<Vs...>::size;
 
     template<typename U>
     KERNEL_FLOAT_INLINE static void call(U* output, const V& input, const Vs&... rest) {
-        flatten_helper<V>::call(input, output);
-        concat_helper<Vs...>::call(output + flatten_helper<V>::size, rest...);
+        concat_base_helper<U, V>::call(output, input);
+        concat_helper<Vs...>::call(output + concat_base_helper<U, V>::size, rest...);
     }
 };
 
-template<typename V>
-struct concat_helper<V> {
-    using value_type = typename promote_type<
-        typename flatten_helper<V>::value_type,
-        typename concat_helper<Vs...>::value_type>::type;
-    static constexpr size_t size = flatten_helper<V>::size + concat_helper<Vs...>::size;
+template<>
+struct concat_helper<> {
+    using value_type = void;
+    static constexpr size_t size = 1;
 
     template<typename U>
-    KERNEL_FLOAT_INLINE static void call(U* output, const V& input, const Vs&... rest) {
-        flatten_helper<V>::call(input, output);
-        concat_helper<Vs...>::call(output + flatten_helper<V>::size, rest...);
-    }
+    KERNEL_FLOAT_INLINE static void call(U* output) {}
 };
 }  // namespace detail
 

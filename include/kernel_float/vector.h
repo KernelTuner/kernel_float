@@ -11,7 +11,7 @@
 namespace kernel_float {
 
 /**
- * Container that stores ``N`` values of type ``T``.
+ * Container that stores ``N`` elements of type ``T``.
  *
  * It is not recommended to use this class directly, but instead, use the type `vec<T, N>` which is an alias for
  * `vector<T, extent<N>, vector_storage<T, E>>`.

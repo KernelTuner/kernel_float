@@ -84,6 +84,21 @@ struct promote_type<T, T> {
     using type = T;
 };
 
+template<typename T>
+struct promote_type<void, T> {
+    using type = T;
+};
+
+template<typename T>
+struct promote_type<T, void> {
+    using type = T;
+};
+
+template<>
+struct promote_type<void, void> {
+    using type = void;
+};
+
 #define KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(T, U) \
     template<>                                  \
     struct promote_type<T, U> {                 \
