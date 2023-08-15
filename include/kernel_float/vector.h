@@ -202,6 +202,24 @@ struct vector: public S {
     }
 
     /**
+     * Selects elements from the this vector based on the specified indices.
+     *
+     * Example
+     * =======
+     * ```
+     * vec<float, 6> input = {0, 10, 20, 30, 40, 50};
+     * vec<float, 4> vec1 = select(input, 0, 4, 4, 2); // [0, 40, 40, 20]
+     *
+     * vec<int, 4> indices = {0, 4, 4, 2};
+     * vec<float, 4> vec2 = select(input, indices); // [0, 40, 40, 20]
+     * ```
+     */
+    template<typename V, typename... Is>
+    KERNEL_FLOAT_INLINE select_type<V, Is...> select(const Is&... indices) {
+        return kernel_float::select(*this, indices...);
+    }
+
+    /**
      * Cast the elements of this vector to type `R` and returns a new vector.
      */
     template<typename R, RoundingMode Mode = RoundingMode::ANY>

@@ -114,7 +114,7 @@ template<
     typename B,
     typename C,
     typename T = promoted_vector_value_type<A, B, C>,
-    typename E = broadcast_vector_extent<A, B, C>>
+    typename E = broadcast_vector_extent_type<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
 

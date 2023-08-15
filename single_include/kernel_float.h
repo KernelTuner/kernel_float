@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-15 12:29:08.022922
-// git hash: 9b71242d6c1cd9c4f8f6309824fe0a774bf9719d
+// date: 2023-08-15 13:37:05.439788
+// git hash: e1568c097af1d63ac20eab4032da36b68d7fb431
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -981,8 +981,8 @@ struct flatten_helper {
     using value_type = typename flatten_helper<T>::value_type;
     static constexpr size_t size = N * flatten_helper<T>::size;
 
-    KERNEL_FLOAT_INLINE
-    static void call(const V& input, value_type* output) {
+    template<typename U>
+    KERNEL_FLOAT_INLINE static void call(const V& input, U* output) {
         vector_storage<T, N> storage = into_vector_storage(input);
 
 #pragma unroll
@@ -1000,6 +1000,11 @@ struct flatten_helper<T, T, 1> {
     KERNEL_FLOAT_INLINE
     static void call(const T& input, T* output) {
         *output = input;
+    }
+
+    template<typename U>
+    KERNEL_FLOAT_INLINE static void call(const T& input, U* output) {
+        *output = ops::cast<T, U> {}(input);
     }
 };
 }  // namespace detail
@@ -1029,6 +1034,121 @@ KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
     detail::flatten_helper<V>::call(input, output.data());
     return output;
 }
+
+namespace detail {
+template<typename... Vs>
+struct concat_helper {};
+
+template<typename V, typename... Vs>
+struct concat_helper<V, Vs...> {
+    using value_type = typename promote_type<
+        typename flatten_helper<V>::value_type,
+        typename concat_helper<Vs...>::value_type>::type;
+    static constexpr size_t size = flatten_helper<V>::size + concat_helper<Vs...>::size;
+
+    template<typename U>
+    KERNEL_FLOAT_INLINE static void call(U* output, const V& input, const Vs&... rest) {
+        flatten_helper<V>::call(input, output);
+        concat_helper<Vs...>::call(output + flatten_helper<V>::size, rest...);
+    }
+};
+
+template<typename V>
+struct concat_helper<V> {
+    using value_type = typename promote_type<
+        typename flatten_helper<V>::value_type,
+        typename concat_helper<Vs...>::value_type>::type;
+    static constexpr size_t size = flatten_helper<V>::size + concat_helper<Vs...>::size;
+
+    template<typename U>
+    KERNEL_FLOAT_INLINE static void call(U* output, const V& input, const Vs&... rest) {
+        flatten_helper<V>::call(input, output);
+        concat_helper<Vs...>::call(output + flatten_helper<V>::size, rest...);
+    }
+};
+}  // namespace detail
+
+template<typename... Vs>
+using concat_value_type = promote_t<typename detail::concat_helper<Vs...>::value_type>;
+
+template<typename... Vs>
+static constexpr size_t concat_size = detail::concat_helper<Vs...>::size;
+
+template<typename... Vs>
+using concat_type = vector<concat_value_type<Vs...>, extent<concat_size<Vs...>>>;
+
+/**
+ * Concatenates the provided input values into a single one-dimensional vector.
+ *
+ * This function works in three steps:
+ * - All input values are converted into vectors using the `into_vector` operation.
+ * - The resulting vectors' elements are then promoted into a shared value type.
+ * - The resultant vectors are finally concatenated together.
+ *
+ * For instance, when invoking this function with arguments of types `float, double2, double`:
+ * - After the first step: `vec<float, 1>, vec<double, 2>, vec<double, 1>`
+ * - After the second step: `vec<double, 1>, vec<double, 2>, vec<double, 1>`
+ * - After the third step: `vec<double, 4>`
+ *
+ * Example
+ * =======
+ * ```
+ * double vec1 = 1.0;
+ * double3 vec2 = {3.0, 4.0, 5.0);
+ * double4 vec3 = {6.0, 7.0, 8.0, 9.0};
+ * vec<double, 9> concatenated = concat(vec1, vec2, vec3); // contains [1, 2, 3, 4, 5, 6, 7, 8, 9]
+ *
+ * int num1 = 42;
+ * float num2 = 3.14159;
+ * int2 num3 = {-10, 10};
+ * vec<float, 3> concatenated = concat(num1, num2, num3); // contains [42, 3.14159, -10, 10]
+ * ```
+ */
+template<typename... Vs>
+KERNEL_FLOAT_INLINE concat_type<Vs...> concat(const Vs&... inputs) {
+    vector_storage<concat_value_type<Vs...>, concat_size<Vs...>> output;
+    detail::concat_helper<Vs...>::call(output.data(), inputs...);
+    return output;
+}
+
+template<typename V, typename... Is>
+using select_type = vector<vector_value_type<V>, extent<concat_size<Is...>>>;
+
+/**
+ * Selects elements from the this vector based on the specified indices.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 6> input = {0, 10, 20, 30, 40, 50};
+ * vec<float, 4> vec1 = select(input, 0, 4, 4, 2); // [0, 40, 40, 20]
+ *
+ * vec<int, 4> indices = {0, 4, 4, 2};
+ * vec<float, 4> vec2 = select(input, indices); // [0, 40, 40, 20]
+ * ```
+ */
+template<typename V, typename... Is>
+KERNEL_FLOAT_INLINE select_type<V, Is...> select(const V& input, const Is&... indices) {
+    using T = vector_value_type<V>;
+    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t M = concat_size<Is...>;
+
+    vector_storage<size_t, M> index_set;
+    detail::concat_helper<Is...>::call(index_set.data(), indices...);
+
+    vector_storage<T, N> inputs = into_vector_storage(input);
+    vector_storage<T, M> outputs;
+    for (size_t i = 0; i < M; i++) {
+        size_t j = index_set.data()[i];
+
+        if (j < N) {
+            outputs.data()[i] = inputs.data()[j];
+        }
+    }
+
+    return outputs;
+}
+
 }  // namespace kernel_float
 
 #endif
@@ -2508,7 +2628,7 @@ template<
     typename B,
     typename C,
     typename T = promoted_vector_value_type<A, B, C>,
-    typename E = broadcast_vector_extent<A, B, C>>
+    typename E = broadcast_vector_extent_type<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
 
@@ -2726,6 +2846,24 @@ struct vector: public S {
     KERNEL_FLOAT_INLINE
     void set(size_t x, T value) {
         at(x) = std::move(value);
+    }
+
+    /**
+     * Selects elements from the this vector based on the specified indices.
+     *
+     * Example
+     * =======
+     * ```
+     * vec<float, 6> input = {0, 10, 20, 30, 40, 50};
+     * vec<float, 4> vec1 = select(input, 0, 4, 4, 2); // [0, 40, 40, 20]
+     *
+     * vec<int, 4> indices = {0, 4, 4, 2};
+     * vec<float, 4> vec2 = select(input, indices); // [0, 40, 40, 20]
+     * ```
+     */
+    template<typename V, typename... Is>
+    KERNEL_FLOAT_INLINE select_type<V, Is...> select(const Is&... indices) {
+        return kernel_float::select(*this, indices...);
     }
 
     /**

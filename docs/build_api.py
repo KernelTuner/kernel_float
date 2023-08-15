@@ -83,10 +83,12 @@ groups = {
             "cast",
             "broadcast",
             "convert",
+            "make_vec",
+            "concat",
+            "select",
             "for_each",
         ],
         "Generation": [
-            "make_vec",
             "range",
             "range_like",
             "each_index",
