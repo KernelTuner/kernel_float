@@ -275,7 +275,8 @@ struct vector: public S {
  *
  * - For vectors `vec<T, N>`, it simply returns the original vector.
  * - For primitive types `T` (e.g., `int`, `float`, `double`), it returns a `vec<T, 1>`.
- * - For array-like types (e.g., `int2`, `std::array<float, 3>`, `T[N]`), it returns `vec<T, N>`.
+ * - For array-like types (e.g., `std::array<T, N>`, `T[N]`), it returns `vec<T, N>`.
+ * - For vector-like types (e.g., `int2`, `dim3`), it returns `vec<T, N>`.
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {

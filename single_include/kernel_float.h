@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-15 14:44:32.635916
-// git hash: 35d55328fd0cd6644f23137ea17dd4dd470a870d
+// date: 2023-08-16 12:43:52.493856
+// git hash: b236a521d5decdd59b17361febbb7ee39803b715
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -504,6 +504,24 @@ struct into_vector_traits {
     KERNEL_FLOAT_INLINE
     static vector_storage<T, 1> call(const T& input) {
         return vector_storage<T, 1> {input};
+    }
+};
+
+template<typename T, size_t N>
+struct into_vector_traits<T[N]> {
+    using value_type = T;
+    using extent_type = extent<N>;
+
+    KERNEL_FLOAT_INLINE
+    static vector_storage<T, N> call(const T (&input)[N]) {
+        return call(input, make_index_sequence<N>());
+    }
+
+  private:
+    template<size_t... Is>
+    KERNEL_FLOAT_INLINE static vector_storage<T, N>
+    call(const T (&input)[N], index_sequence<Is...>) {
+        return {input[Is]...};
     }
 };
 
@@ -1731,10 +1749,10 @@ struct cast<constant<T>, R, m> {
         return constant<T>(operator OP(T(left.get()), T(right.get())));          \
     }
 
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
 
 }  // namespace kernel_float
 
@@ -2964,7 +2982,8 @@ struct vector: public S {
  *
  * - For vectors `vec<T, N>`, it simply returns the original vector.
  * - For primitive types `T` (e.g., `int`, `float`, `double`), it returns a `vec<T, 1>`.
- * - For array-like types (e.g., `int2`, `std::array<float, 3>`, `T[N]`), it returns `vec<T, N>`.
+ * - For array-like types (e.g., `std::array<T, N>`, `T[N]`), it returns `vec<T, N>`.
+ * - For vector-like types (e.g., `int2`, `dim3`), it returns `vec<T, N>`.
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
@@ -3664,10 +3683,12 @@ KERNEL_FLOAT_INLINE constexpr kconstant<T> kconst(T value) {
     return value;
 }
 
+KERNEL_FLOAT_INLINE
 static constexpr kconstant<double> operator""_c(long double v) {
     return static_cast<double>(v);
 }
 
+KERNEL_FLOAT_INLINE
 static constexpr kconstant<long long int> operator""_c(unsigned long long int v) {
     return static_cast<long long int>(v);
 }
