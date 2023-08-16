@@ -84,10 +84,12 @@ KERNEL_FLOAT_INLINE constexpr kconstant<T> kconst(T value) {
     return value;
 }
 
+KERNEL_FLOAT_INLINE
 static constexpr kconstant<double> operator""_c(long double v) {
     return static_cast<double>(v);
 }
 
+KERNEL_FLOAT_INLINE
 static constexpr kconstant<long long int> operator""_c(unsigned long long int v) {
     return static_cast<long long int>(v);
 }
