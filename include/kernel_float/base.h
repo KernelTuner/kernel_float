@@ -183,6 +183,24 @@ struct into_vector_traits {
     }
 };
 
+template<typename T, size_t N>
+struct into_vector_traits<T[N]> {
+    using value_type = T;
+    using extent_type = extent<N>;
+
+    KERNEL_FLOAT_INLINE
+    static vector_storage<T, N> call(const T (&input)[N]) {
+        return call(input, make_index_sequence<N>());
+    }
+
+  private:
+    template<size_t... Is>
+    KERNEL_FLOAT_INLINE static vector_storage<T, N>
+    call(const T (&input)[N], index_sequence<Is...>) {
+        return {input[Is]...};
+    }
+};
+
 template<typename V>
 struct into_vector_traits<const V>: into_vector_traits<V> {};
 
