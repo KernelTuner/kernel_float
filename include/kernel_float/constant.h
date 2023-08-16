@@ -79,10 +79,10 @@ struct cast<constant<T>, R, m> {
         return constant<T>(operator OP(T(left.get()), T(right.get())));          \
     }
 
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
-KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
+//KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
 
 }  // namespace kernel_float
 
