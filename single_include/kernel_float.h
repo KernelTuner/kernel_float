@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-16 12:43:52.493856
-// git hash: b236a521d5decdd59b17361febbb7ee39803b715
+// date: 2023-08-16 12:52:02.575852
+// git hash: 2551fb2d3f9e13b7e5e88fd4a852f7395e287305
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -3025,6 +3025,18 @@ KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... 
     using T = promote_t<Args...>;
     return vector_storage<T, sizeof...(Args)> {T {args}...};
 };
+
+#if defined(__cpp_deduction_guides)
+// Deduction guide for `vector`
+template<typename... Args>
+vector(Args&&... args) -> vector<promote_t<Args...>, extent<sizeof...(Args)>>;
+
+// Deduction guides for aliases are only supported from C++20
+#if __cpp_deduction_guides >= 201907L
+template<typename... Args>
+vec(Args&&... args) -> vec<promote_t<Args...>, sizeof...(Args)>;
+#endif
+#endif
 
 }  // namespace kernel_float
 

@@ -319,6 +319,18 @@ KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... 
     return vector_storage<T, sizeof...(Args)> {T {args}...};
 };
 
+#if defined(__cpp_deduction_guides)
+// Deduction guide for `vector`
+template<typename... Args>
+vector(Args&&... args) -> vector<promote_t<Args...>, extent<sizeof...(Args)>>;
+
+// Deduction guides for aliases are only supported from C++20
+#if __cpp_deduction_guides >= 201907L
+template<typename... Args>
+vec(Args&&... args) -> vec<promote_t<Args...>, sizeof...(Args)>;
+#endif
+#endif
+
 }  // namespace kernel_float
 
 #endif
