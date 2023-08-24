@@ -20,26 +20,26 @@ struct complex_type: complex_type_storage<T> {
     KERNEL_FLOAT_INLINE complex_type(complex_type<T2> that) : base_type(that.real(), that.imag()) {}
 
     KERNEL_FLOAT_INLINE
-    complex_type(T real = {}, T imag = {}) : base_type(real, im) {}
+    complex_type(T real = {}, T imag = {}) : base_type(real, imag) {}
 
     KERNEL_FLOAT_INLINE
     T real() const {
-        return re;
+        return this->re;
     }
 
     KERNEL_FLOAT_INLINE
     T imag() const {
-        return im;
+        return this->im;
     }
 
     KERNEL_FLOAT_INLINE
     T norm() const {
-        return re * re + im * im;
+        return real() * real() + imag() * imag();
     }
 
     KERNEL_FLOAT_INLINE
     complex_type conj() const {
-        return {re, -im};
+        return {real(), -imag()};
     }
 };
 
@@ -80,23 +80,17 @@ KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> v) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, complex_type<T> b) {
-    return {
-        a.real() - b.real(), a.imag() - b.imag()
-    }
+    return {a.real() - b.real(), a.imag() - b.imag()};
 }
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator-(T a, complex_type<T> b) {
-    return {
-        a - b.real(), -b.imag()
-    }
+    return {a - b.real(), -b.imag()};
 }
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, T b) {
-    return {
-        a.real() - b, a.imag()
-    }
+    return {a.real() - b, a.imag()};
 }
 
 template<typename T>
@@ -111,9 +105,7 @@ KERNEL_FLOAT_INLINE complex_type<T>& operator-=(complex_type<T>& a, T b) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator*(complex_type<T> a, complex_type<T> b) {
-    return {
-        a.real() * b.real() - a.imag() * b.imag(), a.real() * b.imag() + a.imag() * b.real()
-    }
+    return {a.real() * b.real() - a.imag() * b.imag(), a.real() * b.imag() + a.imag() * b.real()};
 }
 
 template<typename T>
@@ -133,10 +125,7 @@ KERNEL_FLOAT_INLINE complex_type<T>& operator*=(complex_type<T>& a, T b) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator*(T a, complex_type<T> b) {
-    return {
-        a * b.real(),
-        a * b.imag(),
-    };
+    return {a * b.real(), a * b.imag()};
 }
 
 template<typename T>
