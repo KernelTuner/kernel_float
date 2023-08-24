@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-16 12:52:02.575852
-// git hash: 2551fb2d3f9e13b7e5e88fd4a852f7395e287305
+// date: 2023-08-24 20:18:55.064697
+// git hash: df42b93bfd36d8d9f1a397218cd91ebe1c13325f
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -670,26 +670,26 @@ struct complex_type: complex_type_storage<T> {
     KERNEL_FLOAT_INLINE complex_type(complex_type<T2> that) : base_type(that.real(), that.imag()) {}
 
     KERNEL_FLOAT_INLINE
-    complex_type(T real = {}, T imag = {}) : base_type(real, im) {}
+    complex_type(T real = {}, T imag = {}) : base_type(real, imag) {}
 
     KERNEL_FLOAT_INLINE
     T real() const {
-        return re;
+        return this->re;
     }
 
     KERNEL_FLOAT_INLINE
     T imag() const {
-        return im;
+        return this->im;
     }
 
     KERNEL_FLOAT_INLINE
     T norm() const {
-        return re * re + im * im;
+        return real() * real() + imag() * imag();
     }
 
     KERNEL_FLOAT_INLINE
     complex_type conj() const {
-        return {re, -im};
+        return {real(), -imag()};
     }
 };
 
@@ -730,23 +730,17 @@ KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> v) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, complex_type<T> b) {
-    return {
-        a.real() - b.real(), a.imag() - b.imag()
-    }
+    return {a.real() - b.real(), a.imag() - b.imag()};
 }
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator-(T a, complex_type<T> b) {
-    return {
-        a - b.real(), -b.imag()
-    }
+    return {a - b.real(), -b.imag()};
 }
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator-(complex_type<T> a, T b) {
-    return {
-        a.real() - b, a.imag()
-    }
+    return {a.real() - b, a.imag()};
 }
 
 template<typename T>
@@ -761,9 +755,7 @@ KERNEL_FLOAT_INLINE complex_type<T>& operator-=(complex_type<T>& a, T b) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator*(complex_type<T> a, complex_type<T> b) {
-    return {
-        a.real() * b.real() - a.imag() * b.imag(), a.real() * b.imag() + a.imag() * b.real()
-    }
+    return {a.real() * b.real() - a.imag() * b.imag(), a.real() * b.imag() + a.imag() * b.real()};
 }
 
 template<typename T>
@@ -783,10 +775,7 @@ KERNEL_FLOAT_INLINE complex_type<T>& operator*=(complex_type<T>& a, T b) {
 
 template<typename T>
 KERNEL_FLOAT_INLINE complex_type<T> operator*(T a, complex_type<T> b) {
-    return {
-        a * b.real(),
-        a * b.imag(),
-    };
+    return {a * b.real(), a * b.imag()};
 }
 
 template<typename T>
@@ -3155,6 +3144,22 @@ struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
 
 };  // namespace detail
 
+#define KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)                 \
+    namespace ops {                                           \
+    template<>                                                \
+    struct NAME<__half> {                                     \
+        KERNEL_FLOAT_INLINE __half operator()(__half input) { \
+            return __half(ops::NAME<float> {}(float(input))); \
+        }                                                     \
+    };                                                        \
+    }
+
+KERNEL_FLOAT_FP16_UNARY_FORWARD(tan)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(asin)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(acos)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(atan)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(expm1)
+
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                               \
     namespace ops {                                                                 \
@@ -3173,6 +3178,9 @@ struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
         }                                                                           \
     };                                                                              \
     }
+#else
+#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2) KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)
+#endif
 
 KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2)
 KERNEL_FLOAT_FP16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
@@ -3194,6 +3202,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(fast_log, ::hlog, ::h2log)
 KERNEL_FLOAT_FP16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
 KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
 
+#if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                            \
     namespace ops {                                                                               \
     template<>                                                                                    \
@@ -3211,6 +3220,17 @@ KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
         }                                                                                         \
     };                                                                                            \
     }
+#else
+#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                           \
+    namespace ops {                                                              \
+    template<>                                                                   \
+    struct NAME<__half> {                                                        \
+        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const { \
+            return __half(ops::NAME<float> {}(float(left), float(right)));       \
+        }                                                                        \
+    };                                                                           \
+    }
+#endif
 
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_FP16_BINARY_FUN(subtract, __hsub, __hsub2)
@@ -3227,8 +3247,6 @@ KERNEL_FLOAT_FP16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater_equal, __hge, __hgt2)
-
-#endif
 
 #define KERNEL_FLOAT_FP16_CAST(T, TO_HALF, FROM_HALF)    \
     namespace ops {                                      \
@@ -3429,6 +3447,22 @@ struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
 };
 }  // namespace detail
 
+#define KERNEL_FLOAT_BF16_UNARY_FORWARD(NAME)                               \
+    namespace ops {                                                         \
+    template<>                                                              \
+    struct NAME<__nv_bfloat16> {                                            \
+        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) { \
+            return __nv_bfloat16(ops::NAME<float> {}(float(input)));        \
+        }                                                                   \
+    };                                                                      \
+    }
+
+KERNEL_FLOAT_BF16_UNARY_FORWARD(tan)
+KERNEL_FLOAT_BF16_UNARY_FORWARD(asin)
+KERNEL_FLOAT_BF16_UNARY_FORWARD(acos)
+KERNEL_FLOAT_BF16_UNARY_FORWARD(atan)
+KERNEL_FLOAT_BF16_UNARY_FORWARD(expm1)
+
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                       \
     namespace ops {                                                         \
@@ -3441,13 +3475,16 @@ struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
     }                                                                       \
     namespace detail {                                                      \
     template<>                                                              \
-    struct map_bfloat16x2<ops::NAME<__nv_bfloat16>> {                       \
+    struct map_halfx2<ops::NAME<__nv_bfloat16>> {                           \
         KERNEL_FLOAT_INLINE static __nv_bfloat162                           \
         call(ops::NAME<__nv_bfloat16>, __nv_bfloat162 input) {              \
             return FUN2(input);                                             \
         }                                                                   \
     };                                                                      \
     }
+#else
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2) KERNEL_FLOAT_BF16_UNARY_FORWARD(NAME)
+#endif
 
 KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2)
 KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
@@ -3469,6 +3506,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(fast_log, ::hlog, ::h2log)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
 
+#if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                              \
     namespace ops {                                                                 \
     template<>                                                                      \
@@ -3488,6 +3526,18 @@ KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
         }                                                                           \
     };                                                                              \
     }
+#else
+#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                            \
+    namespace ops {                                                               \
+    template<>                                                                    \
+    struct NAME<__nv_bfloat16> {                                                  \
+        KERNEL_FLOAT_INLINE __nv_bfloat16                                         \
+        operator()(__nv_bfloat16 left, __nv_bfloat16 right) const {               \
+            return __nv_bfloat16(ops::NAME<float> {}(float(left), float(right))); \
+        }                                                                         \
+    };                                                                            \
+    }
+#endif
 
 KERNEL_FLOAT_BF16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_BF16_BINARY_FUN(subtract, __hsub, __hsub2)
@@ -3504,8 +3554,6 @@ KERNEL_FLOAT_BF16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
-
-#endif
 
 #define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)           \
     namespace ops {                                             \

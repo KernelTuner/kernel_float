@@ -112,6 +112,22 @@ struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
 
 };  // namespace detail
 
+#define KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)                 \
+    namespace ops {                                           \
+    template<>                                                \
+    struct NAME<__half> {                                     \
+        KERNEL_FLOAT_INLINE __half operator()(__half input) { \
+            return __half(ops::NAME<float> {}(float(input))); \
+        }                                                     \
+    };                                                        \
+    }
+
+KERNEL_FLOAT_FP16_UNARY_FORWARD(tan)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(asin)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(acos)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(atan)
+KERNEL_FLOAT_FP16_UNARY_FORWARD(expm1)
+
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                               \
     namespace ops {                                                                 \
@@ -130,6 +146,9 @@ struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
         }                                                                           \
     };                                                                              \
     }
+#else
+#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2) KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)
+#endif
 
 KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2)
 KERNEL_FLOAT_FP16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
@@ -151,6 +170,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(fast_log, ::hlog, ::h2log)
 KERNEL_FLOAT_FP16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
 KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
 
+#if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                            \
     namespace ops {                                                                               \
     template<>                                                                                    \
@@ -168,6 +188,17 @@ KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
         }                                                                                         \
     };                                                                                            \
     }
+#else
+#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                           \
+    namespace ops {                                                              \
+    template<>                                                                   \
+    struct NAME<__half> {                                                        \
+        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const { \
+            return __half(ops::NAME<float> {}(float(left), float(right)));       \
+        }                                                                        \
+    };                                                                           \
+    }
+#endif
 
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_FP16_BINARY_FUN(subtract, __hsub, __hsub2)
@@ -184,8 +215,6 @@ KERNEL_FLOAT_FP16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater_equal, __hge, __hgt2)
-
-#endif
 
 #define KERNEL_FLOAT_FP16_CAST(T, TO_HALF, FROM_HALF)    \
     namespace ops {                                      \
