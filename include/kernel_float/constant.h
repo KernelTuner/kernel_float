@@ -28,6 +28,12 @@ struct constant {
     T value_;
 };
 
+// Deduction guide for `constant<T>`
+#if defined(__cpp_deduction_guides)
+template<typename T>
+constant(T&&) -> constant<decay_t<T>>;
+#endif
+
 template<typename T = double>
 KERNEL_FLOAT_INLINE constexpr constant<T> make_constant(T value) {
     return value;

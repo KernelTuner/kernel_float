@@ -1,7 +1,9 @@
 #ifndef KERNEL_FLOAT_PRELUDE_H
 #define KERNEL_FLOAT_PRELUDE_H
 
+#include "bf16.h"
 #include "constant.h"
+#include "fp16.h"
 #include "vector.h"
 
 namespace kernel_float {
@@ -93,6 +95,18 @@ KERNEL_FLOAT_INLINE
 static constexpr kconstant<long long int> operator""_c(unsigned long long int v) {
     return static_cast<long long int>(v);
 }
+
+// Deduction guides for aliases are only supported from C++20
+#if defined(__cpp_deduction_guides) && __cpp_deduction_guides >= 201907L
+template<typename T>
+kscalar(T&&) -> kscalar<decay_t<T>>;
+
+template<typename... Args>
+kvec(Args&&...) -> kvec<promote_t<Args...>, sizeof...(Args)>;
+
+template<typename T>
+kconstant(T&&) -> kconstant<decay_t<T>>;
+#endif
 
 }  // namespace prelude
 }  // namespace kernel_float
