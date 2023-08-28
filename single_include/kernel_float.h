@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-24 20:18:55.064697
-// git hash: df42b93bfd36d8d9f1a397218cd91ebe1c13325f
+// date: 2023-08-28 14:29:52.760763
+// git hash: 31ffbb7ca20f9c4a1c43b37e06c99600a8f15b91
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1667,6 +1667,9 @@ namespace kernel_float {
 
 template<typename T = double>
 struct constant {
+    template<typename R>
+    KERNEL_FLOAT_INLINE explicit constexpr constant(const constant<R>& that) : value_(that.get()) {}
+
     KERNEL_FLOAT_INLINE
     constexpr constant(T value = {}) : value_(value) {}
 
@@ -1684,6 +1687,12 @@ struct constant {
     T value_;
 };
 
+// Deduction guide for `constant<T>`
+#if defined(__cpp_deduction_guides)
+template<typename T>
+constant(T&&) -> constant<decay_t<T>>;
+#endif
+
 template<typename T = double>
 KERNEL_FLOAT_INLINE constexpr constant<T> make_constant(T value) {
     return value;
@@ -1691,7 +1700,7 @@ KERNEL_FLOAT_INLINE constexpr constant<T> make_constant(T value) {
 
 template<typename L, typename R>
 struct promote_type<constant<L>, constant<R>> {
-    using type = typename promote_type<L, R>::type;
+    using type = constant<typename promote_type<L, R>::type>;
 };
 
 template<typename L, typename R>
@@ -3651,7 +3660,18 @@ struct dot_helper<__nv_bfloat16, N> {
 
 namespace kernel_float {
 KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
+
+template<>
+struct promote_type<__nv_bfloat16, __half> {
+    using type = float;
 }
+
+template<>
+struct promote_type<__half, __nv_bfloat16> {
+    using type = float;
+}
+
+}  // namespace kernel_float
 
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
 #endif
@@ -3659,6 +3679,8 @@ KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input))
 #endif  //KERNEL_FLOAT_BF16_H
 #ifndef KERNEL_FLOAT_PRELUDE_H
 #define KERNEL_FLOAT_PRELUDE_H
+
+
 
 
 
@@ -3752,6 +3774,18 @@ KERNEL_FLOAT_INLINE
 static constexpr kconstant<long long int> operator""_c(unsigned long long int v) {
     return static_cast<long long int>(v);
 }
+
+// Deduction guides for aliases are only supported from C++20
+#if defined(__cpp_deduction_guides) && __cpp_deduction_guides >= 201907L
+template<typename T>
+kscalar(T&&) -> kscalar<decay_t<T>>;
+
+template<typename... Args>
+kvec(Args&&...) -> kvec<promote_t<Args...>, sizeof...(Args)>;
+
+template<typename T>
+kconstant(T&&) -> kconstant<decay_t<T>>;
+#endif
 
 }  // namespace prelude
 }  // namespace kernel_float
