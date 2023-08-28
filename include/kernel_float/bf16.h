@@ -320,7 +320,18 @@ struct dot_helper<__nv_bfloat16, N> {
 
 namespace kernel_float {
 KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
+
+template<>
+struct promote_type<__nv_bfloat16, __half> {
+    using type = float;
 }
+
+template<>
+struct promote_type<__half, __nv_bfloat16> {
+    using type = float;
+}
+
+}  // namespace kernel_float
 
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
 #endif
