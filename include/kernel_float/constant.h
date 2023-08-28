@@ -8,6 +8,9 @@ namespace kernel_float {
 
 template<typename T = double>
 struct constant {
+    template<typename R>
+    KERNEL_FLOAT_INLINE explicit constexpr constant(const constant<R>& that) : value_(that.get()) {}
+
     KERNEL_FLOAT_INLINE
     constexpr constant(T value = {}) : value_(value) {}
 
@@ -32,7 +35,7 @@ KERNEL_FLOAT_INLINE constexpr constant<T> make_constant(T value) {
 
 template<typename L, typename R>
 struct promote_type<constant<L>, constant<R>> {
-    using type = typename promote_type<L, R>::type;
+    using type = constant<typename promote_type<L, R>::type>;
 };
 
 template<typename L, typename R>
