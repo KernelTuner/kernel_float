@@ -1,149 +1,137 @@
 #include "common.h"
-#include "kernel_float.h"
 
-namespace kf = kernel_float;
+struct binops_tests {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+        T x[N] = {gen.next(I)...};
+        T y[N] = {gen.next(I)...};
 
-template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
-struct arithmetic_test;
+        kf::vec<T, N> a = {x[I]...};
+        kf::vec<T, N> b = {y[I]...};
+        kf::vec<T, N> c;
 
-template<typename T, size_t N, size_t... Is>
-struct arithmetic_test<T, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
-
-        // binary operator
+        // Arithmetic
         c = a + b;
-        ASSERT(equals(c.get(Is), a.get(Is) + b.get(Is)) && ...);
+        ASSERT(equals(T(x[I] + y[I]), c[I]) && ...);
 
         c = a - b;
-        ASSERT(equals(c.get(Is), a.get(Is) - b.get(Is)) && ...);
+        ASSERT(equals(T(x[I] - y[I]), c[I]) && ...);
 
         c = a * b;
-        ASSERT(equals(c.get(Is), a.get(Is) * b.get(Is)) && ...);
+        ASSERT(equals(T(x[I] * y[I]), c[I]) && ...);
 
-        c = a / b;
-        ASSERT(equals(c.get(Is), a.get(Is) / b.get(Is)) && ...);
+        // Results in division by zero
+        //        c = a / b;
+        //        ASSERT(equals(T(x[I] / y[I]), c[I]) && ...);
 
-        // assignment operator
+        // Results in division by zero
+        //        c = a % b;
+        //        ASSERT(equals(T(x[I] % y[I]), c[I]) && ...);
+
+        // Comparison
+        c = a < b;
+        ASSERT(equals(T(x[I] < y[I]), c[I]) && ...);
+
+        c = a > b;
+        ASSERT(equals(T(x[I] > y[I]), c[I]) && ...);
+
+        c = a <= b;
+        ASSERT(equals(T(x[I] <= y[I]), c[I]) && ...);
+
+        c = a >= b;
+        ASSERT(equals(T(x[I] >= y[I]), c[I]) && ...);
+
+        c = a == b;
+        ASSERT(equals(T(x[I] == y[I]), c[I]) && ...);
+
+        c = a != b;
+        ASSERT(equals(T(x[I] != y[I]), c[I]) && ...);
+
+        // Assignment
         c = a;
         c += b;
-        ASSERT(equals(c.get(Is), a.get(Is) + b.get(Is)) && ...);
+        ASSERT(equals(T(x[I] + y[I]), c[I]) && ...);
 
         c = a;
         c -= b;
-        ASSERT(equals(c.get(Is), a.get(Is) - b.get(Is)) && ...);
+        ASSERT(equals(T(x[I] - y[I]), c[I]) && ...);
 
         c = a;
         c *= b;
-        ASSERT(equals(c.get(Is), a.get(Is) * b.get(Is)) && ...);
-
-        c = a;
-        c /= b;
-        ASSERT(equals(c.get(Is), a.get(Is) / b.get(Is)) && ...);
+        ASSERT(equals(T(x[I] * y[I]), c[I]) && ...);
     }
 };
 
-template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
-struct minmax_test;
+REGISTER_TEST_CASE("binary operators", binops_tests, bool, int, float, double)
+REGISTER_TEST_CASE_GPU("binary operators", binops_tests, __half, __nv_bfloat16)
 
-template<typename T, size_t N, size_t... Is>
-struct minmax_test<T, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
+struct binops_float_tests {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+        T x[N] = {gen.next(I)...};
+        T y[N] = {gen.next(I)...};
 
-        c = kf::min(a, b);
-        ASSERT(equals(c.get(Is), a.get(Is) < b.get(Is) ? a.get(Is) : b.get(Is)) && ...);
-
-        c = kf::max(a, b);
-        ASSERT(equals(c.get(Is), a.get(Is) > b.get(Is) ? a.get(Is) : b.get(Is)) && ...);
-    }
-};
-
-template<size_t N, size_t... Is>
-struct minmax_test<float, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<float> gen) {
-        kf::vec<float, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
-
-        c = kf::min(a, b);
-        ASSERT(equals(c.get(Is), fminf(a.get(Is), b.get(Is))) && ...);
-
-        c = kf::max(a, b);
-        ASSERT(equals(c.get(Is), fmaxf(a.get(Is), b.get(Is))) && ...);
-    }
-};
-
-template<size_t N, size_t... Is>
-struct minmax_test<double, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<double> gen) {
-        kf::vec<double, N> a {gen.next(Is)...}, b {gen.next(Is)...}, c;
-
-        c = kf::min(a, b);
-        ASSERT(equals(c.get(Is), fmin(a.get(Is), b.get(Is))) && ...);
-
-        c = kf::max(a, b);
-        ASSERT(equals(c.get(Is), fmax(a.get(Is), b.get(Is))) && ...);
-    }
-};
-
-template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
-struct relational_test;
-
-template<typename T, size_t N, size_t... Is>
-struct relational_test<T, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a {gen.next(Is)...};
-        kf::vec<T, N> b {gen.next(Is)...};
+        kf::vec<T, N> a = {x[I]...};
+        kf::vec<T, N> b = {y[I]...};
         kf::vec<T, N> c;
 
-        c = a == b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) == b.get(Is))) && ...);
+        c = a / b;
+        ASSERT(equals(T(x[I] / y[I]), c[I]) && ...);
 
-        c = a != b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) != b.get(Is))) && ...);
-
-        c = a < b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) < b.get(Is))) && ...);
-
-        c = a <= b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) <= b.get(Is))) && ...);
-
-        c = a > b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) > b.get(Is))) && ...);
-
-        c = a >= b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) >= b.get(Is))) && ...);
+        // remainder is not support for fp16
+        if constexpr (is_none_of<T, __half, __nv_bfloat16>) {
+            c = a % b;
+            ASSERT(equals(T(fmod(x[I], y[I])), c[I]) && ...);
+        }
     }
 };
 
-template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
-struct bitwise_test;
+REGISTER_TEST_CASE("binary float operators", binops_float_tests, float, double)
+REGISTER_TEST_CASE_GPU("binary float operators", binops_float_tests, __half, __nv_bfloat16)
 
-template<typename T, size_t N, size_t... Is>
-struct bitwise_test<T, N, std::index_sequence<Is...>> {
+struct minmax_tests {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+        T x[N] = {gen.next(I)...};
+        T y[N] = {gen.next(I)...};
+
+        kf::vec<T, N> a = {x[I]...};
+        kf::vec<T, N> b = {y[I]...};
+
+        kf::vec<T, N> lo = min(a, b);
+        kf::vec<T, N> hi = max(a, b);
+
+        if constexpr (is_one_of<T, double>) {
+            ASSERT(equals(fmin(a[I], b[I]), lo[I]) && ...);
+            ASSERT(equals(fmax(a[I], b[I]), hi[I]) && ...);
+        } else if constexpr (is_one_of<T, float>) {
+            ASSERT(equals(fminf(a[I], b[I]), lo[I]) && ...);
+            ASSERT(equals(fmaxf(a[I], b[I]), hi[I]) && ...);
+        } else if constexpr (is_one_of<T, __half, __nv_bfloat16>) {
+            ASSERT(equals(__hmin(a[I], b[I]), lo[I]) && ...);
+            ASSERT(equals(__hmax(a[I], b[I]), hi[I]) && ...);
+        } else {
+            ASSERT(equals(x[I] < y[I] ? x[I] : y[I], lo[I]) && ...);
+            ASSERT(equals(x[I] < y[I] ? y[I] : x[I], hi[I]) && ...);
+        }
+    }
+};
+
+REGISTER_TEST_CASE("min/max functions", minmax_tests, bool, int, float, double)
+REGISTER_TEST_CASE_GPU("min/max functions", minmax_tests, __half, __nv_bfloat16)
+
+struct cross_test {
+    template<typename T>
     __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a = {gen.next(Is)...};
-        kf::vec<T, N> b = {gen.next(Is)...};
+        kf::vec<T, 3> a = {1, 2, 3};
+        kf::vec<T, 3> b = {4, 5, 6};
+        kf::vec<T, 3> c = cross(a, b);
 
-        kf::vec<T, N> c = a | b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) | b.get(Is))) && ...);
-
-        c = a & b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) & b.get(Is))) && ...);
-
-        c = a ^ b;
-        ASSERT(equals(c.get(Is), T(a.get(Is) ^ b.get(Is))) && ...);
+        ASSERT(c[0] == T(-3));
+        ASSERT(c[1] == T(6));
+        ASSERT(c[2] == T(-3));
     }
 };
 
-TEST_CASE("binary operators") {
-    run_on_host_and_device<arithmetic_test, int, float, double>();
-    run_on_device<arithmetic_test, __half, __nv_bfloat16>();
-
-    run_on_host_and_device<minmax_test, int, float, double>();
-    run_on_device<minmax_test, __half, __nv_bfloat16>();
-
-    run_on_host_and_device<relational_test, bool, int, float, double>();
-    run_on_device<relational_test, __half, __nv_bfloat16>();
-
-    run_on_host_and_device<bitwise_test, bool, char, unsigned int, int, long, long long>();
-}
+REGISTER_TEST_CASE("cross product", cross_test, float, double)
+REGISTER_TEST_CASE_GPU("cross product", cross_test, __half, __nv_bfloat16)

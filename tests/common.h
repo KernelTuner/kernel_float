@@ -4,19 +4,14 @@
 #include <cuda_fp16.h>
 
 #include <cstdint>
-#include <random>
-#include <string>
 
 #include "catch2/catch_all.hpp"
 #include "kernel_float.h"
 
-#define ASSERT(expr) check_assertions((expr), #expr, __FILE__, __LINE__);
+namespace kf = kernel_float;
 
-static __host__ __device__ int
-check_assertions(bool result, const char* expr, const char* file, int line) {
-    if (result)
-        return 0;
-
+namespace detail {
+static __host__ __device__ void __assertion_failed(const char* expr, const char* file, int line) {
 #ifndef __CUDA_ARCH__
     std::string msg =
         "assertion failed: " + std::string(expr) + " (" + file + ":" + std::to_string(line) + ")";
@@ -28,43 +23,163 @@ check_assertions(bool result, const char* expr, const char* file, int line) {
         ;
 #endif
 }
+}  // namespace detail
 
-template<typename... Ts>
-__host__ __device__ void ignore(Ts...) {}
+#define ASSERT(...)                                                         \
+    do {                                                                    \
+        bool __result = (__VA_ARGS__);                                      \
+        if (!__result) {                                                    \
+            ::detail::__assertion_failed(#__VA_ARGS__, __FILE__, __LINE__); \
+        }                                                                   \
+    } while (0)
 
+namespace detail {
 template<typename T>
 struct equals_helper {
-    __host__ __device__ static bool call(T left, T right) {
+    static __host__ __device__ bool call(const T& left, const T& right) {
         return left == right;
     }
 };
 
 template<>
 struct equals_helper<double> {
-    __host__ __device__ static bool call(double left, double right) {
-        return (isnan(left) && isnan(right)) || (isinf(left) && isinf(right)) || left == right;
+    static __host__ __device__ bool call(const double& left, const double& right) {
+        return (isnan(left) && isnan(right)) || (isinf(left) && isinf(right)) || (left == right);
     }
 };
 
 template<>
-struct equals_helper<float>: equals_helper<double> {};
+struct equals_helper<float> {
+    static __host__ __device__ bool call(const float& left, const float& right) {
+        return (isnan(left) && isnan(right)) || (isinf(left) && isinf(right)) || (left == right);
+    }
+};
 
 template<>
-struct equals_helper<__half>: equals_helper<double> {};
+struct equals_helper<__half> {
+    static __host__ __device__ bool call(const __half& left, const __half& right) {
+        return equals_helper<float>::call(float(left), float(right));
+    }
+};
+
+template<>
+struct equals_helper<__nv_bfloat16> {
+    static __host__ __device__ bool call(const __nv_bfloat16& left, const __nv_bfloat16& right) {
+        return equals_helper<float>::call(float(left), float(right));
+    }
+};
+
+}  // namespace detail
 
 template<typename T>
-__host__ __device__ bool equals(T left, T right) {
-    return equals_helper<T>::call(left, right);
+__host__ __device__ bool equals(const T& left, const T& right) {
+    return detail::equals_helper<T>::call(left, right);
 }
 
-template<typename... Ts>
-struct type_sequence {};
-
-template<size_t... Is>
-struct size_sequence {};
+namespace detail {
+template<typename T, typename... Us>
+struct is_one_of_helper;
 
 template<typename T>
-struct type_name {};
+struct is_one_of_helper<T>: std::false_type {};
+
+template<typename T, typename... Us>
+struct is_one_of_helper<T, T, Us...>: std::true_type {};
+
+template<typename T, typename U, typename... Us>
+struct is_one_of_helper<T, U, Us...>: is_one_of_helper<T, Us...> {};
+}  // namespace detail
+
+template<typename T, typename... Us>
+static constexpr bool is_one_of = detail::is_one_of_helper<T, Us...>::value;
+
+template<typename T, typename... Us>
+static constexpr bool is_none_of = !detail::is_one_of_helper<T, Us...>::value;
+
+namespace detail {
+template<typename T, typename = void>
+struct generator_value;
+
+template<>
+struct generator_value<bool> {
+    static __host__ __device__ bool call(uint64_t bits) {
+        return bool(bits % 2);
+    }
+};
+
+template<typename T>
+struct generator_value<T, std::enable_if_t<std::is_integral_v<T> && !std::is_same_v<T, bool>>> {
+    static constexpr T min_value = std::numeric_limits<T>::min();
+    static constexpr T max_value = std::numeric_limits<T>::max();
+
+    static __host__ __device__ T call(uint64_t bits) {
+        if ((bits & 0xf) == 0xa) {
+            return T(0);
+        } else if ((bits & 0xf) == 0xb) {
+            return min_value;
+        } else if ((bits & 0xf) == 0xc) {
+            return max_value;
+        } else {
+            return T(bits);
+        }
+    }
+};
+
+template<typename T>
+struct generator_value<T, std::enable_if_t<std::is_floating_point_v<T>>> {
+    static constexpr T max_value = std::numeric_limits<uint64_t>::max();
+
+    __host__ __device__ static T call(uint64_t bits) {
+        if ((bits & 0xf) == 0) {
+            return T(0) / T(0);  // nan
+        } else if ((bits & 0xf) == 1) {
+            return T(1) / T(0);  // inf
+        } else if ((bits & 0xf) == 2) {
+            return -T(1) / T(0);  // +inf
+        } else if ((bits & 0xf) == 3) {
+            return T(0);
+        } else {
+            return (T(bits) / T(max_value)) * (bits % 2 ? T(-1) : T(+1));
+        }
+    }
+};
+
+template<>
+struct generator_value<__half> {
+    __host__ __device__ static __half call(uint64_t seed) {
+        return __half(generator_value<float>::call(seed));
+    }
+};
+
+template<>
+struct generator_value<__nv_bfloat16> {
+    __host__ __device__ static __nv_bfloat16 call(uint64_t seed) {
+        return __nv_bfloat16(generator_value<float>::call(seed));
+    }
+};
+}  // namespace detail
+
+template<typename T = int>
+struct generator {
+    __host__ __device__ generator(uint64_t seed = 6364136223846793005ULL) : seed_(seed) {
+        next();
+    }
+
+    template<typename R = T>
+    __host__ __device__ T next(R ignore = {}) {
+        seed_ = 6364136223846793005ULL * seed_ + 1442695040888963407ULL;
+        return detail::generator_value<T>::call(seed_);
+    }
+
+  private:
+    uint64_t seed_;
+};
+
+template<typename T>
+struct type_name {
+    static constexpr const char* value = "???";
+};
+
 #define DEFINE_TYPE_NAME(T)                      \
     template<>                                   \
     struct type_name<T> {                        \
@@ -72,205 +187,123 @@ struct type_name {};
     };
 
 DEFINE_TYPE_NAME(bool)
+DEFINE_TYPE_NAME(signed char)
 DEFINE_TYPE_NAME(char)
 DEFINE_TYPE_NAME(short)
 DEFINE_TYPE_NAME(int)
-DEFINE_TYPE_NAME(unsigned int)
 DEFINE_TYPE_NAME(long)
-DEFINE_TYPE_NAME(unsigned long)
 DEFINE_TYPE_NAME(long long)
+DEFINE_TYPE_NAME(unsigned char)
+DEFINE_TYPE_NAME(unsigned short)
+DEFINE_TYPE_NAME(unsigned int)
+DEFINE_TYPE_NAME(unsigned long)
+DEFINE_TYPE_NAME(unsigned long long)
 DEFINE_TYPE_NAME(__half)
 DEFINE_TYPE_NAME(__nv_bfloat16)
 DEFINE_TYPE_NAME(float)
 DEFINE_TYPE_NAME(double)
 
-template<typename T, typename = void>
-struct generate_value;
-
-template<>
-struct generate_value<bool> {
-    __host__ __device__ static bool call(uint64_t value) {
-        return bool(value & 0x1);
-    }
-};
-
 template<typename T>
-struct generate_value<
-    T,
-    typename std::enable_if<std::is_integral<T>::value && !std::is_same<T, bool>::value>::type> {
-    __host__ __device__ static T call(uint64_t value) {
-        return T(value);
-    }
-};
+struct type_sequence {};
 
-template<typename T>
-struct generate_value<T, typename std::enable_if<std::is_floating_point<T>::value>::type> {
-    __host__ __device__ static T call(uint64_t value) {
-        if ((value & 0xf) == 0) {
-            return T(0) / T(0);  // nan
-        } else if ((value & 0xf) == 1) {
-            return T(1) / T(0);  // inf
-        } else if ((value & 0xf) == 2) {
-            return -T(0) / T(0);  // +inf
-        } else if ((value & 0xf) == 3) {
-            return 0;
-        } else {
-            return T(value) / T(UINT64_MAX);
-        }
-    }
-};
+template<size_t... Is>
+struct size_sequence {};
 
-template<>
-struct generate_value<__half> {
-    __host__ __device__ static __half call(uint64_t seed) {
-        return __half(generate_value<float>::call(seed));
-    }
-};
+using default_size_sequence = size_sequence<1, 2, 3, 4, 5, 6, 7, 8>;
 
-template<>
-struct generate_value<__nv_bfloat16> {
-    __host__ __device__ static __nv_bfloat16 call(uint64_t seed) {
-        return __nv_bfloat16(generate_value<float>::call(seed));
-    }
-};
-
-template<typename T>
-struct generator {
-    __host__ __device__ generator(uint64_t seed = 6364136223846793005ULL) : seed_(seed) {
-        next();
-    }
-
-    __host__ __device__ T next(uint64_t ignore = 0) {
-        seed_ = 6364136223846793005ULL * seed_ + 1442695040888963407ULL;
-        return generate_value<T>::call(seed_);
-    }
-
-    __host__ __device__ T operator()() {
-        return next();
-    }
-
-  private:
-    uint64_t seed_;
-};
-
-template<template<typename, size_t> class F, typename T>
-void run_sizes(size_sequence<>) {
-    // empty
+namespace detail {
+template<typename T, typename F, size_t N, size_t... Ns>
+void iterate_sizes(F runner, size_sequence<N, Ns...>) {
+    runner.template run<T, N>();
+    iterate_sizes<T>(runner, size_sequence<Ns...> {});
 }
 
-template<template<typename, size_t> class F, typename T, size_t N, size_t... Is, typename... Args>
-void run_sizes(size_sequence<N, Is...>, Args... args) {
-    //SECTION("size=" + std::to_string(N))
-    {
-        INFO("N=" << N);
-        F<T, N> {}(args...);
-    }
+template<typename T, typename F>
+void iterate_sizes(F, size_sequence<>) {}
 
-    run_sizes<F, T>(size_sequence<Is...> {}, args...);
-}
-
-template<
-    template<typename, size_t>
-    class F,
-    typename T,
-    typename... Ts,
-    size_t... Is,
-    typename... Args>
-void run_combinations(type_sequence<T, Ts...>, size_sequence<Is...>, Args... args) {
-    //SECTION(std::string("type=") + type_name<T>::value)
-    {
-        INFO("T=" << type_name<T>::value);
-        run_sizes<F, T>(size_sequence<Is...> {});
-    }
-
-    run_combinations<F>(type_sequence<Ts...> {}, size_sequence<Is...> {}, args...);
-}
-
-template<template<typename, size_t> class F, typename... Ts, size_t... Is, typename... Args>
-void run_combinations(type_sequence<>, size_sequence<Is...>, Args... args) {}
-
-template<template<typename, size_t> class F, typename T, size_t N>
+template<typename F>
 struct host_runner {
-    template<typename... Args>
-    void operator()(Args... args) {
-        for (size_t i = 0; i < 5; i++) {
-            INFO("seed=" << i);
-            F<T, N> {}(generator<T>(i), args...);
+    F fun;
+
+    host_runner(F fun) : fun(fun) {}
+
+    template<typename T, size_t N>
+    void run() {
+        for (int seed = 0; seed < 5; seed++) {
+            INFO("T=" << type_name<T>::value);
+            INFO("N=" << N);
+            INFO("seed=" << seed);
+
+            if constexpr (std::is_invocable_v<F>) {
+                fun();
+            } else if constexpr (std::is_invocable_v<F, generator<T>>) {
+                fun(generator<T>(seed));
+            } else {
+                fun(generator<T>(seed), std::make_index_sequence<N> {});
+            }
         }
     }
 };
-
-template<template<typename, size_t> class F>
-struct host_runner_helper {
-    template<typename T, size_t N>
-    using type = host_runner<F, T, N>;
-};
-
-template<template<typename, size_t> class F, typename... Ts, size_t... Is>
-void run_on_host(type_sequence<Ts...>, size_sequence<Is...>) {
-    run_combinations<host_runner_helper<F>::template type>(
-        type_sequence<Ts...> {},
-        size_sequence<Is...> {});
-}
-
-template<template<typename, size_t> class F, typename... Ts>
-void run_on_host(type_sequence<Ts...> = {}) {
-    run_on_host<F>(type_sequence<Ts...> {}, size_sequence<1, 2, 3, 4, 7, 8> {});
-}
 
 template<typename F, typename... Args>
 __global__ void kernel(F fun, Args... args) {
     fun(args...);
 }
 
-template<template<typename, size_t> class F, typename T, size_t N>
+template<typename F>
 struct device_runner {
-    template<typename... Args>
-    void operator()(Args... args) {
-        static bool gpu_enabled = true;
-        if (!gpu_enabled) {
-            return;
+    F fun;
+
+    device_runner(F fun) : fun(fun) {}
+
+    template<typename T, size_t N>
+    void run() {
+        if (cudaSetDevice(0) != cudaSuccess) {
+            FAIL("failed to initialize CUDA device, does this machine have a GPU?");
         }
 
-        cudaError_t code = cudaSetDevice(0);
-        if (code != cudaSuccess) {
-            gpu_enabled = false;
-            WARN("skipping device code");
-            return;
-        }
+        for (int seed = 0; seed < 5; seed++) {
+            INFO("T=" << type_name<T>::value);
+            INFO("N=" << N);
+            INFO("seed=" << seed);
 
-        //SECTION("environment=GPU")
-        {
-            for (size_t i = 0; i < 5; i++) {
-                INFO("seed=" << i);
-                CHECK(cudaDeviceSynchronize() == cudaSuccess);
-                kernel<<<1, 1>>>(F<T, N> {}, generator<T>(i), args...);
-                CHECK(cudaDeviceSynchronize() == cudaSuccess);
+            CHECK(cudaDeviceSynchronize() == cudaSuccess);
+
+            if constexpr (std::is_invocable_v<F>) {
+                kernel<<<1, 1>>>(fun);
+            } else if constexpr (std::is_invocable_v<F, generator<T>>) {
+                kernel<<<1, 1>>>(fun, generator<T>(seed));
+            } else {
+                kernel<<<1, 1>>>(fun, generator<T>(seed), std::make_index_sequence<N> {});
             }
+
+            CHECK(cudaDeviceSynchronize() == cudaSuccess);
         }
     }
 };
+}  // namespace detail
 
-template<template<typename, size_t> class F>
-struct device_runner_helper {
-    template<typename T, size_t N>
-    using type = device_runner<F, T, N>;
-};
-
-template<template<typename, size_t> class F, typename... Ts, size_t... Is>
-void run_on_device(type_sequence<Ts...>, size_sequence<Is...>) {
-    run_combinations<device_runner_helper<F>::template type>(
-        type_sequence<Ts...> {},
-        size_sequence<Is...> {});
+template<typename F, typename T, size_t... Ns>
+void run_tests_host(F fun, type_sequence<T>, size_sequence<Ns...>) {
+    detail::iterate_sizes<T>(detail::host_runner<F>(fun), size_sequence<Ns...> {});
 }
 
-template<template<typename, size_t> class F, typename... Ts>
-void run_on_device(type_sequence<Ts...> = {}) {
-    run_on_device<F>(type_sequence<Ts...> {}, size_sequence<1, 2, 3, 4, 7, 8> {});
+template<typename F, typename T, size_t... Ns>
+void run_tests_device(F fun, type_sequence<T>, size_sequence<Ns...>) {
+    detail::iterate_sizes<T>(detail::device_runner<F>(fun), size_sequence<Ns...> {});
 }
 
-template<template<typename, size_t> class F, typename... Ts>
-void run_on_host_and_device(type_sequence<Ts...> = {}) {
-    run_on_host<F>(type_sequence<Ts...> {});
-    run_on_device<F>(type_sequence<Ts...> {});
-}
+#define REGISTER_TEST_CASE_CPU(NAME, F, ...)                                        \
+    TEMPLATE_TEST_CASE(NAME " - CPU", "", __VA_ARGS__) {                            \
+        run_tests_host(F {}, type_sequence<TestType> {}, default_size_sequence {}); \
+    }
+
+#define REGISTER_TEST_CASE_GPU(NAME, F, ...)                                          \
+    TEMPLATE_TEST_CASE(NAME " - GPU", "[GPU]", __VA_ARGS__) {                         \
+        run_tests_device(F {}, type_sequence<TestType> {}, default_size_sequence {}); \
+    }
+
+#undef REGISTER_TEST_CASE
+#define REGISTER_TEST_CASE(NAME, F, ...)         \
+    REGISTER_TEST_CASE_CPU(NAME, F, __VA_ARGS__) \
+    REGISTER_TEST_CASE_GPU(NAME, F, __VA_ARGS__)

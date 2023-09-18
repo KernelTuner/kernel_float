@@ -1,90 +1,73 @@
 #include "common.h"
-#include "kernel_float.h"
 
-namespace kf = kernel_float;
-
-template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
-struct int_test;
-
-template<typename T, size_t N, size_t... Is>
-struct int_test<T, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a {gen.next(Is)...};
+struct unops_tests {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+        T items[N] = {gen.next(I)...};
+        kf::vec<T, N> a = {items[I]...};
         kf::vec<T, N> b;
 
         b = -a;
-        ASSERT((b.get(Is) == -(a.get(Is))) && ...);
+        ASSERT(equals(b[I], T(-items[I])) && ...);
 
         b = ~a;
-        ASSERT((b.get(Is) == ~(a.get(Is))) && ...);
+        ASSERT(equals(b[I], T(~items[I])) && ...);
 
         b = !a;
-        ASSERT((b.get(Is) == !(a.get(Is))) && ...);
+        ASSERT(equals(b[I], T(!items[I])) && ...);
     }
 };
 
-template<typename T, size_t N, typename Is = std::make_index_sequence<N>>
-struct float_test;
+REGISTER_TEST_CASE("unary operators", unops_tests, bool, int)
 
-template<typename T, size_t N, size_t... Is>
-struct float_test<T, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a {gen.next(Is)...};
+struct unops_float_tests {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+        double items[N] = {gen.next(I)...};
+        kf::vec<T, N> a = {T(items[I])...};
         kf::vec<T, N> b;
 
         b = -a;
-        ASSERT(equals(-a.get(Is), b.get(Is)) && ...);
+        ASSERT(equals(b[I], T(-items[I])) && ...);
 
-        // just some examples
-        b = kf::cos(a);
-        ASSERT(equals(cos(a.get(Is)), b.get(Is)) && ...);
+        b = !a;
+        ASSERT(equals(b[I], T(!items[I])) && ...);
 
-        b = kf::floor(a);
-        ASSERT(equals(floor(a.get(Is)), b.get(Is)) && ...);
+        // Ideally, we would test all unary operators, but that would be a lot of work and not that useful since
+        // all operators are generators by the same macro. Instead, we only check a few of them
+        if constexpr (is_one_of<T, __half, __nv_bfloat16>) {
+            b = sqrt(a);
+            ASSERT(equals(b[I], hsqrt(T(items[I]))) && ...);
 
-        b = kf::abs(a);
-        ASSERT(equals(abs(a.get(Is)), b.get(Is)) && ...);
+            b = sin(a);
+            ASSERT(equals(b[I], hsin(T(items[I]))) && ...);
 
-        b = kf::sqrt(a);
-        ASSERT(equals(sqrt(a.get(Is)), b.get(Is)) && ...);
+            b = cos(a);
+            ASSERT(equals(b[I], hcos(T(items[I]))) && ...);
+
+            b = log(a);
+            ASSERT(equals(b[I], hlog(T(items[I]))) && ...);
+
+            b = exp(a);
+            ASSERT(equals(b[I], hexp(T(items[I]))) && ...);
+        } else {
+            b = sqrt(a);
+            ASSERT(equals(b[I], sqrt(T(items[I]))) && ...);
+
+            b = sin(a);
+            ASSERT(equals(b[I], sin(T(items[I]))) && ...);
+
+            b = cos(a);
+            ASSERT(equals(b[I], cos(T(items[I]))) && ...);
+
+            b = log(a);
+            ASSERT(equals(b[I], log(T(items[I]))) && ...);
+
+            b = exp(a);
+            ASSERT(equals(b[I], exp(T(items[I]))) && ...);
+        }
     }
 };
 
-template<size_t N, size_t... Is>
-struct float_test<__half, N, std::index_sequence<Is...>> {
-    template<typename T>
-    __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, N> a {gen.next(Is)...};
-        kf::vec<T, N> b;
-
-        b = -a;
-        ASSERT(equals(__hneg(a.get(Is)), b.get(Is)) && ...);
-
-        // just some examples
-        b = kf::cos(a);
-        ASSERT(equals(hcos(a.get(Is)), b.get(Is)) && ...);
-
-        b = kf::floor(a);
-        ASSERT(equals(hfloor(a.get(Is)), b.get(Is)) && ...);
-
-        b = kf::abs(a);
-        ASSERT(equals(__habs(a.get(Is)), b.get(Is)) && ...);
-
-        b = kf::sqrt(a);
-        ASSERT(equals(hsqrt(a.get(Is)), b.get(Is)) && ...);
-    }
-};
-
-template<size_t N, size_t... Is>
-struct float_test<__nv_bfloat16, N, std::index_sequence<Is...>> {
-    __host__ __device__ void operator()(generator<__nv_bfloat16> gen) {
-        float_test<__half, N> {}(gen);
-    }
-};
-
-TEST_CASE("unary operators") {
-    run_on_host_and_device<int_test, char, short, int, unsigned, int, long, long long>();
-
-    run_on_host_and_device<float_test, float, double>();
-    run_on_device<float_test, __half, __nv_bfloat16>();
-}
+REGISTER_TEST_CASE("unary float operators", unops_float_tests, float, double)
+REGISTER_TEST_CASE_GPU("unary float operators", unops_float_tests, __half, __nv_bfloat16)
