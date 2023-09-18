@@ -226,6 +226,17 @@ struct into_vector_traits<aligned_array<T, N, A>> {
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
     template<>                                             \
+    struct into_vector_traits<::T1> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<1>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 1> call(::T1 v) {         \
+            return {v.x};                                  \
+        }                                                  \
+    };                                                     \
+                                                           \
+    template<>                                             \
     struct into_vector_traits<::T2> {                      \
         using value_type = T;                              \
         using extent_type = extent<2>;                     \

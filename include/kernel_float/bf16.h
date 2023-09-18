@@ -144,7 +144,7 @@ KERNEL_FLOAT_BF16_UNARY_FORWARD(expm1)
     }                                                                       \
     namespace detail {                                                      \
     template<>                                                              \
-    struct map_halfx2<ops::NAME<__nv_bfloat16>> {                           \
+    struct map_bfloat16x2<ops::NAME<__nv_bfloat16>> {                       \
         KERNEL_FLOAT_INLINE static __nv_bfloat162                           \
         call(ops::NAME<__nv_bfloat16>, __nv_bfloat162 input) {              \
             return FUN2(input);                                             \
@@ -324,12 +324,12 @@ KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input))
 template<>
 struct promote_type<__nv_bfloat16, __half> {
     using type = float;
-}
+};
 
 template<>
 struct promote_type<__half, __nv_bfloat16> {
     using type = float;
-}
+};
 
 }  // namespace kernel_float
 

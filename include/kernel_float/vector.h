@@ -54,7 +54,7 @@ struct vector: public S {
         typename... Rest,
         typename = enabled_t<sizeof...(Rest) + 2 == E::size>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
-        storage_type {a, b, rest...} {}
+        storage_type {T(a), T(b), T(rest)...} {}
 
     /**
      * Returns the number of elements in this vector.
@@ -316,7 +316,7 @@ template<typename T> using vec8 = vec<T, 8>;
 template<typename... Args>
 KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
     using T = promote_t<Args...>;
-    return vector_storage<T, sizeof...(Args)> {T {args}...};
+    return vector_storage<T, sizeof...(Args)> {T(args)...};
 };
 
 #if defined(__cpp_deduction_guides)

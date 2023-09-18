@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-08-28 14:29:52.760763
-// git hash: 31ffbb7ca20f9c4a1c43b37e06c99600a8f15b91
+// date: 2023-09-18 17:41:12.641561
+// git hash: 64f21903e8049e4a46c53897a167f31174e1a231
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -549,6 +549,17 @@ struct into_vector_traits<aligned_array<T, N, A>> {
 };
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
+    template<>                                             \
+    struct into_vector_traits<::T1> {                      \
+        using value_type = T;                              \
+        using extent_type = extent<1>;                     \
+                                                           \
+        KERNEL_FLOAT_INLINE                                \
+        static vector_storage<T, 1> call(::T1 v) {         \
+            return {v.x};                                  \
+        }                                                  \
+    };                                                     \
+                                                           \
     template<>                                             \
     struct into_vector_traits<::T2> {                      \
         using value_type = T;                              \
@@ -2759,7 +2770,7 @@ struct vector: public S {
         typename... Rest,
         typename = enabled_t<sizeof...(Rest) + 2 == E::size>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
-        storage_type {a, b, rest...} {}
+        storage_type {T(a), T(b), T(rest)...} {}
 
     /**
      * Returns the number of elements in this vector.
@@ -3021,7 +3032,7 @@ template<typename T> using vec8 = vec<T, 8>;
 template<typename... Args>
 KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... args) {
     using T = promote_t<Args...>;
-    return vector_storage<T, sizeof...(Args)> {T {args}...};
+    return vector_storage<T, sizeof...(Args)> {T(args)...};
 };
 
 #if defined(__cpp_deduction_guides)
@@ -3484,7 +3495,7 @@ KERNEL_FLOAT_BF16_UNARY_FORWARD(expm1)
     }                                                                       \
     namespace detail {                                                      \
     template<>                                                              \
-    struct map_halfx2<ops::NAME<__nv_bfloat16>> {                           \
+    struct map_bfloat16x2<ops::NAME<__nv_bfloat16>> {                       \
         KERNEL_FLOAT_INLINE static __nv_bfloat162                           \
         call(ops::NAME<__nv_bfloat16>, __nv_bfloat162 input) {              \
             return FUN2(input);                                             \
@@ -3664,12 +3675,12 @@ KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input))
 template<>
 struct promote_type<__nv_bfloat16, __half> {
     using type = float;
-}
+};
 
 template<>
 struct promote_type<__half, __nv_bfloat16> {
     using type = float;
-}
+};
 
 }  // namespace kernel_float
 
