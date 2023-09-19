@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-09-18 17:41:12.641561
-// git hash: 64f21903e8049e4a46c53897a167f31174e1a231
+// date: 2023-09-19 20:34:16.094065
+// git hash: 7acff4cc2414483de4162d0b47453422f6ebe215
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -61,13 +61,13 @@ struct index_sequence {
 
 namespace detail {
 template<size_t N>
-struct make_index_sequence_helper {};
+struct make_index_sequence_impl {};
 
 // Benchmarks show that it is much faster to predefine all possible index sequences instead of doing something
 // recursive with variadic templates.
 #define KERNEL_FLOAT_INDEX_SEQ(N, ...)            \
     template<>                                    \
-    struct make_index_sequence_helper<N> {        \
+    struct make_index_sequence_impl<N> {          \
         using type = index_sequence<__VA_ARGS__>; \
     };
 
@@ -93,37 +93,37 @@ KERNEL_FLOAT_INDEX_SEQ(17, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
 }  // namespace detail
 
 template<size_t N>
-using make_index_sequence = typename detail::make_index_sequence_helper<N>::type;
+using make_index_sequence = typename detail::make_index_sequence_impl<N>::type;
 
 namespace detail {
 template<typename T>
-struct decay_helper {
+struct decay_impl {
     using type = T;
 };
 
 template<typename T>
-struct decay_helper<const T> {
+struct decay_impl<const T> {
     using type = T;
 };
 
 template<typename T>
-struct decay_helper<const T&> {
+struct decay_impl<const T&> {
     using type = T;
 };
 
 template<typename T>
-struct decay_helper<T&> {
+struct decay_impl<T&> {
     using type = T;
 };
 
 template<typename T>
-struct decay_helper<T&&> {
+struct decay_impl<T&&> {
     using type = T;
 };
 }  // namespace detail
 
 template<typename T>
-using decay_t = typename detail::decay_helper<T>::type;
+using decay_t = typename detail::decay_impl<T>::type;
 
 template<typename A, typename B>
 struct promote_type;
@@ -266,34 +266,34 @@ using promote_t = typename detail::multi_promote_type<decay_t<Ts>...>::type;
 namespace detail {
 
 template<typename A, typename B>
-struct is_same_helper {
+struct is_same_type_impl {
     static constexpr bool value = false;
 };
 
 template<typename A>
-struct is_same_helper<A, A> {
+struct is_same_type_impl<A, A> {
     static constexpr bool value = true;
 };
 }  // namespace detail
 
 template<typename A, typename B>
-static constexpr bool is_same = detail::is_same_helper<A, B>::value;
+static constexpr bool is_same_type = detail::is_same_type_impl<A, B>::value;
 
 namespace detail {
 template<typename From, typename To, typename Common = To>
-struct is_implicit_convertible_helper {
+struct is_implicit_convertible_impl {
     static constexpr bool value = false;
 };
 
 template<typename From, typename To>
-struct is_implicit_convertible_helper<From, To, typename promote_type<From, To>::type> {
+struct is_implicit_convertible_impl<From, To, typename promote_type<From, To>::type> {
     static constexpr bool value = true;
 };
 }  // namespace detail
 
 template<typename From, typename To>
 static constexpr bool is_implicit_convertible =
-    detail::is_implicit_convertible_helper<decay_t<From>, decay_t<To>>::value;
+    detail::is_implicit_convertible_impl<decay_t<From>, decay_t<To>>::value;
 
 namespace detail {
 template<typename T>
@@ -308,16 +308,16 @@ using result_t = decltype((detail::declval<F>())(detail::declval<Args>()...));
 
 namespace detail {
 template<bool, typename T>
-struct enabled_helper {};
+struct enable_if_impl {};
 
 template<typename T>
-struct enabled_helper<true, T> {
+struct enable_if_impl<true, T> {
     using type = T;
 };
 }  // namespace detail
 
 template<bool C, typename T = void>
-using enabled_t = typename detail::enabled_helper<C, T>::type;
+using enable_if_t = typename detail::enable_if_impl<C, T>::type;
 
 }  // namespace kernel_float
 
@@ -918,16 +918,11 @@ namespace detail {
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_impl {
-    KERNEL_FLOAT_INLINE static vector_storage<Output, N>
-    call(F fun, const vector_storage<Args, N>&... inputs) {
-        vector_storage<Output, N> result;
-
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            result.data()[i] = fun(inputs.data()[i]...);
+            result[i] = fun(inputs[i]...);
         }
-
-        return result;
     }
 };
 }  // namespace detail
@@ -949,9 +944,14 @@ template<typename F, typename V>
 KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     using Input = vector_value_type<V>;
     using Output = result_t<F, Input>;
-    return detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
+    vector_storage<Output, vector_extent<V>> result;
+
+    detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
         fun,
-        into_vector_storage(input));
+        result.data(),
+        into_vector_storage(input).data());
+
+    return result;
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                                      \
@@ -1156,7 +1156,7 @@ template<typename... Vs>
 using broadcast_vector_extent_type = broadcast_extent<vector_extent_type<Vs>...>;
 
 template<typename From, typename To>
-static constexpr bool is_broadcastable = is_same<broadcast_extent<From, To>, To>;
+static constexpr bool is_broadcastable = is_same_type<broadcast_extent<From, To>, To>;
 
 template<typename V, typename To>
 static constexpr bool is_vector_broadcastable = is_broadcastable<vector_extent_type<V>, To>;
@@ -1226,47 +1226,57 @@ broadcast_like(const V& input, const R& other) {
 }
 
 namespace detail {
+/**
+ * Convert vector of element type `T` and extent type `E` to vector of element type `T2` and extent type `E2`.
+ *  Specialization exist for the cases where `T==T2` and/or `E==E2`.
+ */
 template<typename T, typename E, typename T2, typename E2, RoundingMode M = RoundingMode::ANY>
-struct convert_helper {
+struct convert_impl {
     KERNEL_FLOAT_INLINE
     static vector_storage<T2, E2::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
-        vector_storage<T2, E::value> intermediate =
-            detail::apply_impl<F, E::value, T2, T>::call(F {}, input);
+        vector_storage<T2, E::value> intermediate;
+        detail::apply_impl<F, E::value, T2, T>::call(F {}, intermediate.data(), input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
 
+// T == T2, E == E2
 template<typename T, typename E, RoundingMode M>
-struct convert_helper<T, E, T, E, M> {
+struct convert_impl<T, E, T, E, M> {
     KERNEL_FLOAT_INLINE
     static vector_storage<T, E::value> call(vector_storage<T, E::value> input) {
         return input;
     }
 };
 
+// T == T2, E != E2
 template<typename T, typename E, typename E2, RoundingMode M>
-struct convert_helper<T, E, T, E2, M> {
+struct convert_impl<T, E, T, E2, M> {
     KERNEL_FLOAT_INLINE
     static vector_storage<T, E2::value> call(vector_storage<T, E::value> input) {
         return detail::broadcast_impl<T, E, E2>::call(input);
     }
 };
 
+// T != T2, E == E2
 template<typename T, typename E, typename T2, RoundingMode M>
-struct convert_helper<T, E, T2, E, M> {
+struct convert_impl<T, E, T2, E, M> {
     KERNEL_FLOAT_INLINE
     static vector_storage<T2, E::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
-        return detail::apply_impl<F, E::value, T2, T>::call(F {}, input);
+
+        vector_storage<T2, E::value> result;
+        detail::apply_impl<F, E::value, T2, T>::call(F {}, result.data(), input.data());
+        return result;
     }
 };
 }  // namespace detail
 
 template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<N> new_size = {}) {
-    return detail::convert_helper<vector_value_type<V>, vector_extent_type<V>, R, extent<N>, M>::
-        call(into_vector_storage(input));
+    return detail::convert_impl<vector_value_type<V>, vector_extent_type<V>, R, extent<N>, M>::call(
+        into_vector_storage(input));
 }
 
 /**
@@ -1414,11 +1424,16 @@ KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) 
     using B = vector_value_type<R>;
     using O = result_t<F, A, B>;
     using E = broadcast_vector_extent_type<L, R>;
+    vector_storage<O, E::value> result;
 
-    return detail::apply_impl<F, E::value, O, A, B>::call(
+    detail::apply_impl<F, E::value, O, A, B>::call(
         fun,
-        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)),
-        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right)));
+        result.data(),
+        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)).data(),
+        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right))
+            .data());
+
+    return result;
 }
 
 template<typename F, typename L, typename R>
@@ -1434,9 +1449,9 @@ using zip_common_type = vector<
  * Example
  * =======
  * ```
- * vec<int, 3> a = {1.0f, 2.0f, 3.0f};
+ * vec<float, 3> a = {1.0f, 2.0f, 3.0f};
  * vec<int, 3> b = {4, 5, 6};
- * vec<int, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
+ * vec<float, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
  * ```
  */
 template<typename F, typename L, typename R>
@@ -1445,12 +1460,19 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     using O = result_t<F, T, T>;
     using E = broadcast_vector_extent_type<L, R>;
 
-    return detail::apply_impl<F, E::value, O, T, T>::call(
+    vector_storage<O, E::value> result;
+
+    detail::apply_impl<F, E::value, O, T, T>::call(
         fun,
-        detail::convert_helper<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
-            into_vector_storage(left)),
-        detail::convert_helper<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
-            into_vector_storage(right)));
+        result.data(),
+        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(left))
+            .data(),
+        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(right))
+            .data());
+
+    return result;
 }
 
 #define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \
@@ -1524,7 +1546,7 @@ static constexpr bool is_vector_assign_allowed =
         typename T,                                                                  \
         typename E,                                                                  \
         typename R,                                                                  \
-        typename = enabled_t<is_vector_assign_allowed<ops::NAME, T, E, R>>>          \
+        typename = enable_if_t<is_vector_assign_allowed<ops::NAME, T, E, R>>>        \
     KERNEL_FLOAT_INLINE vector<T, E>& operator OP(vector<T, E>& lhs, const R& rhs) { \
         using F = ops::NAME<T>;                                                      \
         lhs = zip_common(F {}, lhs, rhs);                                            \
@@ -1545,15 +1567,46 @@ KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_xor, ^=)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(min)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(max)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(copysign)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(hypot)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(modf)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(nextafter)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(pow)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(remainder)
 
-#if KERNEL_FLOAT_CUDA_DEVICE
-KERNEL_FLOAT_DEFINE_BINARY_FUN(rhypot)
+KERNEL_FLOAT_DEFINE_BINARY(hypot, (ops::sqrt<T>()(left * left + right * right)))
+KERNEL_FLOAT_DEFINE_BINARY(rhypot, (T(1) / ops::hypot<T>()(left, right)))
+
+namespace ops {
+template<>
+struct hypot<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::hypot(left, right);
+    };
+};
+
+template<>
+struct hypot<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::hypotf(left, right);
+    };
+};
+
+// rhypot is only support on the GPU
+#if KERNEL_FLOAT_IS_DEVICE
+template<>
+struct rhypot<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::rhypot(left, right);
+    };
+};
+
+template<>
+struct rhypot<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::rhypotf(left, right);
+    };
+};
 #endif
+};  // namespace ops
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN)     \
@@ -1634,7 +1687,7 @@ struct bit_xor<double> {
 
 namespace detail {
 template<typename T>
-struct cross_helper {
+struct cross_impl {
     KERNEL_FLOAT_INLINE
     static vector<T, extent<3>>
     call(const vector_storage<T, 3>& av, const vector_storage<T, 3>& bv) {
@@ -1660,9 +1713,9 @@ template<
     typename R,
     typename T = promoted_vector_value_type<L, R>,
     typename =
-        enabled_t<is_vector_broadcastable<L, extent<3>> && is_vector_broadcastable<R, extent<3>>>>
+        enable_if_t<is_vector_broadcastable<L, extent<3>> && is_vector_broadcastable<R, extent<3>>>>
 KERNEL_FLOAT_INLINE vector<T, extent<3>> cross(const L& left, const R& right) {
-    return detail::cross_helper<T>::call(convert_storage<T, 3>(left), convert_storage<T, 3>(right));
+    return detail::cross_impl<T>::call(convert_storage<T, 3>(left), convert_storage<T, 3>(right));
 }
 
 }  // namespace kernel_float
@@ -1797,7 +1850,7 @@ void for_each(V&& input, F fun) {
 
 namespace detail {
 template<typename T, size_t N>
-struct range_helper {
+struct range_impl {
     KERNEL_FLOAT_INLINE
     static vector_storage<T, N> call() {
         vector_storage<T, N> result;
@@ -1824,7 +1877,7 @@ struct range_helper {
  */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
-    return detail::range_helper<T, N>::call();
+    return detail::range_impl<T, N>::call();
 }
 
 /**
@@ -1839,7 +1892,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
-    return detail::range_helper<vector_value_type<V>, vector_extent<V>>::call();
+    return detail::range_impl<vector_value_type<V>, vector_extent<V>>::call();
 }
 
 /**
@@ -1864,14 +1917,14 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  */
 template<typename T = size_t, typename V>
 KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> each_index(const V& = {}) {
-    return detail::range_helper<T, vector_extent<V>>::call();
+    return detail::range_impl<T, vector_extent<V>>::call();
 }
 
 namespace detail {
 template<typename V, typename T = vector_value_type<V>, size_t N = vector_extent<V>>
-struct flatten_helper {
-    using value_type = typename flatten_helper<T>::value_type;
-    static constexpr size_t size = N * flatten_helper<T>::size;
+struct flatten_impl {
+    using value_type = typename flatten_impl<T>::value_type;
+    static constexpr size_t size = N * flatten_impl<T>::size;
 
     template<typename U>
     KERNEL_FLOAT_INLINE static void call(U* output, const V& input) {
@@ -1879,13 +1932,13 @@ struct flatten_helper {
 
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            flatten_helper<T>::call(output + flatten_helper<T>::size * i, storage.data()[i]);
+            flatten_impl<T>::call(output + flatten_impl<T>::size * i, storage.data()[i]);
         }
     }
 };
 
 template<typename T>
-struct flatten_helper<T, T, 1> {
+struct flatten_impl<T, T, 1> {
     using value_type = T;
     static constexpr size_t size = 1;
 
@@ -1902,10 +1955,10 @@ struct flatten_helper<T, T, 1> {
 }  // namespace detail
 
 template<typename V>
-using flatten_value_type = typename detail::flatten_helper<V>::value_type;
+using flatten_value_type = typename detail::flatten_impl<V>::value_type;
 
 template<typename V>
-static constexpr size_t flatten_size = detail::flatten_helper<V>::size;
+static constexpr size_t flatten_size = detail::flatten_impl<V>::size;
 
 template<typename V>
 using flatten_type = vector<flatten_value_type<V>, extent<flatten_size<V>>>;
@@ -1923,13 +1976,13 @@ using flatten_type = vector<flatten_value_type<V>, extent<flatten_size<V>>>;
 template<typename V>
 KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
     vector_storage<flatten_value_type<V>, flatten_size<V>> output;
-    detail::flatten_helper<V>::call(output.data(), input);
+    detail::flatten_impl<V>::call(output.data(), input);
     return output;
 }
 
 namespace detail {
 template<typename U, typename V = U, typename T = vector_value_type<V>>
-struct concat_base_helper {
+struct concat_base_impl {
     static constexpr size_t size = vector_extent<V>;
 
     KERNEL_FLOAT_INLINE static void call(U* output, const V& input) {
@@ -1942,7 +1995,7 @@ struct concat_base_helper {
 };
 
 template<typename U, typename T>
-struct concat_base_helper<U, T, T> {
+struct concat_base_impl<U, T, T> {
     static constexpr size_t size = 1;
 
     KERNEL_FLOAT_INLINE static void call(U* output, const T& input) {
@@ -1951,7 +2004,7 @@ struct concat_base_helper<U, T, T> {
 };
 
 template<typename T>
-struct concat_base_helper<T, T, T> {
+struct concat_base_impl<T, T, T> {
     static constexpr size_t size = 1;
 
     KERNEL_FLOAT_INLINE static void call(T* output, const T& input) {
@@ -1960,24 +2013,23 @@ struct concat_base_helper<T, T, T> {
 };
 
 template<typename... Vs>
-struct concat_helper {};
+struct concat_impl {};
 
 template<typename V, typename... Vs>
-struct concat_helper<V, Vs...> {
+struct concat_impl<V, Vs...> {
     using value_type =
-        typename promote_type<vector_value_type<V>, typename concat_helper<Vs...>::value_type>::
-            type;
-    static constexpr size_t size = concat_base_helper<V>::size + concat_helper<Vs...>::size;
+        typename promote_type<vector_value_type<V>, typename concat_impl<Vs...>::value_type>::type;
+    static constexpr size_t size = concat_base_impl<V>::size + concat_impl<Vs...>::size;
 
     template<typename U>
     KERNEL_FLOAT_INLINE static void call(U* output, const V& input, const Vs&... rest) {
-        concat_base_helper<U, V>::call(output, input);
-        concat_helper<Vs...>::call(output + concat_base_helper<U, V>::size, rest...);
+        concat_base_impl<U, V>::call(output, input);
+        concat_impl<Vs...>::call(output + concat_base_impl<U, V>::size, rest...);
     }
 };
 
 template<>
-struct concat_helper<> {
+struct concat_impl<> {
     using value_type = void;
     static constexpr size_t size = 1;
 
@@ -1987,10 +2039,10 @@ struct concat_helper<> {
 }  // namespace detail
 
 template<typename... Vs>
-using concat_value_type = promote_t<typename detail::concat_helper<Vs...>::value_type>;
+using concat_value_type = promote_t<typename detail::concat_impl<Vs...>::value_type>;
 
 template<typename... Vs>
-static constexpr size_t concat_size = detail::concat_helper<Vs...>::size;
+static constexpr size_t concat_size = detail::concat_impl<Vs...>::size;
 
 template<typename... Vs>
 using concat_type = vector<concat_value_type<Vs...>, extent<concat_size<Vs...>>>;
@@ -2025,7 +2077,7 @@ using concat_type = vector<concat_value_type<Vs...>, extent<concat_size<Vs...>>>
 template<typename... Vs>
 KERNEL_FLOAT_INLINE concat_type<Vs...> concat(const Vs&... inputs) {
     vector_storage<concat_value_type<Vs...>, concat_size<Vs...>> output;
-    detail::concat_helper<Vs...>::call(output.data(), inputs...);
+    detail::concat_impl<Vs...>::call(output.data(), inputs...);
     return output;
 }
 
@@ -2052,7 +2104,7 @@ KERNEL_FLOAT_INLINE select_type<V, Is...> select(const V& input, const Is&... in
     static constexpr size_t M = concat_size<Is...>;
 
     vector_storage<size_t, M> index_set;
-    detail::concat_helper<Is...>::call(index_set.data(), indices...);
+    detail::concat_impl<Is...>::call(index_set.data(), indices...);
 
     vector_storage<T, N> inputs = into_vector_storage(input);
     vector_storage<T, M> outputs;
@@ -2346,19 +2398,18 @@ namespace kernel_float {
 namespace kernel_float {
 namespace detail {
 template<typename F, size_t N, typename T, typename = void>
-struct reduce_helper {
-    KERNEL_FLOAT_INLINE static T call(F fun, const vector_storage<T, N>& input) {
+struct reduce_impl {
+    KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
         return call(fun, input, make_index_sequence<N> {});
     }
 
   private:
     template<size_t... Is>
-    KERNEL_FLOAT_INLINE static T
-    call(F fun, const vector_storage<T, N>& input, index_sequence<0, Is...>) {
-        T result = input.data()[0];
+    KERNEL_FLOAT_INLINE static T call(F fun, const T* input, index_sequence<0, Is...>) {
+        T result = input[0];
 #pragma unroll
         for (size_t i = 1; i < N; i++) {
-            result = fun(result, input.data()[i]);
+            result = fun(result, input[i]);
         }
         return result;
     }
@@ -2369,7 +2420,7 @@ struct reduce_helper {
  * Reduce the elements of the given vector ``input`` into a single value using
  * the function ``fun``. This function should be a binary function that takes
  * two elements and returns one element. The order in which the elements
- * are reduced is not specified and depends on the reduction function and
+ * are reduced is not specified and depends on both the reduction function and
  * the vector type.
  *
  * Example
@@ -2381,9 +2432,9 @@ struct reduce_helper {
  */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_helper<F, vector_extent<V>, vector_value_type<V>>::call(
+    return detail::reduce_impl<F, vector_extent<V>, vector_value_type<V>>::call(
         fun,
-        into_vector_storage(input));
+        into_vector_storage(input).data());
 }
 
 /**
@@ -2482,10 +2533,17 @@ KERNEL_FLOAT_INLINE T count(const V& input) {
 
 namespace detail {
 template<typename T, size_t N>
-struct dot_helper {
+struct dot_impl {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, N>& left, const vector_storage<T, N>& right) {
-        return sum(zip(ops::multiply<T> {}, left, right));
+        vector_storage<T, N> intermediate;
+        detail::apply_impl<ops::multiply<T>, N, T, T, T>::call(
+            ops::multiply<T>(),
+            intermediate.data(),
+            left.data(),
+            right.data());
+
+        return detail::reduce_impl<ops::add<T>, N, T>::call(ops::add<T>(), intermediate.data());
     }
 };
 }  // namespace detail
@@ -2504,22 +2562,22 @@ struct dot_helper {
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    return detail::dot_helper<T, E::value>::call(
+    return detail::dot_impl<T, E::value>::call(
         convert_storage<T>(left, E {}),
         convert_storage<T>(right, E {}));
 }
 
 namespace detail {
 template<typename T, size_t N>
-struct magnitude_helper {
+struct magnitude_impl {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, N>& input) {
-        return ops::sqrt<T> {}(detail::dot_helper<T, N>::call(input, input));
+        return ops::sqrt<T> {}(detail::dot_impl<T, N>::call(input, input));
     }
 };
 
 template<typename T>
-struct magnitude_helper<T, 0> {
+struct magnitude_impl<T, 0> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 0>& input) {
         return T {};
@@ -2527,7 +2585,7 @@ struct magnitude_helper<T, 0> {
 };
 
 template<typename T>
-struct magnitude_helper<T, 1> {
+struct magnitude_impl<T, 1> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 1>& input) {
         return ops::abs<T> {}(input);
@@ -2535,28 +2593,28 @@ struct magnitude_helper<T, 1> {
 };
 
 template<typename T>
-struct magnitude_helper<T, 2> {
+struct magnitude_impl<T, 2> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 2>& input) {
-        return ops::hypot<T> {}(input.data()[0], input.data()[1]);
+        return ops::hypot<T>()(input.data()[0], input.data()[1]);
     }
 };
 
-// The 3-argument overload of hypot is only available from C++17
-#ifdef __cpp_lib_hypot
+// The 3-argument overload of hypot is only available on host from C++17
+#if defined(__cpp_lib_hypot) && KERNEL_FLOAT_IS_HOST
 template<>
-struct magnitude_helper<float, 3> {
+struct magnitude_impl<float, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<float, 3>& input) {
-        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
+        return ::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 
 template<>
-struct magnitude_helper<double, 3> {
+struct magnitude_impl<double, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<double, 3>& input) {
-        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
+        return ::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 #endif
@@ -2565,7 +2623,7 @@ struct magnitude_helper<double, 3> {
 
 /**
  * Compute the magnitude of the given input vector. This calculates the square root of the sum of squares, also
- * known as the Euclidian norm of the vector.
+ * known as the Euclidian norm, of a vector.
  *
  * Example
  * =======
@@ -2576,7 +2634,7 @@ struct magnitude_helper<double, 3> {
  */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T mag(const V& input) {
-    return detail::magnitude_helper<T, vector_extent<V>>::call(into_vector_storage(input));
+    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input));
 }
 }  // namespace kernel_float
 
@@ -2622,15 +2680,22 @@ template<
     typename E = broadcast_vector_extent_type<C, L, R>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
+    vector_storage<T, E::value> result;
 
-    return detail::apply_impl<F, E::value, T, bool, T, T>::call(
+    detail::apply_impl<F, E::value, T, bool, T, T>::call(
         F {},
-        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
-            into_vector_storage(cond)),
-        detail::convert_helper<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
-            into_vector_storage(true_values)),
-        detail::convert_helper<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
-            into_vector_storage(false_values)));
+        result.data(),
+        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
+            into_vector_storage(cond))
+            .data(),
+        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(true_values))
+            .data(),
+        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(false_values))
+            .data());
+
+    return result;
 }
 
 /**
@@ -2700,15 +2765,22 @@ template<
     typename E = broadcast_vector_extent_type<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
+    vector_storage<T, E::value> result;
 
-    return detail::apply_impl<F, E::value, T, T, T, T>::call(
+    detail::apply_impl<F, E::value, T, T, T, T>::call(
         F {},
-        detail::convert_helper<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
-            into_vector_storage(a)),
-        detail::convert_helper<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
-            into_vector_storage(b)),
-        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
-            into_vector_storage(c)));
+        result.data(),
+        detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
+            into_vector_storage(a))
+            .data(),
+        detail::convert_impl<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
+            into_vector_storage(b))
+            .data(),
+        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
+            into_vector_storage(c))
+            .data());
+
+    return result;
 }
 
 }  // namespace kernel_float
@@ -2755,11 +2827,11 @@ struct vector: public S {
         storage_type(detail::broadcast_impl<T, extent<1>, E>::call(input)) {}
 
     // For all other arguments, we convert it using `convert_storage` according to broadcast rules
-    template<typename U, enabled_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    template<typename U, enable_if_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
     KERNEL_FLOAT_INLINE vector(U&& input) :
         storage_type(convert_storage<T>(input, extent_type {})) {}
 
-    template<typename U, enabled_t<!is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    template<typename U, enable_if_t<!is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
     KERNEL_FLOAT_INLINE explicit vector(U&& input) :
         storage_type(convert_storage<T>(input, extent_type {})) {}
 
@@ -2768,7 +2840,7 @@ struct vector: public S {
         typename A,
         typename B,
         typename... Rest,
-        typename = enabled_t<sizeof...(Rest) + 2 == E::size>>
+        typename = enable_if_t<sizeof...(Rest) + 2 == E::size>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
         storage_type {T(a), T(b), T(rest)...} {}
 
@@ -3099,63 +3171,55 @@ struct zip_halfx2 {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half> {
-    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
-    call(F fun, const vector_storage<__half, N>& input) {
-        vector_storage<__half, N> result;
-
+    KERNEL_FLOAT_INLINE static void call(F fun, __half* result, const __half* input) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __half2 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __half2 a = {input[2 * i], input[2 * i + 1]};
             __half2 b = map_halfx2<F>::call(fun, a);
-            result.data()[i + 0] = b.x;
-            result.data()[i + 1] = b.y;
+            result[2 * i + 0] = b.x;
+            result[2 * i + 1] = b.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(input.data()[N - 1]);
+            result[N - 1] = fun(input[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half, __half> {
-    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
-    call(F fun, const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
-        vector_storage<__half, N> result;
+    KERNEL_FLOAT_INLINE static void
+    call(F fun, __half* result, const __half* left, const __half* right) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __half2 a = {left.data()[i], left.data()[i + 1]};
-            __half2 b = {right.data()[i], right.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __half2 a = {left[2 * i], left[2 * i + 1]};
+            __half2 b = {right[2 * i], right[2 * i + 1]};
             __half2 c = zip_halfx2<F>::call(fun, a, b);
-            result.data()[i + 0] = c.x;
-            result.data()[i + 1] = c.y;
+            result[2 * i + 0] = c.x;
+            result[2 * i + 1] = c.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(left.data()[N - 1], right.data()[N - 1]);
+            result[N - 1] = fun(left[N - 1], right[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
-struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __half call(F fun, const vector_storage<__half, N>& input) {
-        __half2 accum = {input.data()[0], input.data()[1]};
+struct reduce_impl<F, N, __half, enable_if_t<(N >= 2)>> {
+    KERNEL_FLOAT_INLINE static __half call(F fun, const __half* input) {
+        __half2 accum = {input[0], input[1]};
 
 #pragma unroll
-        for (size_t i = 2; i + 2 <= N; i += 2) {
-            __half2 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __half2 a = {input[2 * i], input[2 * i + 1]};
             accum = zip_halfx2<F>::call(fun, accum, a);
         }
 
         __half result = fun(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            result = fun(result, input.data()[N - 1]);
+            result = fun(result, input[N - 1]);
         }
 
         return result;
@@ -3174,6 +3238,7 @@ struct reduce_helper<F, N, __half, enabled_t<(N >= 2)>> {
     };                                                        \
     }
 
+// There operations are not implemented in half precision, so they are forward to single precision
 KERNEL_FLOAT_FP16_UNARY_FORWARD(tan)
 KERNEL_FLOAT_FP16_UNARY_FORWARD(asin)
 KERNEL_FLOAT_FP16_UNARY_FORWARD(acos)
@@ -3258,7 +3323,6 @@ KERNEL_FLOAT_FP16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_FP16_BINARY_FUN(divide, __hdiv, __h2div)
 KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
-
 KERNEL_FLOAT_FP16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_FP16_BINARY_FUN(equal_to, __heq, __heq2)
@@ -3308,37 +3372,51 @@ using half = __half;
 
 #if KERNEL_FLOAT_IS_DEVICE
 namespace detail {
+template<>
+struct dot_impl<__half, 0> {
+    KERNEL_FLOAT_INLINE
+    static __half
+    call(const vector_storage<__half, 0>& left, const vector_storage<__half, 0>& right) {
+        return __half(0);
+    }
+};
+
+template<>
+struct dot_impl<__half, 1> {
+    KERNEL_FLOAT_INLINE
+    static __half
+    call(const vector_storage<__half, 1>& left, const vector_storage<__half, 1>& right) {
+        return __hmul(left.data()[0], right.data()[0]);
+    }
+};
+
 template<size_t N>
-struct dot_helper<__half, N> {
+struct dot_impl<__half, N> {
+    static_assert(N >= 2, "internal error");
+
     KERNEL_FLOAT_INLINE
     static __half
     call(const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
-        if (N == 0) {
-            return __half(0);
-        } else if (N == 1) {
-            return __hmul(left.data()[0], right.data()[0]);
-        } else {
-            __half2 first_a = {left.data()[0], left.data()[1]};
-            __half2 first_b = {right.data()[0], right.data()[1]};
-            __half2 accum = __hmul2(first_a, first_b);
+        __half2 first_a = {left.data()[0], left.data()[1]};
+        __half2 first_b = {right.data()[0], right.data()[1]};
+        __half2 accum = __hmul2(first_a, first_b);
 
 #pragma unroll
-            for (size_t i = 2; i + 2 <= N; i += 2) {
-                __half2 a = {left.data()[i], left.data()[i + 1]};
-                __half2 b = {right.data()[i], right.data()[i + 1]};
-                accum = __hfma2(a, b, accum);
-            }
-
-            __half result = __hadd(accum.x, accum.y);
-
-            if (N % 2 != 0) {
-                __half a = left.data()[N - 1];
-                __half b = right.data()[N - 1];
-                result = __hfma(a, b, result);
-            }
-
-            return result;
+        for (size_t i = 2; i + 2 <= N; i += 2) {
+            __half2 a = {left.data()[i], left.data()[i + 1]};
+            __half2 b = {right.data()[i], right.data()[i + 1]};
+            accum = __hfma2(a, b, accum);
         }
+
+        __half result = __hadd(accum.x, accum.y);
+
+        if (N % 2 != 0) {
+            __half a = left.data()[N - 1];
+            __half b = right.data()[N - 1];
+            result = __hfma(a, b, result);
+        }
+
+        return result;
     }
 };
 }  // namespace detail
@@ -3400,66 +3478,55 @@ struct zip_bfloat16x2 {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static vector_storage<__nv_bfloat16, N>
-    call(F fun, const vector_storage<__nv_bfloat16, N>& input) {
-        vector_storage<__nv_bfloat16, N> result;
-
+    KERNEL_FLOAT_INLINE static void call(F fun, __nv_bfloat16* result, const __nv_bfloat16* input) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __nv_bfloat162 a = {input[2 * i], input[2 * i + 1]};
             __nv_bfloat162 b = map_bfloat16x2<F>::call(fun, a);
-            result.data()[i + 0] = b.x;
-            result.data()[i + 1] = b.y;
+            result[2 * i + 0] = b.x;
+            result[2 * i + 1] = b.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(input.data()[N - 1]);
+            result[N - 1] = fun(input[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static vector_storage<__nv_bfloat16, N> call(
-        F fun,
-        const vector_storage<__nv_bfloat16, N>& left,
-        const vector_storage<__nv_bfloat16, N>& right) {
-        vector_storage<__nv_bfloat16, N> result;
+    KERNEL_FLOAT_INLINE static void
+    call(F fun, __nv_bfloat16* result, const __nv_bfloat16* left, const __nv_bfloat16* right) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
-            __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __nv_bfloat162 a = {left[2 * i], left[2 * i + 1]};
+            __nv_bfloat162 b = {right[2 * i], right[2 * i + 1]};
             __nv_bfloat162 c = zip_bfloat16x2<F>::call(fun, a, b);
-            result.data()[i + 0] = c.x;
-            result.data()[i + 1] = c.y;
+            result[2 * i + 0] = c.x;
+            result[2 * i + 1] = c.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(left.data()[N - 1], right.data()[N - 1]);
+            result[N - 1] = fun(left[N - 1], right[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
-struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __nv_bfloat16
-    call(F fun, const vector_storage<__nv_bfloat16, N>& input) {
-        __nv_bfloat162 accum = {input.data()[0], input.data()[1]};
+struct reduce_impl<F, N, __nv_bfloat16, enable_if_t<(N >= 2)>> {
+    KERNEL_FLOAT_INLINE static __nv_bfloat16 call(F fun, const __nv_bfloat16* input) {
+        __nv_bfloat162 accum = {input[0], input[1]};
 
 #pragma unroll
-        for (size_t i = 2; i + 2 <= N; i += 2) {
-            __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __nv_bfloat162 a = {input[2 * i], input[2 * i + 1]};
             accum = zip_bfloat16x2<F>::call(fun, accum, a);
         }
 
         __nv_bfloat16 result = fun(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            result = fun(result, input.data()[N - 1]);
+            result = fun(result, input[N - 1]);
         }
 
         return result;
@@ -3477,6 +3544,7 @@ struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
     };                                                                      \
     }
 
+// There operations are not implemented in half precision, so they are forward to single precision
 KERNEL_FLOAT_BF16_UNARY_FORWARD(tan)
 KERNEL_FLOAT_BF16_UNARY_FORWARD(asin)
 KERNEL_FLOAT_BF16_UNARY_FORWARD(acos)
@@ -3594,32 +3662,22 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), double(__bfloat162float(input)));
 KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input));
 
+// clang-format off
 // there are no official char casts. Instead, cast to int and then to char
 KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
-KERNEL_FLOAT_BF16_CAST(
-    signed char,
-    __int2bfloat16_rn(input),
-    (signed char)__bfloat162int_rz(input));
-KERNEL_FLOAT_BF16_CAST(
-    unsigned char,
-    __int2bfloat16_rn(input),
-    (unsigned char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(signed char, __int2bfloat16_rn(input), (signed char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(unsigned char, __int2bfloat16_rn(input), (unsigned char)__bfloat162int_rz(input));
 
 KERNEL_FLOAT_BF16_CAST(signed short, __bfloat162short_rz(input), __short2bfloat16_rn(input));
 KERNEL_FLOAT_BF16_CAST(signed int, __bfloat162int_rz(input), __int2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(
-    signed long,
-    __ll2bfloat16_rn(input),
-    (signed long)(__bfloat162ll_rz(input)));
+KERNEL_FLOAT_BF16_CAST(signed long, __ll2bfloat16_rn(input), (signed long)(__bfloat162ll_rz(input)));
 KERNEL_FLOAT_BF16_CAST(signed long long, __ll2bfloat16_rn(input), __bfloat162ll_rz(input));
 
 KERNEL_FLOAT_BF16_CAST(unsigned short, __bfloat162ushort_rz(input), __ushort2bfloat16_rn(input));
 KERNEL_FLOAT_BF16_CAST(unsigned int, __bfloat162uint_rz(input), __uint2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(
-    unsigned long,
-    __ull2bfloat16_rn(input),
-    (unsigned long)(__bfloat162ull_rz(input)));
+KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
 KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
+// clang-format on
 
 using bfloat16 = __nv_bfloat16;
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
@@ -3627,38 +3685,54 @@ using bfloat16 = __nv_bfloat16;
 
 #if KERNEL_FLOAT_IS_DEVICE
 namespace detail {
+template<>
+struct dot_impl<__nv_bfloat16, 0> {
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat16 call(
+        const vector_storage<__nv_bfloat16, 0>& left,
+        const vector_storage<__nv_bfloat16, 0>& right) {
+        return __nv_bfloat16(0);
+    }
+};
+
+template<>
+struct dot_impl<__nv_bfloat16, 1> {
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat16 call(
+        const vector_storage<__nv_bfloat16, 1>& left,
+        const vector_storage<__nv_bfloat16, 1>& right) {
+        return __hmul(left.data()[0], right.data()[0]);
+    }
+};
+
 template<size_t N>
-struct dot_helper<__nv_bfloat16, N> {
+struct dot_impl<__nv_bfloat16, N> {
+    static_assert(N >= 2, "internal error");
+
     KERNEL_FLOAT_INLINE
     static __nv_bfloat16 call(
         const vector_storage<__nv_bfloat16, N>& left,
         const vector_storage<__nv_bfloat16, N>& right) {
-        if (N == 0) {
-            return __nv_bfloat16(0);
-        } else if (N == 1) {
-            return __hmul(left.data()[0], right.data()[0]);
-        } else {
-            __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
-            __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
-            __nv_bfloat162 accum = __hmul2(first_a, first_b);
+        __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
+        __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
+        __nv_bfloat162 accum = __hmul2(first_a, first_b);
 
 #pragma unroll
-            for (size_t i = 2; i + 2 <= N; i += 2) {
-                __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
-                __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
-                accum = __hfma2(a, b, accum);
-            }
-
-            __nv_bfloat16 result = __hadd(accum.x, accum.y);
-
-            if (N % 2 != 0) {
-                __nv_bfloat16 a = left.data()[N - 1];
-                __nv_bfloat16 b = right.data()[N - 1];
-                result = __hfma(a, b, result);
-            }
-
-            return result;
+        for (size_t i = 2; i + 2 <= N; i += 2) {
+            __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
+            __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
+            accum = __hfma2(a, b, accum);
         }
+
+        __nv_bfloat16 result = __hadd(accum.x, accum.y);
+
+        if (N % 2 != 0) {
+            __nv_bfloat16 a = left.data()[N - 1];
+            __nv_bfloat16 b = right.data()[N - 1];
+            result = __hfma(a, b, result);
+        }
+
+        return result;
     }
 };
 }  // namespace detail

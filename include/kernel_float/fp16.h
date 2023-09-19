@@ -199,7 +199,6 @@ KERNEL_FLOAT_FP16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_FP16_BINARY_FUN(divide, __hdiv, __h2div)
 KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
-
 KERNEL_FLOAT_FP16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_FP16_BINARY_FUN(equal_to, __heq, __heq2)

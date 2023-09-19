@@ -33,6 +33,13 @@ static __host__ __device__ void __assertion_failed(const char* expr, const char*
         }                                                                   \
     } while (0)
 
+#define ASSERT_EQ(A, B)     ASSERT(equals(A, B))
+#define ASSERT_APPROX(A, B) ASSERT(approx(A, B))
+
+#define ASSERT_ALL(E)           ASSERT((E) && ...)
+#define ASSERT_EQ_ALL(A, B)     ASSERT_ALL(equals(A, B))
+#define ASSERT_APPROX_ALL(A, B) ASSERT_ALL(approx(A, B))
+
 namespace detail {
 template<typename T>
 struct equals_helper {
@@ -44,14 +51,14 @@ struct equals_helper {
 template<>
 struct equals_helper<double> {
     static __host__ __device__ bool call(const double& left, const double& right) {
-        return (isnan(left) && isnan(right)) || (isinf(left) && isinf(right)) || (left == right);
+        return (isnan(left) && isnan(right)) || (left == right);
     }
 };
 
 template<>
 struct equals_helper<float> {
     static __host__ __device__ bool call(const float& left, const float& right) {
-        return (isnan(left) && isnan(right)) || (isinf(left) && isinf(right)) || (left == right);
+        return (isnan(left) && isnan(right)) || (left == right);
     }
 };
 
@@ -74,6 +81,49 @@ struct equals_helper<__nv_bfloat16> {
 template<typename T>
 __host__ __device__ bool equals(const T& left, const T& right) {
     return detail::equals_helper<T>::call(left, right);
+}
+
+namespace detail {
+template<typename T>
+struct approx_helper {
+    static __host__ __device__ bool call(const T& left, const T& right) {
+        return equals_helper<T>::call(left, right);
+    }
+};
+
+template<>
+struct approx_helper<double> {
+    static __host__ __device__ bool call(double left, double right, double threshold = 1e-8) {
+        return equals_helper<double>::call(left, right)
+            || ::fabs(left - right) < threshold * ::fabs(left);
+    }
+};
+
+template<>
+struct approx_helper<float> {
+    static __host__ __device__ bool call(float left, float right) {
+        return approx_helper<double>::call(double(left), double(right), 1e-4);
+    }
+};
+
+template<>
+struct approx_helper<__half> {
+    static __host__ __device__ bool call(__half left, __half right) {
+        return approx_helper<double>::call(double(left), double(right), 0.01);
+    }
+};
+
+template<>
+struct approx_helper<__nv_bfloat16> {
+    static __host__ __device__ bool call(__nv_bfloat16 left, __nv_bfloat16 right) {
+        return approx_helper<double>::call(double(left), double(right), 0.05);
+    }
+};
+}  // namespace detail
+
+template<typename T>
+__host__ __device__ bool approx(const T& left, const T& right) {
+    return detail::approx_helper<T>::call(left, right);
 }
 
 namespace detail {

@@ -144,7 +144,14 @@ template<typename T, size_t N>
 struct dot_impl {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, N>& left, const vector_storage<T, N>& right) {
-        return sum(zip(ops::multiply<T> {}, left, right));
+        vector_storage<T, N> intermediate;
+        detail::apply_impl<ops::multiply<T>, N, T, T, T>::call(
+            ops::multiply<T>(),
+            intermediate.data(),
+            left.data(),
+            right.data());
+
+        return detail::reduce_impl<ops::add<T>, N, T>::call(ops::add<T>(), intermediate.data());
     }
 };
 }  // namespace detail
@@ -197,17 +204,17 @@ template<typename T>
 struct magnitude_impl<T, 2> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 2>& input) {
-        return ops::hypot<T> {}(input.data()[0], input.data()[1]);
+        return ops::hypot<T>()(input.data()[0], input.data()[1]);
     }
 };
 
-// The 3-argument overload of hypot is only available from C++17
-#ifdef __cpp_lib_hypot
+// The 3-argument overload of hypot is only available on host from C++17
+#if defined(__cpp_lib_hypot) && KERNEL_FLOAT_IS_HOST
 template<>
 struct magnitude_impl<float, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<float, 3>& input) {
-        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
+        return ::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 
@@ -215,7 +222,7 @@ template<>
 struct magnitude_impl<double, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<double, 3>& input) {
-        return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
+        return ::hypot(input.data()[0], input.data()[1], input.data()[2]);
     }
 };
 #endif

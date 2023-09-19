@@ -172,15 +172,46 @@ KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_xor, ^=)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(min)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(max)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(copysign)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(hypot)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(modf)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(nextafter)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(pow)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(remainder)
 
-#if KERNEL_FLOAT_CUDA_DEVICE
-KERNEL_FLOAT_DEFINE_BINARY_FUN(rhypot)
+KERNEL_FLOAT_DEFINE_BINARY(hypot, (ops::sqrt<T>()(left * left + right * right)))
+KERNEL_FLOAT_DEFINE_BINARY(rhypot, (T(1) / ops::hypot<T>()(left, right)))
+
+namespace ops {
+template<>
+struct hypot<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::hypot(left, right);
+    };
+};
+
+template<>
+struct hypot<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::hypotf(left, right);
+    };
+};
+
+// rhypot is only support on the GPU
+#if KERNEL_FLOAT_IS_DEVICE
+template<>
+struct rhypot<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::rhypot(left, right);
+    };
+};
+
+template<>
+struct rhypot<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::rhypotf(left, right);
+    };
+};
 #endif
+};  // namespace ops
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN)     \
