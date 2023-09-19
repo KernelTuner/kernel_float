@@ -6,7 +6,7 @@
 namespace kernel_float {
 namespace detail {
 template<typename F, size_t N, typename T, typename = void>
-struct reduce_helper {
+struct reduce_impl {
     KERNEL_FLOAT_INLINE static T call(F fun, const vector_storage<T, N>& input) {
         return call(fun, input, make_index_sequence<N> {});
     }
@@ -29,7 +29,7 @@ struct reduce_helper {
  * Reduce the elements of the given vector ``input`` into a single value using
  * the function ``fun``. This function should be a binary function that takes
  * two elements and returns one element. The order in which the elements
- * are reduced is not specified and depends on the reduction function and
+ * are reduced is not specified and depends on both the reduction function and
  * the vector type.
  *
  * Example
@@ -41,7 +41,7 @@ struct reduce_helper {
  */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_helper<F, vector_extent<V>, vector_value_type<V>>::call(
+    return detail::reduce_impl<F, vector_extent<V>, vector_value_type<V>>::call(
         fun,
         into_vector_storage(input));
 }
@@ -142,7 +142,7 @@ KERNEL_FLOAT_INLINE T count(const V& input) {
 
 namespace detail {
 template<typename T, size_t N>
-struct dot_helper {
+struct dot_impl {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, N>& left, const vector_storage<T, N>& right) {
         return sum(zip(ops::multiply<T> {}, left, right));
@@ -164,22 +164,22 @@ struct dot_helper {
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    return detail::dot_helper<T, E::value>::call(
+    return detail::dot_impl<T, E::value>::call(
         convert_storage<T>(left, E {}),
         convert_storage<T>(right, E {}));
 }
 
 namespace detail {
 template<typename T, size_t N>
-struct magnitude_helper {
+struct magnitude_impl {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, N>& input) {
-        return ops::sqrt<T> {}(detail::dot_helper<T, N>::call(input, input));
+        return ops::sqrt<T> {}(detail::dot_impl<T, N>::call(input, input));
     }
 };
 
 template<typename T>
-struct magnitude_helper<T, 0> {
+struct magnitude_impl<T, 0> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 0>& input) {
         return T {};
@@ -187,7 +187,7 @@ struct magnitude_helper<T, 0> {
 };
 
 template<typename T>
-struct magnitude_helper<T, 1> {
+struct magnitude_impl<T, 1> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 1>& input) {
         return ops::abs<T> {}(input);
@@ -195,7 +195,7 @@ struct magnitude_helper<T, 1> {
 };
 
 template<typename T>
-struct magnitude_helper<T, 2> {
+struct magnitude_impl<T, 2> {
     KERNEL_FLOAT_INLINE
     static T call(const vector_storage<T, 2>& input) {
         return ops::hypot<T> {}(input.data()[0], input.data()[1]);
@@ -205,7 +205,7 @@ struct magnitude_helper<T, 2> {
 // The 3-argument overload of hypot is only available from C++17
 #ifdef __cpp_lib_hypot
 template<>
-struct magnitude_helper<float, 3> {
+struct magnitude_impl<float, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<float, 3>& input) {
         return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
@@ -213,7 +213,7 @@ struct magnitude_helper<float, 3> {
 };
 
 template<>
-struct magnitude_helper<double, 3> {
+struct magnitude_impl<double, 3> {
     KERNEL_FLOAT_INLINE
     static float call(const vector_storage<double, 3>& input) {
         return std::hypot(input.data()[0], input.data()[1], input.data()[2]);
@@ -225,7 +225,7 @@ struct magnitude_helper<double, 3> {
 
 /**
  * Compute the magnitude of the given input vector. This calculates the square root of the sum of squares, also
- * known as the Euclidian norm of the vector.
+ * known as the Euclidian norm, of a vector.
  *
  * Example
  * =======
@@ -236,7 +236,7 @@ struct magnitude_helper<double, 3> {
  */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T mag(const V& input) {
-    return detail::magnitude_helper<T, vector_extent<V>>::call(into_vector_storage(input));
+    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input));
 }
 }  // namespace kernel_float
 

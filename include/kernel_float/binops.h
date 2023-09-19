@@ -49,9 +49,9 @@ using zip_common_type = vector<
  * Example
  * =======
  * ```
- * vec<int, 3> a = {1.0f, 2.0f, 3.0f};
+ * vec<float, 3> a = {1.0f, 2.0f, 3.0f};
  * vec<int, 3> b = {4, 5, 6};
- * vec<int, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
+ * vec<float, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
  * ```
  */
 template<typename F, typename L, typename R>
@@ -62,9 +62,9 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     return detail::apply_impl<F, E::value, O, T, T>::call(
         fun,
-        detail::convert_helper<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
             into_vector_storage(left)),
-        detail::convert_helper<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
             into_vector_storage(right)));
 }
 
@@ -139,7 +139,7 @@ static constexpr bool is_vector_assign_allowed =
         typename T,                                                                  \
         typename E,                                                                  \
         typename R,                                                                  \
-        typename = enabled_t<is_vector_assign_allowed<ops::NAME, T, E, R>>>          \
+        typename = enable_if_t<is_vector_assign_allowed<ops::NAME, T, E, R>>>        \
     KERNEL_FLOAT_INLINE vector<T, E>& operator OP(vector<T, E>& lhs, const R& rhs) { \
         using F = ops::NAME<T>;                                                      \
         lhs = zip_common(F {}, lhs, rhs);                                            \
@@ -249,7 +249,7 @@ struct bit_xor<double> {
 
 namespace detail {
 template<typename T>
-struct cross_helper {
+struct cross_impl {
     KERNEL_FLOAT_INLINE
     static vector<T, extent<3>>
     call(const vector_storage<T, 3>& av, const vector_storage<T, 3>& bv) {
@@ -275,9 +275,9 @@ template<
     typename R,
     typename T = promoted_vector_value_type<L, R>,
     typename =
-        enabled_t<is_vector_broadcastable<L, extent<3>> && is_vector_broadcastable<R, extent<3>>>>
+        enable_if_t<is_vector_broadcastable<L, extent<3>> && is_vector_broadcastable<R, extent<3>>>>
 KERNEL_FLOAT_INLINE vector<T, extent<3>> cross(const L& left, const R& right) {
-    return detail::cross_helper<T>::call(convert_storage<T, 3>(left), convert_storage<T, 3>(right));
+    return detail::cross_impl<T>::call(convert_storage<T, 3>(left), convert_storage<T, 3>(right));
 }
 
 }  // namespace kernel_float

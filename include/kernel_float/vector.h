@@ -39,11 +39,11 @@ struct vector: public S {
         storage_type(detail::broadcast_impl<T, extent<1>, E>::call(input)) {}
 
     // For all other arguments, we convert it using `convert_storage` according to broadcast rules
-    template<typename U, enabled_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    template<typename U, enable_if_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
     KERNEL_FLOAT_INLINE vector(U&& input) :
         storage_type(convert_storage<T>(input, extent_type {})) {}
 
-    template<typename U, enabled_t<!is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
+    template<typename U, enable_if_t<!is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
     KERNEL_FLOAT_INLINE explicit vector(U&& input) :
         storage_type(convert_storage<T>(input, extent_type {})) {}
 
@@ -52,7 +52,7 @@ struct vector: public S {
         typename A,
         typename B,
         typename... Rest,
-        typename = enabled_t<sizeof...(Rest) + 2 == E::size>>
+        typename = enable_if_t<sizeof...(Rest) + 2 == E::size>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
         storage_type {T(a), T(b), T(rest)...} {}
 

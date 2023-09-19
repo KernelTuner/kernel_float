@@ -99,7 +99,7 @@ template<typename... Vs>
 using broadcast_vector_extent_type = broadcast_extent<vector_extent_type<Vs>...>;
 
 template<typename From, typename To>
-static constexpr bool is_broadcastable = is_same<broadcast_extent<From, To>, To>;
+static constexpr bool is_broadcastable = is_same_type<broadcast_extent<From, To>, To>;
 
 template<typename V, typename To>
 static constexpr bool is_vector_broadcastable = is_broadcastable<vector_extent_type<V>, To>;
@@ -169,8 +169,12 @@ broadcast_like(const V& input, const R& other) {
 }
 
 namespace detail {
+/**
+ * Convert vector of element type `T` and extent type `E` to vector of element type `T2` and extent type `E2`.
+ *  Specialization exist for the cases where `T==T2` and/or `E==E2`.
+ */
 template<typename T, typename E, typename T2, typename E2, RoundingMode M = RoundingMode::ANY>
-struct convert_helper {
+struct convert_impl {
     KERNEL_FLOAT_INLINE
     static vector_storage<T2, E2::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
@@ -180,24 +184,27 @@ struct convert_helper {
     }
 };
 
+// T == T2, E == E2
 template<typename T, typename E, RoundingMode M>
-struct convert_helper<T, E, T, E, M> {
+struct convert_impl<T, E, T, E, M> {
     KERNEL_FLOAT_INLINE
     static vector_storage<T, E::value> call(vector_storage<T, E::value> input) {
         return input;
     }
 };
 
+// T == T2, E != E2
 template<typename T, typename E, typename E2, RoundingMode M>
-struct convert_helper<T, E, T, E2, M> {
+struct convert_impl<T, E, T, E2, M> {
     KERNEL_FLOAT_INLINE
     static vector_storage<T, E2::value> call(vector_storage<T, E::value> input) {
         return detail::broadcast_impl<T, E, E2>::call(input);
     }
 };
 
+// T != T2, E == E2
 template<typename T, typename E, typename T2, RoundingMode M>
-struct convert_helper<T, E, T2, E, M> {
+struct convert_impl<T, E, T2, E, M> {
     KERNEL_FLOAT_INLINE
     static vector_storage<T2, E::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
@@ -208,8 +215,8 @@ struct convert_helper<T, E, T2, E, M> {
 
 template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<N> new_size = {}) {
-    return detail::convert_helper<vector_value_type<V>, vector_extent_type<V>, R, extent<N>, M>::
-        call(into_vector_storage(input));
+    return detail::convert_impl<vector_value_type<V>, vector_extent_type<V>, R, extent<N>, M>::call(
+        into_vector_storage(input));
 }
 
 /**

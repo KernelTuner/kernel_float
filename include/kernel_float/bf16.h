@@ -94,7 +94,7 @@ struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
 };
 
 template<typename F, size_t N>
-struct reduce_helper<F, N, __nv_bfloat16, enabled_t<(N >= 2)>> {
+struct reduce_impl<F, N, __nv_bfloat16, enable_if_t<(N >= 2)>> {
     KERNEL_FLOAT_INLINE static __nv_bfloat16
     call(F fun, const vector_storage<__nv_bfloat16, N>& input) {
         __nv_bfloat162 accum = {input.data()[0], input.data()[1]};
@@ -276,38 +276,54 @@ using bfloat16 = __nv_bfloat16;
 
 #if KERNEL_FLOAT_IS_DEVICE
 namespace detail {
+template<>
+struct dot_impl<__nv_bfloat16, 0> {
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat16 call(
+        const vector_storage<__nv_bfloat16, 0>& left,
+        const vector_storage<__nv_bfloat16, 0>& right) {
+        return __nv_bfloat16(0);
+    }
+};
+
+template<>
+struct dot_impl<__nv_bfloat16, 1> {
+    KERNEL_FLOAT_INLINE
+    static __nv_bfloat16 call(
+        const vector_storage<__nv_bfloat16, 1>& left,
+        const vector_storage<__nv_bfloat16, 1>& right) {
+        return __hmul(left.data()[0], right.data()[0]);
+    }
+};
+
 template<size_t N>
-struct dot_helper<__nv_bfloat16, N> {
+struct dot_impl<__nv_bfloat16, N> {
+    static_assert(N >= 2, "internal error");
+
     KERNEL_FLOAT_INLINE
     static __nv_bfloat16 call(
         const vector_storage<__nv_bfloat16, N>& left,
         const vector_storage<__nv_bfloat16, N>& right) {
-        if (N == 0) {
-            return __nv_bfloat16(0);
-        } else if (N == 1) {
-            return __hmul(left.data()[0], right.data()[0]);
-        } else {
-            __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
-            __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
-            __nv_bfloat162 accum = __hmul2(first_a, first_b);
+        __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
+        __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
+        __nv_bfloat162 accum = __hmul2(first_a, first_b);
 
 #pragma unroll
-            for (size_t i = 2; i + 2 <= N; i += 2) {
-                __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
-                __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
-                accum = __hfma2(a, b, accum);
-            }
-
-            __nv_bfloat16 result = __hadd(accum.x, accum.y);
-
-            if (N % 2 != 0) {
-                __nv_bfloat16 a = left.data()[N - 1];
-                __nv_bfloat16 b = right.data()[N - 1];
-                result = __hfma(a, b, result);
-            }
-
-            return result;
+        for (size_t i = 2; i + 2 <= N; i += 2) {
+            __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
+            __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
+            accum = __hfma2(a, b, accum);
         }
+
+        __nv_bfloat16 result = __hadd(accum.x, accum.y);
+
+        if (N % 2 != 0) {
+            __nv_bfloat16 a = left.data()[N - 1];
+            __nv_bfloat16 b = right.data()[N - 1];
+            result = __hfma(a, b, result);
+        }
+
+        return result;
     }
 };
 }  // namespace detail

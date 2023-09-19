@@ -42,11 +42,11 @@ KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, cons
 
     return detail::apply_impl<F, E::value, T, bool, T, T>::call(
         F {},
-        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
+        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
             into_vector_storage(cond)),
-        detail::convert_helper<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
             into_vector_storage(true_values)),
-        detail::convert_helper<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
             into_vector_storage(false_values)));
 }
 
@@ -120,11 +120,11 @@ KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
 
     return detail::apply_impl<F, E::value, T, T, T, T>::call(
         F {},
-        detail::convert_helper<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
+        detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
             into_vector_storage(a)),
-        detail::convert_helper<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
+        detail::convert_impl<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
             into_vector_storage(b)),
-        detail::convert_helper<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
+        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
             into_vector_storage(c)));
 }
 
