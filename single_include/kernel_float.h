@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-09-19 20:34:16.094065
-// git hash: 7acff4cc2414483de4162d0b47453422f6ebe215
+// date: 2023-09-19 20:45:16.880746
+// git hash: da0a46b533ef9d25638748eb951284f14e7c48bb
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2535,13 +2535,13 @@ namespace detail {
 template<typename T, size_t N>
 struct dot_impl {
     KERNEL_FLOAT_INLINE
-    static T call(const vector_storage<T, N>& left, const vector_storage<T, N>& right) {
+    static T call(const T* left, const T* right) {
         vector_storage<T, N> intermediate;
         detail::apply_impl<ops::multiply<T>, N, T, T, T>::call(
             ops::multiply<T>(),
             intermediate.data(),
-            left.data(),
-            right.data());
+            left,
+            right);
 
         return detail::reduce_impl<ops::add<T>, N, T>::call(ops::add<T>(), intermediate.data());
     }
@@ -2563,15 +2563,15 @@ template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
     return detail::dot_impl<T, E::value>::call(
-        convert_storage<T>(left, E {}),
-        convert_storage<T>(right, E {}));
+        convert_storage<T>(left, E {}).data(),
+        convert_storage<T>(right, E {}).data());
 }
 
 namespace detail {
 template<typename T, size_t N>
 struct magnitude_impl {
     KERNEL_FLOAT_INLINE
-    static T call(const vector_storage<T, N>& input) {
+    static T call(const T* input) {
         return ops::sqrt<T> {}(detail::dot_impl<T, N>::call(input, input));
     }
 };
@@ -2579,7 +2579,7 @@ struct magnitude_impl {
 template<typename T>
 struct magnitude_impl<T, 0> {
     KERNEL_FLOAT_INLINE
-    static T call(const vector_storage<T, 0>& input) {
+    static T call(const T* input) {
         return T {};
     }
 };
@@ -2587,16 +2587,16 @@ struct magnitude_impl<T, 0> {
 template<typename T>
 struct magnitude_impl<T, 1> {
     KERNEL_FLOAT_INLINE
-    static T call(const vector_storage<T, 1>& input) {
-        return ops::abs<T> {}(input);
+    static T call(const T* input) {
+        return ops::abs<T> {}(input[0]);
     }
 };
 
 template<typename T>
 struct magnitude_impl<T, 2> {
     KERNEL_FLOAT_INLINE
-    static T call(const vector_storage<T, 2>& input) {
-        return ops::hypot<T>()(input.data()[0], input.data()[1]);
+    static T call(const T* input) {
+        return ops::hypot<T>()(input[0], input[1]);
     }
 };
 
@@ -2604,17 +2604,15 @@ struct magnitude_impl<T, 2> {
 #if defined(__cpp_lib_hypot) && KERNEL_FLOAT_IS_HOST
 template<>
 struct magnitude_impl<float, 3> {
-    KERNEL_FLOAT_INLINE
-    static float call(const vector_storage<float, 3>& input) {
-        return ::hypot(input.data()[0], input.data()[1], input.data()[2]);
+    static float call(const float* input) {
+        return ::hypot(input[0], input[1], input[2]);
     }
 };
 
 template<>
 struct magnitude_impl<double, 3> {
-    KERNEL_FLOAT_INLINE
-    static float call(const vector_storage<double, 3>& input) {
-        return ::hypot(input.data()[0], input.data()[1], input.data()[2]);
+    static double call(const double* input) {
+        return ::hypot(input[0], input[1], input[2]);
     }
 };
 #endif
@@ -2634,7 +2632,7 @@ struct magnitude_impl<double, 3> {
  */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T mag(const V& input) {
-    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input));
+    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input).data());
 }
 }  // namespace kernel_float
 
@@ -3375,8 +3373,7 @@ namespace detail {
 template<>
 struct dot_impl<__half, 0> {
     KERNEL_FLOAT_INLINE
-    static __half
-    call(const vector_storage<__half, 0>& left, const vector_storage<__half, 0>& right) {
+    static __half call(const __half* left, const __half* right) {
         return __half(0);
     }
 };
@@ -3384,9 +3381,8 @@ struct dot_impl<__half, 0> {
 template<>
 struct dot_impl<__half, 1> {
     KERNEL_FLOAT_INLINE
-    static __half
-    call(const vector_storage<__half, 1>& left, const vector_storage<__half, 1>& right) {
-        return __hmul(left.data()[0], right.data()[0]);
+    static __half call(const __half* left, const __half* right) {
+        return __hmul(left[0], right[0]);
     }
 };
 
@@ -3395,24 +3391,23 @@ struct dot_impl<__half, N> {
     static_assert(N >= 2, "internal error");
 
     KERNEL_FLOAT_INLINE
-    static __half
-    call(const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
-        __half2 first_a = {left.data()[0], left.data()[1]};
-        __half2 first_b = {right.data()[0], right.data()[1]};
+    static __half call(const __half* left, const __half* right) {
+        __half2 first_a = {left[0], left[1]};
+        __half2 first_b = {right[0], right[1]};
         __half2 accum = __hmul2(first_a, first_b);
 
 #pragma unroll
         for (size_t i = 2; i + 2 <= N; i += 2) {
-            __half2 a = {left.data()[i], left.data()[i + 1]};
-            __half2 b = {right.data()[i], right.data()[i + 1]};
+            __half2 a = {left[i], left[i + 1]};
+            __half2 b = {right[i], right[i + 1]};
             accum = __hfma2(a, b, accum);
         }
 
         __half result = __hadd(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            __half a = left.data()[N - 1];
-            __half b = right.data()[N - 1];
+            __half a = left[N - 1];
+            __half b = right[N - 1];
             result = __hfma(a, b, result);
         }
 
@@ -3688,9 +3683,7 @@ namespace detail {
 template<>
 struct dot_impl<__nv_bfloat16, 0> {
     KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(
-        const vector_storage<__nv_bfloat16, 0>& left,
-        const vector_storage<__nv_bfloat16, 0>& right) {
+    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
         return __nv_bfloat16(0);
     }
 };
@@ -3698,10 +3691,8 @@ struct dot_impl<__nv_bfloat16, 0> {
 template<>
 struct dot_impl<__nv_bfloat16, 1> {
     KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(
-        const vector_storage<__nv_bfloat16, 1>& left,
-        const vector_storage<__nv_bfloat16, 1>& right) {
-        return __hmul(left.data()[0], right.data()[0]);
+    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
+        return __hmul(left[0], right[0]);
     }
 };
 
@@ -3710,25 +3701,23 @@ struct dot_impl<__nv_bfloat16, N> {
     static_assert(N >= 2, "internal error");
 
     KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(
-        const vector_storage<__nv_bfloat16, N>& left,
-        const vector_storage<__nv_bfloat16, N>& right) {
-        __nv_bfloat162 first_a = {left.data()[0], left.data()[1]};
-        __nv_bfloat162 first_b = {right.data()[0], right.data()[1]};
+    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
+        __nv_bfloat162 first_a = {left[0], left[1]};
+        __nv_bfloat162 first_b = {right[0], right[1]};
         __nv_bfloat162 accum = __hmul2(first_a, first_b);
 
 #pragma unroll
-        for (size_t i = 2; i + 2 <= N; i += 2) {
-            __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
-            __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
+        for (size_t i = 2; i + 1 < N; i += 2) {
+            __nv_bfloat162 a = {left[i], left[i + 1]};
+            __nv_bfloat162 b = {right[i], right[i + 1]};
             accum = __hfma2(a, b, accum);
         }
 
         __nv_bfloat16 result = __hadd(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            __nv_bfloat16 a = left.data()[N - 1];
-            __nv_bfloat16 b = right.data()[N - 1];
+            __nv_bfloat16 a = left[N - 1];
+            __nv_bfloat16 b = right[N - 1];
             result = __hfma(a, b, result);
         }
 
