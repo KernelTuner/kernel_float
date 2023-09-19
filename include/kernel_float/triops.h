@@ -39,15 +39,22 @@ template<
     typename E = broadcast_vector_extent_type<C, L, R>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
+    vector_storage<T, E::value> result;
 
-    return detail::apply_impl<F, E::value, T, bool, T, T>::call(
+    detail::apply_impl<F, E::value, T, bool, T, T>::call(
         F {},
+        result.data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
-            into_vector_storage(cond)),
+            into_vector_storage(cond))
+            .data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
-            into_vector_storage(true_values)),
+            into_vector_storage(true_values))
+            .data(),
         detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
-            into_vector_storage(false_values)));
+            into_vector_storage(false_values))
+            .data());
+
+    return result;
 }
 
 /**
@@ -117,15 +124,22 @@ template<
     typename E = broadcast_vector_extent_type<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
+    vector_storage<T, E::value> result;
 
-    return detail::apply_impl<F, E::value, T, T, T, T>::call(
+    detail::apply_impl<F, E::value, T, T, T, T>::call(
         F {},
+        result.data(),
         detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
-            into_vector_storage(a)),
+            into_vector_storage(a))
+            .data(),
         detail::convert_impl<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
-            into_vector_storage(b)),
+            into_vector_storage(b))
+            .data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
-            into_vector_storage(c)));
+            into_vector_storage(c))
+            .data());
+
+    return result;
 }
 
 }  // namespace kernel_float

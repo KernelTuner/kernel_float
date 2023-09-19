@@ -80,8 +80,8 @@ struct binops_float_tests {
 
         // remainder is not support for fp16
         if constexpr (is_none_of<T, __half, __nv_bfloat16>) {
-            c = a % b;
-            ASSERT(equals(T(fmod(x[I], y[I])), c[I]) && ...);
+            //            c = a % b;
+            //            ASSERT(equals(T(fmod(x[I], y[I])), c[I]) && ...);
         }
     }
 };

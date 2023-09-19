@@ -49,66 +49,55 @@ struct zip_bfloat16x2 {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static vector_storage<__nv_bfloat16, N>
-    call(F fun, const vector_storage<__nv_bfloat16, N>& input) {
-        vector_storage<__nv_bfloat16, N> result;
-
+    KERNEL_FLOAT_INLINE static void call(F fun, __nv_bfloat16* result, const __nv_bfloat16* input) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __nv_bfloat162 a = {input[2 * i], input[2 * i + 1]};
             __nv_bfloat162 b = map_bfloat16x2<F>::call(fun, a);
-            result.data()[i + 0] = b.x;
-            result.data()[i + 1] = b.y;
+            result[2 * i + 0] = b.x;
+            result[2 * i + 1] = b.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(input.data()[N - 1]);
+            result[N - 1] = fun(input[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static vector_storage<__nv_bfloat16, N> call(
-        F fun,
-        const vector_storage<__nv_bfloat16, N>& left,
-        const vector_storage<__nv_bfloat16, N>& right) {
-        vector_storage<__nv_bfloat16, N> result;
+    KERNEL_FLOAT_INLINE static void
+    call(F fun, __nv_bfloat16* result, const __nv_bfloat16* left, const __nv_bfloat16* right) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __nv_bfloat162 a = {left.data()[i], left.data()[i + 1]};
-            __nv_bfloat162 b = {right.data()[i], right.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __nv_bfloat162 a = {left[2 * i], left[2 * i + 1]};
+            __nv_bfloat162 b = {right[2 * i], right[2 * i + 1]};
             __nv_bfloat162 c = zip_bfloat16x2<F>::call(fun, a, b);
-            result.data()[i + 0] = c.x;
-            result.data()[i + 1] = c.y;
+            result[2 * i + 0] = c.x;
+            result[2 * i + 1] = c.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(left.data()[N - 1], right.data()[N - 1]);
+            result[N - 1] = fun(left[N - 1], right[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
 struct reduce_impl<F, N, __nv_bfloat16, enable_if_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __nv_bfloat16
-    call(F fun, const vector_storage<__nv_bfloat16, N>& input) {
-        __nv_bfloat162 accum = {input.data()[0], input.data()[1]};
+    KERNEL_FLOAT_INLINE static __nv_bfloat16 call(F fun, const __nv_bfloat16* input) {
+        __nv_bfloat162 accum = {input[0], input[1]};
 
 #pragma unroll
-        for (size_t i = 2; i + 2 <= N; i += 2) {
-            __nv_bfloat162 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __nv_bfloat162 a = {input[2 * i], input[2 * i + 1]};
             accum = zip_bfloat16x2<F>::call(fun, accum, a);
         }
 
         __nv_bfloat16 result = fun(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            result = fun(result, input.data()[N - 1]);
+            result = fun(result, input[N - 1]);
         }
 
         return result;
@@ -126,6 +115,7 @@ struct reduce_impl<F, N, __nv_bfloat16, enable_if_t<(N >= 2)>> {
     };                                                                      \
     }
 
+// There operations are not implemented in half precision, so they are forward to single precision
 KERNEL_FLOAT_BF16_UNARY_FORWARD(tan)
 KERNEL_FLOAT_BF16_UNARY_FORWARD(asin)
 KERNEL_FLOAT_BF16_UNARY_FORWARD(acos)
@@ -243,32 +233,22 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), double(__bfloat162float(input)));
 KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input));
 
+// clang-format off
 // there are no official char casts. Instead, cast to int and then to char
 KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
-KERNEL_FLOAT_BF16_CAST(
-    signed char,
-    __int2bfloat16_rn(input),
-    (signed char)__bfloat162int_rz(input));
-KERNEL_FLOAT_BF16_CAST(
-    unsigned char,
-    __int2bfloat16_rn(input),
-    (unsigned char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(signed char, __int2bfloat16_rn(input), (signed char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(unsigned char, __int2bfloat16_rn(input), (unsigned char)__bfloat162int_rz(input));
 
 KERNEL_FLOAT_BF16_CAST(signed short, __bfloat162short_rz(input), __short2bfloat16_rn(input));
 KERNEL_FLOAT_BF16_CAST(signed int, __bfloat162int_rz(input), __int2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(
-    signed long,
-    __ll2bfloat16_rn(input),
-    (signed long)(__bfloat162ll_rz(input)));
+KERNEL_FLOAT_BF16_CAST(signed long, __ll2bfloat16_rn(input), (signed long)(__bfloat162ll_rz(input)));
 KERNEL_FLOAT_BF16_CAST(signed long long, __ll2bfloat16_rn(input), __bfloat162ll_rz(input));
 
 KERNEL_FLOAT_BF16_CAST(unsigned short, __bfloat162ushort_rz(input), __ushort2bfloat16_rn(input));
 KERNEL_FLOAT_BF16_CAST(unsigned int, __bfloat162uint_rz(input), __uint2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(
-    unsigned long,
-    __ull2bfloat16_rn(input),
-    (unsigned long)(__bfloat162ull_rz(input)));
+KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
 KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
+// clang-format on
 
 using bfloat16 = __nv_bfloat16;
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)

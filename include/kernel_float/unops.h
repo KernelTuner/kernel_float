@@ -8,16 +8,11 @@ namespace detail {
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_impl {
-    KERNEL_FLOAT_INLINE static vector_storage<Output, N>
-    call(F fun, const vector_storage<Args, N>&... inputs) {
-        vector_storage<Output, N> result;
-
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            result.data()[i] = fun(inputs.data()[i]...);
+            result[i] = fun(inputs[i]...);
         }
-
-        return result;
     }
 };
 }  // namespace detail
@@ -39,9 +34,14 @@ template<typename F, typename V>
 KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     using Input = vector_value_type<V>;
     using Output = result_t<F, Input>;
-    return detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
+    vector_storage<Output, vector_extent<V>> result;
+
+    detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
         fun,
-        into_vector_storage(input));
+        result.data(),
+        into_vector_storage(input).data());
+
+    return result;
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                                      \

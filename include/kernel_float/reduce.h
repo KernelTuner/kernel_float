@@ -7,18 +7,17 @@ namespace kernel_float {
 namespace detail {
 template<typename F, size_t N, typename T, typename = void>
 struct reduce_impl {
-    KERNEL_FLOAT_INLINE static T call(F fun, const vector_storage<T, N>& input) {
+    KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
         return call(fun, input, make_index_sequence<N> {});
     }
 
   private:
     template<size_t... Is>
-    KERNEL_FLOAT_INLINE static T
-    call(F fun, const vector_storage<T, N>& input, index_sequence<0, Is...>) {
-        T result = input.data()[0];
+    KERNEL_FLOAT_INLINE static T call(F fun, const T* input, index_sequence<0, Is...>) {
+        T result = input[0];
 #pragma unroll
         for (size_t i = 1; i < N; i++) {
-            result = fun(result, input.data()[i]);
+            result = fun(result, input[i]);
         }
         return result;
     }
@@ -43,7 +42,7 @@ template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
     return detail::reduce_impl<F, vector_extent<V>, vector_value_type<V>>::call(
         fun,
-        into_vector_storage(input));
+        into_vector_storage(input).data());
 }
 
 /**

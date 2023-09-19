@@ -178,8 +178,8 @@ struct convert_impl {
     KERNEL_FLOAT_INLINE
     static vector_storage<T2, E2::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
-        vector_storage<T2, E::value> intermediate =
-            detail::apply_impl<F, E::value, T2, T>::call(F {}, input);
+        vector_storage<T2, E::value> intermediate;
+        detail::apply_impl<F, E::value, T2, T>::call(F {}, intermediate.data(), input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -208,7 +208,10 @@ struct convert_impl<T, E, T2, E, M> {
     KERNEL_FLOAT_INLINE
     static vector_storage<T2, E::value> call(vector_storage<T, E::value> input) {
         using F = ops::cast<T, T2, M>;
-        return detail::apply_impl<F, E::value, T2, T>::call(F {}, input);
+
+        vector_storage<T2, E::value> result;
+        detail::apply_impl<F, E::value, T2, T>::call(F {}, result.data(), input.data());
+        return result;
     }
 };
 }  // namespace detail

@@ -29,11 +29,16 @@ KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) 
     using B = vector_value_type<R>;
     using O = result_t<F, A, B>;
     using E = broadcast_vector_extent_type<L, R>;
+    vector_storage<O, E::value> result;
 
-    return detail::apply_impl<F, E::value, O, A, B>::call(
+    detail::apply_impl<F, E::value, O, A, B>::call(
         fun,
-        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)),
-        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right)));
+        result.data(),
+        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)).data(),
+        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right))
+            .data());
+
+    return result;
 }
 
 template<typename F, typename L, typename R>
@@ -60,12 +65,19 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     using O = result_t<F, T, T>;
     using E = broadcast_vector_extent_type<L, R>;
 
-    return detail::apply_impl<F, E::value, O, T, T>::call(
+    vector_storage<O, E::value> result;
+
+    detail::apply_impl<F, E::value, O, T, T>::call(
         fun,
+        result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
-            into_vector_storage(left)),
+            into_vector_storage(left))
+            .data(),
         detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
-            into_vector_storage(right)));
+            into_vector_storage(right))
+            .data());
+
+    return result;
 }
 
 #define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \

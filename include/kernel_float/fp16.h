@@ -47,63 +47,55 @@ struct zip_halfx2 {
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half> {
-    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
-    call(F fun, const vector_storage<__half, N>& input) {
-        vector_storage<__half, N> result;
-
+    KERNEL_FLOAT_INLINE static void call(F fun, __half* result, const __half* input) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __half2 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __half2 a = {input[2 * i], input[2 * i + 1]};
             __half2 b = map_halfx2<F>::call(fun, a);
-            result.data()[i + 0] = b.x;
-            result.data()[i + 1] = b.y;
+            result[2 * i + 0] = b.x;
+            result[2 * i + 1] = b.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(input.data()[N - 1]);
+            result[N - 1] = fun(input[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
 struct apply_impl<F, N, __half, __half, __half> {
-    KERNEL_FLOAT_INLINE static vector_storage<__half, N>
-    call(F fun, const vector_storage<__half, N>& left, const vector_storage<__half, N>& right) {
-        vector_storage<__half, N> result;
+    KERNEL_FLOAT_INLINE static void
+    call(F fun, __half* result, const __half* left, const __half* right) {
 #pragma unroll
-        for (size_t i = 0; i + 2 <= N; i += 2) {
-            __half2 a = {left.data()[i], left.data()[i + 1]};
-            __half2 b = {right.data()[i], right.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __half2 a = {left[2 * i], left[2 * i + 1]};
+            __half2 b = {right[2 * i], right[2 * i + 1]};
             __half2 c = zip_halfx2<F>::call(fun, a, b);
-            result.data()[i + 0] = c.x;
-            result.data()[i + 1] = c.y;
+            result[2 * i + 0] = c.x;
+            result[2 * i + 1] = c.y;
         }
 
         if (N % 2 != 0) {
-            result.data()[N - 1] = fun(left.data()[N - 1], right.data()[N - 1]);
+            result[N - 1] = fun(left[N - 1], right[N - 1]);
         }
-
-        return result;
     }
 };
 
 template<typename F, size_t N>
 struct reduce_impl<F, N, __half, enable_if_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __half call(F fun, const vector_storage<__half, N>& input) {
-        __half2 accum = {input.data()[0], input.data()[1]};
+    KERNEL_FLOAT_INLINE static __half call(F fun, const __half* input) {
+        __half2 accum = {input[0], input[1]};
 
 #pragma unroll
-        for (size_t i = 2; i + 2 <= N; i += 2) {
-            __half2 a = {input.data()[i], input.data()[i + 1]};
+        for (size_t i = 0; 2 * i + 1 < N; i++) {
+            __half2 a = {input[2 * i], input[2 * i + 1]};
             accum = zip_halfx2<F>::call(fun, accum, a);
         }
 
         __half result = fun(accum.x, accum.y);
 
         if (N % 2 != 0) {
-            result = fun(result, input.data()[N - 1]);
+            result = fun(result, input[N - 1]);
         }
 
         return result;
@@ -122,6 +114,7 @@ struct reduce_impl<F, N, __half, enable_if_t<(N >= 2)>> {
     };                                                        \
     }
 
+// There operations are not implemented in half precision, so they are forward to single precision
 KERNEL_FLOAT_FP16_UNARY_FORWARD(tan)
 KERNEL_FLOAT_FP16_UNARY_FORWARD(asin)
 KERNEL_FLOAT_FP16_UNARY_FORWARD(acos)
