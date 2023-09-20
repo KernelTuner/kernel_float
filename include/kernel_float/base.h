@@ -173,7 +173,7 @@ struct extent<N> {
 };
 
 template<typename T>
-struct into_vector_traits {
+struct into_vector_impl {
     using value_type = T;
     using extent_type = extent<1>;
 
@@ -184,7 +184,7 @@ struct into_vector_traits {
 };
 
 template<typename T, size_t N>
-struct into_vector_traits<T[N]> {
+struct into_vector_impl<T[N]> {
     using value_type = T;
     using extent_type = extent<N>;
 
@@ -202,19 +202,19 @@ struct into_vector_traits<T[N]> {
 };
 
 template<typename V>
-struct into_vector_traits<const V>: into_vector_traits<V> {};
+struct into_vector_impl<const V>: into_vector_impl<V> {};
 
 template<typename V>
-struct into_vector_traits<V&>: into_vector_traits<V> {};
+struct into_vector_impl<V&>: into_vector_impl<V> {};
 
 template<typename V>
-struct into_vector_traits<const V&>: into_vector_traits<V> {};
+struct into_vector_impl<const V&>: into_vector_impl<V> {};
 
 template<typename V>
-struct into_vector_traits<V&&>: into_vector_traits<V> {};
+struct into_vector_impl<V&&>: into_vector_impl<V> {};
 
 template<typename T, size_t N, size_t A>
-struct into_vector_traits<aligned_array<T, N, A>> {
+struct into_vector_impl<aligned_array<T, N, A>> {
     using value_type = T;
     using extent_type = extent<N>;
 
@@ -226,7 +226,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
     template<>                                             \
-    struct into_vector_traits<::T1> {                      \
+    struct into_vector_impl<::T1> {                        \
         using value_type = T;                              \
         using extent_type = extent<1>;                     \
                                                            \
@@ -237,7 +237,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     };                                                     \
                                                            \
     template<>                                             \
-    struct into_vector_traits<::T2> {                      \
+    struct into_vector_impl<::T2> {                        \
         using value_type = T;                              \
         using extent_type = extent<2>;                     \
                                                            \
@@ -248,7 +248,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     };                                                     \
                                                            \
     template<>                                             \
-    struct into_vector_traits<::T3> {                      \
+    struct into_vector_impl<::T3> {                        \
         using value_type = T;                              \
         using extent_type = extent<3>;                     \
                                                            \
@@ -259,7 +259,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     };                                                     \
                                                            \
     template<>                                             \
-    struct into_vector_traits<::T4> {                      \
+    struct into_vector_impl<::T4> {                        \
         using value_type = T;                              \
         using extent_type = extent<4>;                     \
                                                            \
@@ -288,7 +288,7 @@ template<typename T, typename E, typename S = vector_storage<T, E::size>>
 struct vector;
 
 template<typename T, typename E, typename S>
-struct into_vector_traits<vector<T, E, S>> {
+struct into_vector_impl<vector<T, E, S>> {
     using value_type = T;
     using extent_type = E;
 
@@ -310,10 +310,10 @@ struct vector_traits<vector<T, E, S>> {
 };
 
 template<typename V>
-using vector_value_type = typename into_vector_traits<V>::value_type;
+using vector_value_type = typename into_vector_impl<V>::value_type;
 
 template<typename V>
-using vector_extent_type = typename into_vector_traits<V>::extent_type;
+using vector_extent_type = typename into_vector_impl<V>::extent_type;
 
 template<typename V>
 static constexpr size_t vector_extent = vector_extent_type<V>::value;
@@ -329,7 +329,7 @@ using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
 
 template<typename V>
 KERNEL_FLOAT_INLINE vector_storage_type<V> into_vector_storage(V&& input) {
-    return into_vector_traits<V>::call(std::forward<V>(input));
+    return into_vector_impl<V>::call(std::forward<V>(input));
 }
 
 }  // namespace kernel_float

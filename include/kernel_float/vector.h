@@ -280,7 +280,7 @@ struct vector: public S {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
-    return into_vector_traits<V>::call(std::forward<V>(input));
+    return into_vector_impl<V>::call(std::forward<V>(input));
 }
 
 template<typename T>

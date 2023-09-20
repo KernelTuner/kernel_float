@@ -16,7 +16,7 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_bfloat16)
 
 template<>
-struct into_vector_traits<__nv_bfloat162> {
+struct into_vector_impl<__nv_bfloat162> {
     using value_type = __nv_bfloat16;
     using extent_type = extent<2>;
 

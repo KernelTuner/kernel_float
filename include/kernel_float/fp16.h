@@ -14,7 +14,7 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)
 
 template<>
-struct into_vector_traits<__half2> {
+struct into_vector_impl<__half2> {
     using value_type = __half;
     using extent_type = extent<2>;
 
