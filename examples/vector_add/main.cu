@@ -4,9 +4,7 @@
 #include <vector>
 
 #include "kernel_float.h"
-namespace kf = kernel_float;
-
-using x = kf::half;
+using namespace kernel_float::prelude;
 
 void cuda_check(cudaError_t code) {
     if (code != cudaSuccess) {
@@ -15,11 +13,7 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N>
-__global__ void my_kernel(
-    int length,
-    const kf::unaligned_vec<__half, N>* input,
-    double constant,
-    kf::unaligned_vec<float, N>* output) {
+__global__ void my_kernel(int length, const khalf<N>* input, double constant, kfloat<N>* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
@@ -30,24 +24,24 @@ __global__ void my_kernel(
 template<int items_per_thread>
 void run_kernel(int n) {
     double constant = 1.0;
-    std::vector<__half> input(n);
+    std::vector<half> input(n);
     std::vector<float> output_expected;
     std::vector<float> output_result;
 
     // Generate input data
     for (int i = 0; i < n; i++) {
-        input[i] = __half(i);
+        input[i] = half(i);
         output_expected[i] = float(i + constant);
     }
 
     // Allocate device memory
-    kf::unaligned_vec<__half, items_per_thread>* input_dev;
-    kf::unaligned_vec<float, items_per_thread>* output_dev;
-    cuda_check(cudaMalloc(&input_dev, sizeof(__half) * n));
+    khalf<items_per_thread>* input_dev;
+    kfloat<items_per_thread>* output_dev;
+    cuda_check(cudaMalloc(&input_dev, sizeof(half) * n));
     cuda_check(cudaMalloc(&output_dev, sizeof(float) * n));
 
     // Copy device memory
-    cuda_check(cudaMemcpy(input_dev, input.data(), sizeof(__half) * n, cudaMemcpyDefault));
+    cuda_check(cudaMemcpy(input_dev, input.data(), sizeof(half) * n, cudaMemcpyDefault));
 
     // Launch kernel!
     int block_size = 256;
