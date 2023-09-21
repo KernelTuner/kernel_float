@@ -65,51 +65,51 @@ def build_index_page(groups):
 
     return filename
 
-aliases = []
-for ty in ["vec", "float", "double", "half", "bfloat16x", ""]:
-    if ty != "vec":
-        aliases.append(f"{ty}X")
-
+aliases = ["scalar", "vec"]
+for ty in ["vec"]:
     for i in range(2, 8 + 1):
         aliases.append(f"{ty}{i}")
 
 groups = {
         "Types": [
             ("vector", "vector", "struct"),
-            ("Aliases", [
-                "unaligned_vec",
-                "vec",
-            ] + aliases,
-            "typedef"),
+            ("Aliases", aliases, "typedef"),
         ],
         "Primitives": [
-            ("range", "range()"),
-            ("range", "range(F)"),
             "map",
             "reduce",
             "zip",
             "zip_common",
             "cast",
             "broadcast",
-            "resize",
+            "convert",
+            "make_vec",
+            "into_vector",
+            "concat",
+            "select",
             "for_each",
         ],
-        "Shuffling": [
-            "concat",
-            "swizzle",
-            "first",
-            "last",
-            "reversed",
-            "rotate_left",
-            "rotate_right",
-        ],
-        "Unary Operators": [
+        "Generation": [
+            "range",
+            "range_like",
+            "each_index",
             "fill",
             "fill_like",
             "zeros",
             "zeros_like",
             "ones",
             "ones_like",
+        ],
+        "Shuffling": [
+        #    "concat",
+        #    "swizzle",
+        #    "first",
+        #    "last",
+        #    "reversed",
+        #    "rotate_left",
+        #    "rotate_right",
+        ],
+        "Unary Operators": [
             "negate",
             "bit_not",
             "logical_not",
@@ -135,21 +135,21 @@ groups = {
             ("min", "min(L&&, R&&)"),
             "nextafter",
             "modf",
-            "pow",
+            ("pow", "pow(L&&, R&&)"),
             "remainder",
             #"rhypot",
         ],
         "Reductions": [
             "sum",
-            ("max", "max(V&&)"),
-            ("min", "min(V&&)"),
+            ("max", "max(const V&)"),
+            ("min", "min(const V&)"),
             "product",
             "all",
             "any",
             "count",
         ],
         "Mathematical": [
-            "abs",
+            ("abs", "abs(const V&)"),
             "acos",
             "acosh",
             "asin",
@@ -166,14 +166,14 @@ groups = {
             "erfcinv",
             "erfcx",
             "erfinv",
-            "exp",
+            ("exp", "exp(const V&)"),
             "exp10",
             "exp2",
             "fabs",
             "floor",
             "ilogb",
             "lgamma",
-            "log",
+            ("log", "log(const V&)"),
             "log10",
             "logb",
             "nearbyint",
@@ -181,7 +181,7 @@ groups = {
             "rcbrt",
             "sin",
             "sinh",
-            "sqrt",
+            ("sqrt", "sqrt(const V&)"),
             "tan",
             "tanh",
             "tgamma",
@@ -193,6 +193,11 @@ groups = {
             "isinf",
             "isnan",
         ],
+        "Conditional": [
+            ("where", "where(const C&, const L&, const R&)"),
+            ("where", "where(const C&, const L&)"),
+            ("where", "where(const C&)"),
+        ]
 }
 
 build_index_page(groups)

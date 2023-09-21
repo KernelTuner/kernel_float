@@ -1,77 +1,69 @@
 #ifndef KERNEL_FLOAT_UNOPS_H
 #define KERNEL_FLOAT_UNOPS_H
 
-#include "cast.h"
-#include "storage.h"
+#include "base.h"
 
 namespace kernel_float {
 namespace detail {
-template<typename F, typename Output, typename Input, typename = void>
-struct map_helper {
-    KERNEL_FLOAT_INLINE static Output call(F fun, const Input& input) {
-        return call(fun, input, make_index_sequence<vector_size<Input>> {});
-    }
 
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static Output call(F fun, const Input& input, index_sequence<Is...>) {
-        return vector_traits<Output>::create(fun(vector_get<Is>(input))...);
-    }
-};
-
-template<typename F, typename V, size_t N>
-struct map_helper<F, nested_array<V, N>, nested_array<V, N>> {
-    KERNEL_FLOAT_INLINE static nested_array<V, N> call(F fun, const nested_array<V, N>& input) {
-        return call(fun, input, make_index_sequence<nested_array<V, N>::num_packets> {});
-    }
-
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static nested_array<V, N>
-    call(F fun, const nested_array<V, N>& input, index_sequence<Is...>) {
-        return {map_helper<F, V, V>::call(fun, input[Is])...};
+template<typename F, size_t N, typename Output, typename... Args>
+struct apply_impl {
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            result[i] = fun(inputs[i]...);
+        }
     }
 };
 }  // namespace detail
 
-template<typename F, typename Input>
-using map_type = default_storage_type<result_t<F, vector_value_type<Input>>, vector_size<Input>>;
+template<typename F, typename V>
+using map_type = vector<result_t<F, vector_value_type<V>>, vector_extent_type<V>>;
 
 /**
- * Applies ``fun`` to each element from vector ``input`` and returns a new vector with the results.
- * This function is the basis for all unary operators like ``sin`` and ``sqrt``.
+ * Apply the function `F` to each element from the vector `input` and return the results as a new vector.
  *
- * Example
- * =======
+ * Examples
+ * ========
  * ```
- * vector<int, 3> v = {1, 2, 3};
- * vector<int, 3> w = map([](auto i) { return i * 2; }); // 2, 4, 6
+ * vec<float, 4> input = {1.0f, 2.0f, 3.0f, 4.0f};
+ * vec<float, 4> squared = map([](auto x) { return x * x; }, input); // [1.0f, 4.0f, 9.0f, 16.0f]
  * ```
  */
-template<typename F, typename Input, typename Output = map_type<F, Input>>
-KERNEL_FLOAT_INLINE Output map(F fun, const Input& input) {
-    return detail::map_helper<F, Output, into_storage_type<Input>>::call(fun, into_storage(input));
+template<typename F, typename V>
+KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
+    using Input = vector_value_type<V>;
+    using Output = result_t<F, Input>;
+    vector_storage<Output, vector_extent<V>> result;
+
+    detail::apply_impl<F, vector_extent<V>, Output, Input>::call(
+        fun,
+        result.data(),
+        into_vector_storage(input).data());
+
+    return result;
 }
 
-#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                            \
-    namespace ops {                                                                      \
-    template<typename T>                                                                 \
-    struct NAME {                                                                        \
-        KERNEL_FLOAT_INLINE T operator()(T input) {                                      \
-            return T(EXPR);                                                              \
-        }                                                                                \
-    };                                                                                   \
-    }                                                                                    \
-    template<typename V>                                                                 \
-    KERNEL_FLOAT_INLINE vector<into_storage_type<V>> NAME(const V& input) {              \
-        return map<ops::NAME<vector_value_type<V>>, V, into_storage_type<V>>({}, input); \
+#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                                      \
+    namespace ops {                                                                                \
+    template<typename T>                                                                           \
+    struct NAME {                                                                                  \
+        KERNEL_FLOAT_INLINE T operator()(T input) {                                                \
+            return T(EXPR);                                                                        \
+        }                                                                                          \
+    };                                                                                             \
+    }                                                                                              \
+    template<typename V>                                                                           \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
+        using F = ops::NAME<vector_value_type<V>>;                                                 \
+        return map(F {}, input);                                                                   \
     }
 
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                  \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                             \
-    template<typename V>                                              \
-    KERNEL_FLOAT_INLINE vector<V> operator OP(const vector<V>& vec) { \
-        return NAME(vec);                                             \
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                           \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                      \
+    template<typename T, typename E, typename S>                               \
+    KERNEL_FLOAT_INLINE vector<T, E> operator OP(const vector<T, E, S>& vec) { \
+        return NAME(vec);                                                      \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
@@ -127,6 +119,28 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN(round)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(signbit)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isinf)
 KERNEL_FLOAT_DEFINE_UNARY_FUN(isnan)
+
+#if KERNEL_FLOAT_IS_DEVICE
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))   \
+    namespace ops {                                                  \
+    template<>                                                       \
+    struct OP_NAME<float> {                                          \
+        KERNEL_FLOAT_INLINE float operator()(float input) {          \
+            return FLOAT_FUN(input);                                 \
+        }                                                            \
+    };                                                               \
+    }
+#else
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))
+#endif
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_exp, exp, __expf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_log, log, __logf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
 
 }  // namespace kernel_float
 
