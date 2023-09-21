@@ -10,34 +10,19 @@ env:
   BUILD_TYPE: Debug
 
 jobs:
-  build:
-    # The CMake configure and build commands are platform agnostic and should work equally well on Windows or Mac.
-    # You can convert this to a matrix build if you need cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ubuntu-latest
+  build-cuda:
+    uses: ./.github/workflows/cmake-action.yml
+    with:
+      cuda-version: "12.2.0"
 
-    steps:
-    - uses: Jimver/cuda-toolkit@v0.2.8
-      id: cuda-toolkit
-      with:
-        cuda: '11.7.0'
+  build-cuda-11-7:
+    needs: build-cuda
+    uses: ./.github/workflows/cmake-action.yml
+    with:
+      cuda-version: "11.7.0"
 
-    - uses: actions/checkout@v3
-      with:
-        submodules: 'true'
-
-    - name: Configure CMake
-      # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
-      # See https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html?highlight=cmake_build_type
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DKERNEL_FLOAT_BUILD_TEST=1 -DKERNEL_FLOAT_BUILD_EXAMPLE=1
-
-    - name: Build
-      # Build your program with the given configuration
-      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
-
-    - name: Test
-      working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
-      # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ./tests/kernel_float_tests --durations=yes --success --verbosity=high
-
+  build-cuda-12-0:
+    needs: build-cuda
+    uses: ./.github/workflows/cmake-action.yml
+    with:
+      cuda-version: "12.0.0"
