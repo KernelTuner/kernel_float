@@ -1,7 +1,23 @@
+/*
+ * Kernel Float: Header-only library for vector types and reduced precision floating-point math.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-09-21 09:37:28.638971
-// git hash: 07af0ad9ff5c16595790d579577244bc482f0999
+// date: 2023-09-21 10:00:11.122069
+// git hash: 227f987d3fc10499e680bb68f00e1c579afeda97
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
