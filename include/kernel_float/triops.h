@@ -92,7 +92,7 @@ namespace ops {
 template<typename T>
 struct fma {
     KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
-        return a + b * c;
+        return a * b + c;
     }
 };
 
