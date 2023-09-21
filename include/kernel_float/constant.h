@@ -9,7 +9,10 @@ namespace kernel_float {
 template<typename T = double>
 struct constant {
     template<typename R>
-    KERNEL_FLOAT_INLINE explicit constexpr constant(const constant<R>& that) : value_(that.get()) {}
+    KERNEL_FLOAT_INLINE explicit constexpr constant(const constant<R>& that) {
+        auto f = ops::cast<R, T>();
+        value_ = f(that.get());
+    }
 
     KERNEL_FLOAT_INLINE
     constexpr constant(T value = {}) : value_(value) {}
@@ -70,28 +73,43 @@ struct cast<constant<T>, R, m> {
 };
 }  // namespace ops
 
-#define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                      \
-    template<typename L, typename R>                                             \
-    R operator OP(const constant<L>& left, const R& right) {                     \
-        using T = vector_value_type<R>;                                          \
-        return operator OP(T(left.get()), right);                                \
-    }                                                                            \
-                                                                                 \
-    template<typename L, typename R>                                             \
-    L operator OP(const L& left, const constant<R>& right) {                     \
-        using T = vector_value_type<L>;                                          \
-        return operator OP(left, T(right.get()));                                \
-    }                                                                            \
-                                                                                 \
-    template<typename L, typename R, typename T = promote_t<L, R>>               \
-    constant<T> operator OP(const constant<L>& left, const constant<R>& right) { \
-        return constant<T>(operator OP(T(left.get()), T(right.get())));          \
+#define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                                    \
+    template<typename L, typename R>                                                           \
+    KERNEL_FLOAT_INLINE auto operator OP(const constant<L>& left, const R& right) {            \
+        auto f = ops::cast<L, vector_value_type<R>>();                                         \
+        return f(left.get()) OP right;                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R>                                                           \
+    KERNEL_FLOAT_INLINE auto operator OP(const L& left, const constant<R>& right) {            \
+        auto f = ops::cast<R, vector_value_type<L>>();                                         \
+        return left OP f(right.get());                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R, typename E>                                               \
+    KERNEL_FLOAT_INLINE auto operator OP(const constant<L>& left, const vector<R, E>& right) { \
+        auto f = ops::cast<L, R>();                                                            \
+        return f(left.get()) OP right;                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R, typename E>                                               \
+    KERNEL_FLOAT_INLINE auto operator OP(const vector<L, E>& left, const constant<R>& right) { \
+        auto f = ops::cast<R, L>();                                                            \
+        return left OP f(right.get());                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R, typename T = promote_t<L, R>>                             \
+    KERNEL_FLOAT_INLINE constant<T> operator OP(                                               \
+        const constant<L>& left,                                                               \
+        const constant<R>& right) {                                                            \
+        return constant<T>(left.get()) OP constant<T>(right.get());                            \
     }
 
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(%)
 
 }  // namespace kernel_float
 
