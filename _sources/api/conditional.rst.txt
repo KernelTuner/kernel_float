@@ -1,0 +1,19 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Conditional
+===========
+where
+-----
+.. doxygenfunction:: kernel_float::where(const C&, const L&, const R&)
+
+where
+-----
+.. doxygenfunction:: kernel_float::where(const C&, const L&)
+
+where
+-----
+.. doxygenfunction:: kernel_float::where(const C&)
+

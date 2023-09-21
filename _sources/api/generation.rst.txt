@@ -1,0 +1,43 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Generation
+==========
+range
+-----
+.. doxygenfunction:: kernel_float::range
+
+range_like
+----------
+.. doxygenfunction:: kernel_float::range_like
+
+each_index
+----------
+.. doxygenfunction:: kernel_float::each_index
+
+fill
+----
+.. doxygenfunction:: kernel_float::fill
+
+fill_like
+---------
+.. doxygenfunction:: kernel_float::fill_like
+
+zeros
+-----
+.. doxygenfunction:: kernel_float::zeros
+
+zeros_like
+----------
+.. doxygenfunction:: kernel_float::zeros_like
+
+ones
+----
+.. doxygenfunction:: kernel_float::ones
+
+ones_like
+---------
+.. doxygenfunction:: kernel_float::ones_like
+

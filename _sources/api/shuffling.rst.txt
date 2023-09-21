@@ -5,31 +5,3 @@
 
 Shuffling
 =========
-concat
-------
-.. doxygenfunction:: kernel_float::concat
-
-swizzle
--------
-.. doxygenfunction:: kernel_float::swizzle
-
-first
------
-.. doxygenfunction:: kernel_float::first
-
-last
-----
-.. doxygenfunction:: kernel_float::last
-
-reversed
---------
-.. doxygenfunction:: kernel_float::reversed
-
-rotate_left
------------
-.. doxygenfunction:: kernel_float::rotate_left
-
-rotate_right
-------------
-.. doxygenfunction:: kernel_float::rotate_right
-

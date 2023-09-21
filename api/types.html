@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Types &mdash; Kernel Float  documentation</title>
@@ -11,9 +11,11 @@
     <script src="../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-        <script src="../_static/doctools.js"></script>
-        <script src="../_static/sphinx_highlight.js"></script>
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -50,11 +52,12 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="primitives.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generation.html">Generation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="unary_operators.html">Unary Operators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="binary_operators.html">Binary Operators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="reductions.html">Reductions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="shuffling.html">Shuffling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="mathematical.html">Mathematical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conditional.html">Conditional</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
@@ -91,21 +94,181 @@
 <section id="vector">
 <h2>vector<a class="headerlink" href="#vector" title="Permalink to this heading"></a></h2>
 <dl class="cpp struct">
-<dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float6vectorE">
-<span id="_CPPv3I0EN12kernel_float6vectorE"></span><span id="_CPPv2I0EN12kernel_float6vectorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">V</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vector</span></span></span><a class="headerlink" href="#_CPPv4I0EN12kernel_float6vectorE" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
+<dt class="sig sig-object cpp" id="_CPPv4I000EN12kernel_float6vectorE">
+<span id="_CPPv3I000EN12kernel_float6vectorE"></span><span id="_CPPv2I000EN12kernel_float6vectorE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">E</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">S</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">vector</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::S"><span class="n"><span class="pre">S</span></span></a><a class="headerlink" href="#_CPPv4I000EN12kernel_float6vectorE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Container that stores <code class="docutils literal notranslate"><span class="pre">N</span></code> elements of type <code class="docutils literal notranslate"><span class="pre">T</span></code>.</p>
+<p>It is not recommended to use this class directly, but instead, use the type <code class="docutils literal notranslate"><span class="pre">vec&lt;T,</span> <span class="pre">N&gt;</span></code> which is an alias for <code class="docutils literal notranslate"><span class="pre">vector&lt;T,</span> <span class="pre">extent&lt;N&gt;,</span> <span class="pre">vector_storage&lt;T,</span> <span class="pre">E&gt;&gt;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Template Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – The type of the values stored within the vector. </p></li>
+<li><p><strong>E</strong> – The size of this vector. Should be of type <code class="docutils literal notranslate"><span class="pre">extent&lt;N&gt;</span></code>. </p></li>
+<li><p><strong>S</strong> – The object’s storage class. Should be the type <code class="docutils literal notranslate"><span class="pre">vector_storage&lt;T,</span> <span class="pre">E&gt;</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6vector4dataEv">
+<span id="_CPPv3N12kernel_float6vector4dataEv"></span><span id="_CPPv2N12kernel_float6vector4dataEv"></span><span id="kernel_float::vector::data"></span><span class="target" id="structkernel__float_1_1vector_1a3aa00ea2aa58f1418ce13d8671695f3e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6vector4dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to the underlying storage data. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector4dataEv">
+<span id="_CPPv3NK12kernel_float6vector4dataEv"></span><span id="_CPPv2NK12kernel_float6vector4dataEv"></span><span id="kernel_float::vector::dataC"></span><span class="target" id="structkernel__float_1_1vector_1a811500692bff46dac162fa0cadae7a4d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector4dataEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to the underlying storage data. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6vector2atE6size_t">
+<span id="_CPPv3N12kernel_float6vector2atE6size_t"></span><span id="_CPPv2N12kernel_float6vector2atE6size_t"></span><span id="kernel_float::vector::at__s"></span><span class="target" id="structkernel__float_1_1vector_1a3b381e9c45e6a0ff574c5263722a25fc"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">at</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6vector2atE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a reference to the item at index <code class="docutils literal notranslate"><span class="pre">i</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector2atE6size_t">
+<span id="_CPPv3NK12kernel_float6vector2atE6size_t"></span><span id="_CPPv2NK12kernel_float6vector2atE6size_t"></span><span id="kernel_float::vector::at__sC"></span><span class="target" id="structkernel__float_1_1vector_1ab8abddec986ad4363e4916ad85481c9d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="n"><span class="pre">at</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector2atE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a constant reference to the item at index <code class="docutils literal notranslate"><span class="pre">i</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6vectorixE6size_t">
+<span id="_CPPv3N12kernel_float6vectorixE6size_t"></span><span id="_CPPv2N12kernel_float6vectorixE6size_t"></span><span id="kernel_float::vector::subscript-operator__s"></span><span class="target" id="structkernel__float_1_1vector_1a299dc6562ceb6d8e29e4251f948cd8ec"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6vectorixE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a reference to the item at index <code class="docutils literal notranslate"><span class="pre">i</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vectorixE6size_t">
+<span id="_CPPv3NK12kernel_float6vectorixE6size_t"></span><span id="_CPPv2NK12kernel_float6vectorixE6size_t"></span><span id="kernel_float::vector::subscript-operator__sC"></span><span class="target" id="structkernel__float_1_1vector_1a0aea9c961c328e4cb1b6e17dae0e2e97"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">i</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vectorixE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a constant reference to the item at index <code class="docutils literal notranslate"><span class="pre">i</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6vector5beginEv">
+<span id="_CPPv3N12kernel_float6vector5beginEv"></span><span id="_CPPv2N12kernel_float6vector5beginEv"></span><span id="kernel_float::vector::begin"></span><span class="target" id="structkernel__float_1_1vector_1a27300feb7a0132f2eb7a9adbe204bdf8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6vector5beginEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to the first element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector5beginEv">
+<span id="_CPPv3NK12kernel_float6vector5beginEv"></span><span id="_CPPv2NK12kernel_float6vector5beginEv"></span><span id="kernel_float::vector::beginC"></span><span class="target" id="structkernel__float_1_1vector_1adf783fe7a231285d48fc5cddb940001b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector5beginEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to the first element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector6cbeginEv">
+<span id="_CPPv3NK12kernel_float6vector6cbeginEv"></span><span id="_CPPv2NK12kernel_float6vector6cbeginEv"></span><span id="kernel_float::vector::cbeginC"></span><span class="target" id="structkernel__float_1_1vector_1aa3a4ba6276699ee3cba4ad8eefb050a6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">cbegin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector6cbeginEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to the first element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6vector3endEv">
+<span id="_CPPv3N12kernel_float6vector3endEv"></span><span id="_CPPv2N12kernel_float6vector3endEv"></span><span id="kernel_float::vector::end"></span><span class="target" id="structkernel__float_1_1vector_1acf33ff3f8780c42c003d1bc33ed27754"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6vector3endEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to one past the last element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector3endEv">
+<span id="_CPPv3NK12kernel_float6vector3endEv"></span><span id="_CPPv2NK12kernel_float6vector3endEv"></span><span id="kernel_float::vector::endC"></span><span class="target" id="structkernel__float_1_1vector_1a1a4814f782b114230a5272b9cf233949"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector3endEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to one past the last element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector4cendEv">
+<span id="_CPPv3NK12kernel_float6vector4cendEv"></span><span id="_CPPv2NK12kernel_float6vector4cendEv"></span><span id="kernel_float::vector::cendC"></span><span class="target" id="structkernel__float_1_1vector_1a088097cfb86bbce75709dd3c935a90f1"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="sig-name descname"><span class="n"><span class="pre">cend</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector4cendEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a pointer to one past the last element. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector3getE6size_t">
+<span id="_CPPv3NK12kernel_float6vector3getE6size_t"></span><span id="_CPPv2NK12kernel_float6vector3getE6size_t"></span><span id="kernel_float::vector::get__sC"></span><span class="target" id="structkernel__float_1_1vector_1ad8a4cd951e0c7da0cdff02426677808c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector3getE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Copy the element at index <code class="docutils literal notranslate"><span class="pre">i</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6vector3setE6size_t1T">
+<span id="_CPPv3N12kernel_float6vector3setE6size_t1T"></span><span id="_CPPv2N12kernel_float6vector3setE6size_t1T"></span><span id="kernel_float::vector::set__s.T"></span><span class="target" id="structkernel__float_1_1vector_1a0a8f96b1f2dc05cdd0b941ddd6059dbd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">set</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">x</span></span>, <a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6vector3setE6size_t1T" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Set the element at index <code class="docutils literal notranslate"><span class="pre">i</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0DpEN12kernel_float6vector6selectE11select_typeI1VDp2IsEDpRK2Is">
+<span id="_CPPv3I0DpEN12kernel_float6vector6selectEDpRK2Is"></span><span id="_CPPv2I0DpEN12kernel_float6vector6selectEDpRK2Is"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">V</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="sig-name descname"><span class="n"><span class="pre">Is</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector_1a7a33d35db82f93fc3b08addb062e887d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">select_type</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0DpEN12kernel_float6vector6selectE11select_typeI1VDp2IsEDpRK2Is" title="kernel_float::vector::select::V"><span class="n"><span class="pre">V</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0DpEN12kernel_float6vector6selectE11select_typeI1VDp2IsEDpRK2Is" title="kernel_float::vector::select::Is"><span class="n"><span class="pre">Is</span></span></a><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">select</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0DpEN12kernel_float6vector6selectE11select_typeI1VDp2IsEDpRK2Is" title="kernel_float::vector::select::Is"><span class="n"><span class="pre">Is</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">indices</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0DpEN12kernel_float6vector6selectE11select_typeI1VDp2IsEDpRK2Is" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Selects elements from the this vector based on the specified indices.</p>
+<section id="structkernel__float_1_1vector_1autotoc_md28">
+<h3>Example<a class="headerlink" href="#structkernel__float_1_1vector_1autotoc_md28" title="Permalink to this heading"></a></h3>
+<div class="highlight-default notranslate" id="structkernel__float_1_1vector_1autotoc_md28"><div class="highlight"><pre><span></span><span class="n">vec</span><span class="o">&lt;</span><span class="nb">float</span><span class="p">,</span> <span class="mi">6</span><span class="o">&gt;</span> <span class="nb">input</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">50</span><span class="p">};</span>
+<span class="n">vec</span><span class="o">&lt;</span><span class="nb">float</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;</span> <span class="n">vec1</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">);</span> <span class="o">//</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span>
+
+<span class="n">vec</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;</span> <span class="n">indices</span> <span class="o">=</span> <span class="p">{</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">};</span>
+<span class="n">vec</span><span class="o">&lt;</span><span class="nb">float</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;</span> <span class="n">vec2</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">indices</span><span class="p">);</span> <span class="o">//</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span>
+</pre></div>
+</div>
+</section>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0_12RoundingModeENK12kernel_float6vector4castE6vectorI1R11extent_typeEv">
+<span id="_CPPv3I0_12RoundingModeENK12kernel_float6vector4castEv"></span><span id="_CPPv2I0_12RoundingModeENK12kernel_float6vector4castEv"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">R</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">RoundingMode</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Mode</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">RoundingMode</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">ANY</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector_1a1db6b6d510e3167dbbb9d5cfeb3df4c4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_12RoundingModeENK12kernel_float6vector4castE6vectorI1R11extent_typeEv" title="kernel_float::vector::cast::R"><span class="n"><span class="pre">R</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent_type</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">cast</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0_12RoundingModeENK12kernel_float6vector4castE6vectorI1R11extent_typeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Cast the elements of this vector to type <code class="docutils literal notranslate"><span class="pre">R</span></code> and returns a new vector. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I_Dp6size_tENK12kernel_float6vector9broadcastE6vectorI1T6extentIDp2NsEE6extentIDp2NsE">
+<span id="_CPPv3I_Dp6size_tENK12kernel_float6vector9broadcastE6extentIDp2NsE"></span><span id="_CPPv2I_Dp6size_tENK12kernel_float6vector9broadcastE6extentIDp2NsE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">...</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Ns</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector_1a482f41f548f5169c714299790680b817"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_Dp6size_tENK12kernel_float6vector9broadcastE6vectorI1T6extentIDp2NsEE6extentIDp2NsE" title="kernel_float::vector::broadcast::Ns"><span class="n"><span class="pre">Ns</span></span></a><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">broadcast</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I_Dp6size_tENK12kernel_float6vector9broadcastE6vectorI1T6extentIDp2NsEE6extentIDp2NsE" title="kernel_float::vector::broadcast::Ns"><span class="n"><span class="pre">Ns</span></span></a><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">new_size</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I_Dp6size_tENK12kernel_float6vector9broadcastE6vectorI1T6extentIDp2NsEE6extentIDp2NsE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Broadcast this vector into a new size <code class="docutils literal notranslate"><span class="pre">(Ns...)</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK12kernel_float6vector3mapE6vectorI8result_tI1F1TE1EE1F">
+<span id="_CPPv3I0ENK12kernel_float6vector3mapE1F"></span><span id="_CPPv2I0ENK12kernel_float6vector3mapE1F"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector_1aea2a4f05c56c794a3aa5e804267d55cb"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">result_t</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0ENK12kernel_float6vector3mapE6vectorI8result_tI1F1TE1EE1F" title="kernel_float::vector::map::F"><span class="n"><span class="pre">F</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::E"><span class="n"><span class="pre">E</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">map</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK12kernel_float6vector3mapE6vectorI8result_tI1F1TE1EE1F" title="kernel_float::vector::map::F"><span class="n"><span class="pre">F</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">fun</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK12kernel_float6vector3mapE6vectorI8result_tI1F1TE1EE1F" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Apply the given function <code class="docutils literal notranslate"><span class="pre">F</span></code> to each element of this vector and returns a new vector with the results. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK12kernel_float6vector6reduceE1T1F">
+<span id="_CPPv3I0ENK12kernel_float6vector6reduceE1F"></span><span id="_CPPv2I0ENK12kernel_float6vector6reduceE1F"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector_1aef683e51864c7a1f3cfa795ced08a92d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">reduce</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK12kernel_float6vector6reduceE1T1F" title="kernel_float::vector::reduce::F"><span class="n"><span class="pre">F</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">fun</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK12kernel_float6vector6reduceE1T1F" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Reduce the elements of the given vector input into a single value using the function <code class="docutils literal notranslate"><span class="pre">F</span></code>.</p>
+<p>This function should be a binary function that takes two elements and returns one element. The order in which the elements are reduced is not specified and depends on the reduction function and the vector type. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6vector7flattenEv">
+<span id="_CPPv3NK12kernel_float6vector7flattenEv"></span><span id="_CPPv2NK12kernel_float6vector7flattenEv"></span><span id="kernel_float::vector::flattenC"></span><span class="target" id="structkernel__float_1_1vector_1a4550a8700543a9824dfcce28dd339bd2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">flatten_type</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">flatten</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6vector7flattenEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Flattens the elements of this vector. For example, this turns a <code class="docutils literal notranslate"><span class="pre">vec&lt;vec&lt;int,</span> <span class="pre">2&gt;,</span> <span class="pre">3&gt;</span></code> into a <code class="docutils literal notranslate"><span class="pre">vec&lt;int,</span> <span class="pre">6&gt;</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK12kernel_float6vector8for_eachEv1F">
+<span id="_CPPv3I0ENK12kernel_float6vector8for_eachE1F"></span><span id="_CPPv2I0ENK12kernel_float6vector8for_eachE1F"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1vector_1af126966b3f7ab0ed10aecf52e420600d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">for_each</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK12kernel_float6vector8for_eachEv1F" title="kernel_float::vector::for_each::F"><span class="n"><span class="pre">F</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">fun</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK12kernel_float6vector8for_eachEv1F" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Apply the given function <code class="docutils literal notranslate"><span class="pre">F</span></code> to each element of this vector. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6vector4sizeEv">
+<span id="_CPPv3N12kernel_float6vector4sizeEv"></span><span id="_CPPv2N12kernel_float6vector4sizeEv"></span><span id="kernel_float::vector::sizeCE"></span><span class="target" id="structkernel__float_1_1vector_1a020b6afbc1a497c971d136d933b58c91"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6vector4sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the number of elements in this vector. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
 
 </section>
 <section id="aliases">
 <h2>Aliases<a class="headerlink" href="#aliases" title="Permalink to this heading"></a></h2>
 <dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4I0_6size_tEN12kernel_float13unaligned_vecE">
-<span id="_CPPv3I0_6size_tEN12kernel_float13unaligned_vecE"></span><span id="_CPPv2I0_6size_tEN12kernel_float13unaligned_vecE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1ab4614b00153c01c98d5756f4f379d396"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">unaligned_vec</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">default_storage_type</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float13unaligned_vecE" title="kernel_float::unaligned_vec::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float13unaligned_vecE" title="kernel_float::unaligned_vec::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">Alignment</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Minimum</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0_6size_tEN12kernel_float13unaligned_vecE" title="Permalink to this definition"></a><br /></dt>
+<dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float6scalarE">
+<span id="_CPPv3I0EN12kernel_float6scalarE"></span><span id="_CPPv2I0EN12kernel_float6scalarE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1af71bc375f3ee4813d42554a808287740"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">scalar</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN12kernel_float6scalarE" title="kernel_float::scalar::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0EN12kernel_float6scalarE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp type">
 <dt class="sig sig-object cpp" id="_CPPv4I0_6size_tEN12kernel_float3vecE">
-<span id="_CPPv3I0_6size_tEN12kernel_float3vecE"></span><span id="_CPPv2I0_6size_tEN12kernel_float3vecE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1a49249812e18ae2fde7607b8734a6ffad"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">vec</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">default_storage_type</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">Alignment</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">Packed</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="Permalink to this definition"></a><br /></dt>
+<span id="_CPPv3I0_6size_tEN12kernel_float3vecE"></span><span id="_CPPv2I0_6size_tEN12kernel_float3vecE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">N</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1add0449eb9e373c346ef934accd447cde"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">vec</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec::N"><span class="n"><span class="pre">N</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
 <dl class="cpp type">
@@ -143,180 +306,6 @@
 <span id="_CPPv3I0EN12kernel_float4vec8E"></span><span id="_CPPv2I0EN12kernel_float4vec8E"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1a45bd0e9b88a96bdaea72d668b165ca6d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">vec8</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN12kernel_float4vec8E" title="kernel_float::vec8::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4I0EN12kernel_float4vec8E" title="Permalink to this definition"></a><br /></dt>
 <dd></dd></dl>
 
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::floatX” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6float2E">
-<span id="_CPPv3N12kernel_float6float2E"></span><span id="_CPPv2N12kernel_float6float2E"></span><span class="target" id="namespacekernel__float_1a15c0aa60a1d45806edfbf3db65e971b9"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">float2</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float6float2E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6float3E">
-<span id="_CPPv3N12kernel_float6float3E"></span><span id="_CPPv2N12kernel_float6float3E"></span><span class="target" id="namespacekernel__float_1a055fa2a31e5577bd2ccb71c19f4a3e78"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">float3</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float6float3E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6float4E">
-<span id="_CPPv3N12kernel_float6float4E"></span><span id="_CPPv2N12kernel_float6float4E"></span><span class="target" id="namespacekernel__float_1a333552be415f46887670c60f67ff4b8e"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">float4</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float6float4E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6float5E">
-<span id="_CPPv3N12kernel_float6float5E"></span><span id="_CPPv2N12kernel_float6float5E"></span><span class="target" id="namespacekernel__float_1a1b9c34fa9824713bc7fac3a5ba2cc2e9"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">float5</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">5</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float6float5E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6float6E">
-<span id="_CPPv3N12kernel_float6float6E"></span><span id="_CPPv2N12kernel_float6float6E"></span><span class="target" id="namespacekernel__float_1ab2a27cadb78eacceb451ad7cf10f01c5"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">float6</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">6</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float6float6E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6float7E">
-<span id="_CPPv3N12kernel_float6float7E"></span><span id="_CPPv2N12kernel_float6float7E"></span><span class="target" id="namespacekernel__float_1ae2cc519853668c3e85692a50d2f64a79"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">float7</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">7</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float6float7E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6float8E">
-<span id="_CPPv3N12kernel_float6float8E"></span><span id="_CPPv2N12kernel_float6float8E"></span><span class="target" id="namespacekernel__float_1a0c1c7d3c4aead27486c0ab1b03e799f7"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">float8</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float6float8E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::doubleX” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float7double2E">
-<span id="_CPPv3N12kernel_float7double2E"></span><span id="_CPPv2N12kernel_float7double2E"></span><span class="target" id="namespacekernel__float_1a69eb1dc4a20a5034a867a46470ba9759"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">double2</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float7double2E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float7double3E">
-<span id="_CPPv3N12kernel_float7double3E"></span><span id="_CPPv2N12kernel_float7double3E"></span><span class="target" id="namespacekernel__float_1a36b94015fe105bd33c6311b6ad299657"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">double3</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float7double3E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float7double4E">
-<span id="_CPPv3N12kernel_float7double4E"></span><span id="_CPPv2N12kernel_float7double4E"></span><span class="target" id="namespacekernel__float_1a615ba0a1fb9d2e4ce34426cb3882f407"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">double4</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float7double4E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float7double5E">
-<span id="_CPPv3N12kernel_float7double5E"></span><span id="_CPPv2N12kernel_float7double5E"></span><span class="target" id="namespacekernel__float_1a2fe533e8a55c1cc32e3efd449d2b3f2d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">double5</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">5</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float7double5E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float7double6E">
-<span id="_CPPv3N12kernel_float7double6E"></span><span id="_CPPv2N12kernel_float7double6E"></span><span class="target" id="namespacekernel__float_1a2969827afe72772cd0b6dd22fa4cacd9"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">double6</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">6</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float7double6E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float7double7E">
-<span id="_CPPv3N12kernel_float7double7E"></span><span id="_CPPv2N12kernel_float7double7E"></span><span class="target" id="namespacekernel__float_1ab4fa98d724560aa794b5ad28bee70705"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">double7</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">7</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float7double7E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float7double8E">
-<span id="_CPPv3N12kernel_float7double8E"></span><span id="_CPPv2N12kernel_float7double8E"></span><span class="target" id="namespacekernel__float_1acd798a010b9a5d4f6f18db205f39ae63"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">double8</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0_6size_tEN12kernel_float3vecE" title="kernel_float::vec"><span class="n"><span class="pre">vec</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">8</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N12kernel_float7double8E" title="Permalink to this definition"></a><br /></dt>
-<dd></dd></dl>
-
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::halfX” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::half2” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::half3” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::half4” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::half5” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::half6” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::half7” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::half8” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16xX” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16x2” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16x3” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16x4” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16x5” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16x6” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16x7” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::bfloat16x8” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::X” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::2” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::3” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::4” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::5” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::6” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::7” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygentypedef: Cannot find typedef “kernel_float::8” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
 </section>
 </section>
 

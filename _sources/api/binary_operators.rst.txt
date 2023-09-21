@@ -83,7 +83,7 @@ modf
 
 pow
 ---
-.. doxygenfunction:: kernel_float::pow
+.. doxygenfunction:: kernel_float::pow(L&&, R&&)
 
 remainder
 ---------

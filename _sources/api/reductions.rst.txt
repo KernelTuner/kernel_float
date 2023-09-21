@@ -11,11 +11,11 @@ sum
 
 max
 ---
-.. doxygenfunction:: kernel_float::max(V&&)
+.. doxygenfunction:: kernel_float::max(const V&)
 
 min
 ---
-.. doxygenfunction:: kernel_float::min(V&&)
+.. doxygenfunction:: kernel_float::min(const V&)
 
 product
 -------

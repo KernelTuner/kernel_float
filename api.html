@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>API Reference &mdash; Kernel Float  documentation</title>
@@ -11,9 +11,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -46,11 +48,12 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/types.html">Types</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html">Generation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html">Unary Operators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html">Binary Operators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/reductions.html">Reductions</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html">Shuffling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html">Mathematical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/conditional.html">Conditional</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
@@ -91,25 +94,33 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/primitives.html">Primitives</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#range">range</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#id1">range</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#map">map</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#reduce">reduce</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#zip">zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#zip-common">zip_common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#cast">cast</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#broadcast">broadcast</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#resize">resize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#convert">convert</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#make-vec">make_vec</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#into-vector">into_vector</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#concat">concat</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#select">select</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#for-each">for_each</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="api/generation.html">Generation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#range">range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#range-like">range_like</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#each-index">each_index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#fill">fill</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#fill-like">fill_like</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#zeros">zeros</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#zeros-like">zeros_like</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#ones">ones</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#ones-like">ones_like</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api/unary_operators.html">Unary Operators</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#fill">fill</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#fill-like">fill_like</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#zeros">zeros</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#zeros-like">zeros_like</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#ones">ones</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#ones-like">ones_like</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#negate">negate</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#bit-not">bit_not</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html#logical-not">logical_not</a></li>
@@ -147,16 +158,6 @@
 <li class="toctree-l2"><a class="reference internal" href="api/reductions.html#all">all</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/reductions.html#any">any</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/reductions.html#count">count</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="api/shuffling.html">Shuffling</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html#concat">concat</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html#swizzle">swizzle</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html#first">first</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html#last">last</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html#reversed">reversed</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html#rotate-left">rotate_left</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/shuffling.html#rotate-right">rotate_right</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/mathematical.html">Mathematical</a><ul>
@@ -203,6 +204,12 @@
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#signbit">signbit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#isinf">isinf</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#isnan">isnan</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/conditional.html">Conditional</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/conditional.html#where">where</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/conditional.html#id1">where</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/conditional.html#id2">where</a></li>
 </ul>
 </li>
 </ul>

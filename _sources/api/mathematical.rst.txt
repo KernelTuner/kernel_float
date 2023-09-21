@@ -7,7 +7,7 @@ Mathematical
 ============
 abs
 ---
-.. doxygenfunction:: kernel_float::abs
+.. doxygenfunction:: kernel_float::abs(const V&)
 
 acos
 ----
@@ -75,7 +75,7 @@ erfinv
 
 exp
 ---
-.. doxygenfunction:: kernel_float::exp
+.. doxygenfunction:: kernel_float::exp(const V&)
 
 exp10
 -----
@@ -103,7 +103,7 @@ lgamma
 
 log
 ---
-.. doxygenfunction:: kernel_float::log
+.. doxygenfunction:: kernel_float::log(const V&)
 
 log10
 -----
@@ -135,7 +135,7 @@ sinh
 
 sqrt
 ----
-.. doxygenfunction:: kernel_float::sqrt
+.. doxygenfunction:: kernel_float::sqrt(const V&)
 
 tan
 ---

@@ -5,14 +5,6 @@
 
 Primitives
 ==========
-range
------
-.. doxygenfunction:: kernel_float::range()
-
-range
------
-.. doxygenfunction:: kernel_float::range(F)
-
 map
 ---
 .. doxygenfunction:: kernel_float::map
@@ -37,9 +29,25 @@ broadcast
 ---------
 .. doxygenfunction:: kernel_float::broadcast
 
-resize
+convert
+-------
+.. doxygenfunction:: kernel_float::convert
+
+make_vec
+--------
+.. doxygenfunction:: kernel_float::make_vec
+
+into_vector
+-----------
+.. doxygenfunction:: kernel_float::into_vector
+
+concat
 ------
-.. doxygenfunction:: kernel_float::resize
+.. doxygenfunction:: kernel_float::concat
+
+select
+------
+.. doxygenfunction:: kernel_float::select
 
 for_each
 --------
