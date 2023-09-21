@@ -76,6 +76,19 @@ struct equals_helper<__nv_bfloat16> {
     }
 };
 
+template<typename T, size_t N>
+struct equals_helper<kf::vec<T, N>> {
+    static __host__ __device__ bool call(const kf::vec<T, N>& left, const kf::vec<T, N>& right) {
+        for (int i = 0; i < N; i++) {
+            if (!equals_helper<T>::call(left[i], right[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+};
+
 }  // namespace detail
 
 template<typename T>
@@ -346,11 +359,13 @@ void run_tests_device(F fun, type_sequence<T>, size_sequence<Ns...>) {
 #define REGISTER_TEST_CASE_CPU(NAME, F, ...)                                        \
     TEMPLATE_TEST_CASE(NAME " - CPU", "", __VA_ARGS__) {                            \
         run_tests_host(F {}, type_sequence<TestType> {}, default_size_sequence {}); \
+        CHECK("done");                                                              \
     }
 
 #define REGISTER_TEST_CASE_GPU(NAME, F, ...)                                          \
     TEMPLATE_TEST_CASE(NAME " - GPU", "[GPU]", __VA_ARGS__) {                         \
         run_tests_device(F {}, type_sequence<TestType> {}, default_size_sequence {}); \
+        CHECK("done");                                                                \
     }
 
 #undef REGISTER_TEST_CASE

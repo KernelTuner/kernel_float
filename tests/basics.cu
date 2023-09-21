@@ -106,7 +106,7 @@ struct creation_tests {
 
         // into_vector on scalar
         {
-            kf::vec<float, 1> a = into_vector(int(5.0f));
+            kf::vec<float, 1> a = into_vector(float(5.0f));
             ASSERT(a[0] == 5.0f);
         }
 

@@ -1,7 +1,8 @@
 #include "common.h"
 
-// Check if combining type `A` and `B` results in `C`
-#define CHECK_PROMOTION(A, B, C) CHECK(std::is_same<kernel_float::promote_t<A, B>, C>::value);
+// Check if combining type `vec<A, N>` and `vec<B, N>` results in `vec<C, N>`
+#define CHECK_PROMOTION(A, B, C) \
+    CHECK(std::is_same<decltype(kf::vec<A, 2>() + kf::vec<B, 2>()), kf::vec<C, 2>>::value);
 
 TEST_CASE("type promotion") {
     CHECK_PROMOTION(int, int, int);

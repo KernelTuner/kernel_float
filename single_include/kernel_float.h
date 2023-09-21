@@ -1,7 +1,7 @@
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-09-19 20:45:16.880746
-// git hash: da0a46b533ef9d25638748eb951284f14e7c48bb
+// date: 2023-09-21 09:37:28.638971
+// git hash: 07af0ad9ff5c16595790d579577244bc482f0999
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -497,7 +497,7 @@ struct extent<N> {
 };
 
 template<typename T>
-struct into_vector_traits {
+struct into_vector_impl {
     using value_type = T;
     using extent_type = extent<1>;
 
@@ -508,7 +508,7 @@ struct into_vector_traits {
 };
 
 template<typename T, size_t N>
-struct into_vector_traits<T[N]> {
+struct into_vector_impl<T[N]> {
     using value_type = T;
     using extent_type = extent<N>;
 
@@ -526,19 +526,19 @@ struct into_vector_traits<T[N]> {
 };
 
 template<typename V>
-struct into_vector_traits<const V>: into_vector_traits<V> {};
+struct into_vector_impl<const V>: into_vector_impl<V> {};
 
 template<typename V>
-struct into_vector_traits<V&>: into_vector_traits<V> {};
+struct into_vector_impl<V&>: into_vector_impl<V> {};
 
 template<typename V>
-struct into_vector_traits<const V&>: into_vector_traits<V> {};
+struct into_vector_impl<const V&>: into_vector_impl<V> {};
 
 template<typename V>
-struct into_vector_traits<V&&>: into_vector_traits<V> {};
+struct into_vector_impl<V&&>: into_vector_impl<V> {};
 
 template<typename T, size_t N, size_t A>
-struct into_vector_traits<aligned_array<T, N, A>> {
+struct into_vector_impl<aligned_array<T, N, A>> {
     using value_type = T;
     using extent_type = extent<N>;
 
@@ -550,7 +550,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
 
 #define KERNEL_FLOAT_DEFINE_VECTOR_TYPE(T, T1, T2, T3, T4) \
     template<>                                             \
-    struct into_vector_traits<::T1> {                      \
+    struct into_vector_impl<::T1> {                        \
         using value_type = T;                              \
         using extent_type = extent<1>;                     \
                                                            \
@@ -561,7 +561,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     };                                                     \
                                                            \
     template<>                                             \
-    struct into_vector_traits<::T2> {                      \
+    struct into_vector_impl<::T2> {                        \
         using value_type = T;                              \
         using extent_type = extent<2>;                     \
                                                            \
@@ -572,7 +572,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     };                                                     \
                                                            \
     template<>                                             \
-    struct into_vector_traits<::T3> {                      \
+    struct into_vector_impl<::T3> {                        \
         using value_type = T;                              \
         using extent_type = extent<3>;                     \
                                                            \
@@ -583,7 +583,7 @@ struct into_vector_traits<aligned_array<T, N, A>> {
     };                                                     \
                                                            \
     template<>                                             \
-    struct into_vector_traits<::T4> {                      \
+    struct into_vector_impl<::T4> {                        \
         using value_type = T;                              \
         using extent_type = extent<4>;                     \
                                                            \
@@ -612,7 +612,7 @@ template<typename T, typename E, typename S = vector_storage<T, E::size>>
 struct vector;
 
 template<typename T, typename E, typename S>
-struct into_vector_traits<vector<T, E, S>> {
+struct into_vector_impl<vector<T, E, S>> {
     using value_type = T;
     using extent_type = E;
 
@@ -634,10 +634,10 @@ struct vector_traits<vector<T, E, S>> {
 };
 
 template<typename V>
-using vector_value_type = typename into_vector_traits<V>::value_type;
+using vector_value_type = typename into_vector_impl<V>::value_type;
 
 template<typename V>
-using vector_extent_type = typename into_vector_traits<V>::extent_type;
+using vector_extent_type = typename into_vector_impl<V>::extent_type;
 
 template<typename V>
 static constexpr size_t vector_extent = vector_extent_type<V>::value;
@@ -653,7 +653,7 @@ using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
 
 template<typename V>
 KERNEL_FLOAT_INLINE vector_storage_type<V> into_vector_storage(V&& input) {
-    return into_vector_traits<V>::call(std::forward<V>(input));
+    return into_vector_impl<V>::call(std::forward<V>(input));
 }
 
 }  // namespace kernel_float
@@ -1732,7 +1732,10 @@ namespace kernel_float {
 template<typename T = double>
 struct constant {
     template<typename R>
-    KERNEL_FLOAT_INLINE explicit constexpr constant(const constant<R>& that) : value_(that.get()) {}
+    KERNEL_FLOAT_INLINE explicit constexpr constant(const constant<R>& that) {
+        auto f = ops::cast<R, T>();
+        value_ = f(that.get());
+    }
 
     KERNEL_FLOAT_INLINE
     constexpr constant(T value = {}) : value_(value) {}
@@ -1793,28 +1796,43 @@ struct cast<constant<T>, R, m> {
 };
 }  // namespace ops
 
-#define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                      \
-    template<typename L, typename R>                                             \
-    R operator OP(const constant<L>& left, const R& right) {                     \
-        using T = vector_value_type<R>;                                          \
-        return operator OP(T(left.get()), right);                                \
-    }                                                                            \
-                                                                                 \
-    template<typename L, typename R>                                             \
-    L operator OP(const L& left, const constant<R>& right) {                     \
-        using T = vector_value_type<L>;                                          \
-        return operator OP(left, T(right.get()));                                \
-    }                                                                            \
-                                                                                 \
-    template<typename L, typename R, typename T = promote_t<L, R>>               \
-    constant<T> operator OP(const constant<L>& left, const constant<R>& right) { \
-        return constant<T>(operator OP(T(left.get()), T(right.get())));          \
+#define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                                    \
+    template<typename L, typename R>                                                           \
+    KERNEL_FLOAT_INLINE auto operator OP(const constant<L>& left, const R& right) {            \
+        auto f = ops::cast<L, vector_value_type<R>>();                                         \
+        return f(left.get()) OP right;                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R>                                                           \
+    KERNEL_FLOAT_INLINE auto operator OP(const L& left, const constant<R>& right) {            \
+        auto f = ops::cast<R, vector_value_type<L>>();                                         \
+        return left OP f(right.get());                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R, typename E>                                               \
+    KERNEL_FLOAT_INLINE auto operator OP(const constant<L>& left, const vector<R, E>& right) { \
+        auto f = ops::cast<L, R>();                                                            \
+        return f(left.get()) OP right;                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R, typename E>                                               \
+    KERNEL_FLOAT_INLINE auto operator OP(const vector<L, E>& left, const constant<R>& right) { \
+        auto f = ops::cast<R, L>();                                                            \
+        return left OP f(right.get());                                                         \
+    }                                                                                          \
+                                                                                               \
+    template<typename L, typename R, typename T = promote_t<L, R>>                             \
+    KERNEL_FLOAT_INLINE constant<T> operator OP(                                               \
+        const constant<L>& left,                                                               \
+        const constant<R>& right) {                                                            \
+        return constant<T>(left.get()) OP constant<T>(right.get());                            \
     }
 
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
-//KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(%)
 
 }  // namespace kernel_float
 
@@ -2731,7 +2749,7 @@ namespace ops {
 template<typename T>
 struct fma {
     KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
-        return a + b * c;
+        return a * b + c;
     }
 };
 
@@ -3066,7 +3084,7 @@ struct vector: public S {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
-    return into_vector_traits<V>::call(std::forward<V>(input));
+    return into_vector_impl<V>::call(std::forward<V>(input));
 }
 
 template<typename T>
@@ -3136,7 +3154,7 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)
 
 template<>
-struct into_vector_traits<__half2> {
+struct into_vector_impl<__half2> {
     using value_type = __half;
     using extent_type = extent<2>;
 
@@ -3440,7 +3458,7 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_bfloat16)
 
 template<>
-struct into_vector_traits<__nv_bfloat162> {
+struct into_vector_impl<__nv_bfloat162> {
     using value_type = __nv_bfloat16;
     using extent_type = extent<2>;
 

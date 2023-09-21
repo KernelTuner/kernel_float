@@ -1,30 +1,40 @@
 #include "common.h"
 
-struct triops_tests {
-    template<typename T, size_t... I, size_t N = sizeof...(I)>
-    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
-        T x[N] = {gen.next(I)...};
-        T y[N] = {gen.next(I)...};
-        T z[N] = {gen.next(I)...};
+#define ASSERT_TYPE(A, B) ASSERT(std::is_same<decltype(A), B>::value);
 
-        kf::vec<T, N> a = {x[I]...};
-        kf::vec<T, N> b = {y[I]...};
-        kf::vec<T, N> c = {z[I]...};
+struct constant_tests {
+    template<typename T>
+    __host__ __device__ void operator()(generator<T> gen) {
+        T value = gen.next();
+        kf::vec<T, 2> vector = {gen.next(), gen.next()};
 
-        kf::vec<T, N> answer = kf::where(a, b, c);
-        ASSERT_EQ_ALL(answer[I], bool(x[I]) ? y[I] : z[I]);
+        ASSERT_EQ(kf::make_constant(5.0) + value, T(5) + value);
+        ASSERT_EQ(value + kf::make_constant(5.0), value + T(5));
+        ASSERT_EQ(kf::make_constant(5.0) + vector, T(5) + vector);
+        ASSERT_EQ(vector + kf::make_constant(5.0), vector + T(5));
 
-        answer = kf::where(a, b);
-        ASSERT_EQ_ALL(answer[I], bool(x[I]) ? y[I] : T());
+        ASSERT_EQ(kf::make_constant(5.0) - value, T(5) - value);
+        ASSERT_EQ(value - kf::make_constant(5.0), value - T(5));
+        ASSERT_EQ(kf::make_constant(5.0) - vector, T(5) - vector);
+        ASSERT_EQ(vector - kf::make_constant(5.0), vector - T(5));
 
-        answer = kf::where(a);
-        ASSERT_EQ_ALL(answer[I], T(bool(x[I])));
+        ASSERT_EQ(kf::make_constant(5.0) * value, T(5) * value);
+        ASSERT_EQ(value * kf::make_constant(5.0), value * T(5));
+        ASSERT_EQ(kf::make_constant(5.0) * vector, T(5) * vector);
+        ASSERT_EQ(vector * kf::make_constant(5.0), vector * T(5));
 
-        answer = kf::fma(a, b, c);
-        ASSERT_EQ_ALL(answer[I], x[I] * y[I] + z[I]);
-
+        // These results in division by zero for integers
+        //        ASSERT_EQ(kf::make_constant(5.0) / value, T(5) / value);
+        //        ASSERT_EQ(value / kf::make_constant(5.0), value / T(5));
+        //        ASSERT_EQ(kf::make_constant(5.0) / vector, T(5) / vector);
+        //        ASSERT_EQ(vector / kf::make_constant(5.0), vector / T(5));
+        //
+        //        ASSERT_EQ(kf::make_constant(5.0) % value, T(5) % value);
+        //        ASSERT_EQ(value % kf::make_constant(5.0), value % T(5));
+        //        ASSERT_EQ(kf::make_constant(5.0) % vector, T(5) % vector);
+        //        ASSERT_EQ(vector % kf::make_constant(5.0), vector % T(5));
     }
 };
 
-REGISTER_TEST_CASE("ternary operators", triops_tests, int, float, double)
-REGISTER_TEST_CASE_GPU("ternary operators", triops_tests, __half, __nv_bfloat16)
+REGISTER_TEST_CASE("constant tests", constant_tests, int, float, double)
+REGISTER_TEST_CASE_GPU("constant tests", constant_tests, __half, __nv_bfloat16)
