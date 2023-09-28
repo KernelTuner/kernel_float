@@ -57,7 +57,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#broadcast">broadcast</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#convert">convert</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#make-vec">make_vec</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#into-vector">into_vector</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#into-vec">into_vec</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#concat">concat</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#select">select</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#for-each">for_each</a></li>
@@ -244,12 +244,21 @@ vec&lt;int, 3&gt; output = zip([](bool b, int n){ return b ? -n : +n; }, make_ne
 </dd></dl>
 
 </section>
-<section id="into-vector">
-<h2>into_vector<a class="headerlink" href="#into-vector" title="Permalink to this heading"></a></h2>
-<div class="admonition warning">
-<p class="admonition-title">Warning</p>
-<p>doxygenfunction: Cannot find function “kernel_float::into_vector” in doxygen xml output for project “Kernel Launcher” from directory: ./_doxygen/xml</p>
-</div>
+<section id="into-vec">
+<h2>into_vec<a class="headerlink" href="#into-vec" title="Permalink to this heading"></a></h2>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float8into_vecE16into_vector_typeI1VERR1V">
+<span id="_CPPv3I0EN12kernel_float8into_vecERR1V"></span><span id="_CPPv2I0EN12kernel_float8into_vecERR1V"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">V</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="namespacekernel__float_1af57676243adcc9f9586f5f0da83c0642"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">into_vector_type</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN12kernel_float8into_vecE16into_vector_typeI1VERR1V" title="kernel_float::into_vec::V"><span class="n"><span class="pre">V</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-prename descclassname"><span class="n"><span class="pre">kernel_float</span></span><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">into_vec</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN12kernel_float8into_vecE16into_vector_typeI1VERR1V" title="kernel_float::into_vec::V"><span class="n"><span class="pre">V</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">input</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN12kernel_float8into_vecE16into_vector_typeI1VERR1V" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Convert the given <code class="docutils literal notranslate"><span class="pre">input</span></code> into a vector. This function can perform one of the following actions:</p>
+<p><ul class="simple">
+<li><p>For vectors <code class="docutils literal notranslate"><span class="pre">vec&lt;T,</span> <span class="pre">N&gt;</span></code>, it simply returns the original vector.</p></li>
+<li><p>For primitive types <code class="docutils literal notranslate"><span class="pre">T</span></code> (e.g., <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">double</span></code>), it returns a <code class="docutils literal notranslate"><span class="pre">vec&lt;T,</span> <span class="pre">1&gt;</span></code>.</p></li>
+<li><p>For array-like types (e.g., <code class="docutils literal notranslate"><span class="pre">std::array&lt;T,</span> <span class="pre">N&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">T[N]</span></code>), it returns <code class="docutils literal notranslate"><span class="pre">vec&lt;T,</span> <span class="pre">N&gt;</span></code>.</p></li>
+<li><p>For vector-like types (e.g., <code class="docutils literal notranslate"><span class="pre">int2</span></code>, <code class="docutils literal notranslate"><span class="pre">dim3</span></code>), it returns <code class="docutils literal notranslate"><span class="pre">vec&lt;T,</span> <span class="pre">N&gt;</span></code>. </p></li>
+</ul>
+</p>
+</dd></dl>
+
 </section>
 <section id="concat">
 <h2>concat<a class="headerlink" href="#concat" title="Permalink to this heading"></a></h2>

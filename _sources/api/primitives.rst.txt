@@ -37,9 +37,9 @@ make_vec
 --------
 .. doxygenfunction:: kernel_float::make_vec
 
-into_vector
------------
-.. doxygenfunction:: kernel_float::into_vector
+into_vec
+--------
+.. doxygenfunction:: kernel_float::into_vec
 
 concat
 ------
