@@ -19,7 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="API Reference" href="api.html" /> 
+    <link rel="next" title="Guides" href="guides.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -44,6 +44,7 @@
               <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Kernel Float</a></li>
+<li class="toctree-l1"><a class="reference internal" href="guides.html">Guides</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api.html">API Reference</a></li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
 <li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
@@ -77,12 +78,12 @@
 </div>
 <section id="kernel-float">
 <h1>Kernel Float<a class="headerlink" href="#kernel-float" title="Permalink to this heading"></a></h1>
-<a class="reference external image-reference" href="https://raw.githubusercontent.com/KernelTuner/kernel_float/main/docs/logo.png"><img alt="Kernel Float logo" src="https://raw.githubusercontent.com/KernelTuner/kernel_float/main/docs/logo.png" /></a>
-<a class="reference external image-reference" href="https://github.com/KernelTuner/kernel_float/"><img alt="github" src="https://img.shields.io/badge/github-repo-000.svg?logo=github&amp;amp;labelColor=gray&amp;amp;color=blue" /></a>
-<a class="reference external image-reference" href="https://img.shields.io/github/actions/workflow/status/KernelTuner/kernel_float/docs.yml"><img alt="GitHub branch checks state" src="https://img.shields.io/github/actions/workflow/status/KernelTuner/kernel_float/docs.yml" /></a>
-<a class="reference external image-reference" href="https://img.shields.io/github/license/KernelTuner/kernel_float"><img alt="GitHub" src="https://img.shields.io/github/license/KernelTuner/kernel_float" /></a>
-<a class="reference external image-reference" href="https://img.shields.io/github/v/tag/KernelTuner/kernel_float"><img alt="GitHub tag (latest by date)" src="https://img.shields.io/github/v/tag/KernelTuner/kernel_float" /></a>
-<a class="reference external image-reference" href="https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social"><img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social" /></a>
+<p><img alt="Kernel Float logo" src="https://raw.githubusercontent.com/KernelTuner/kernel_float/main/docs/logo.png" /></p>
+<p><a class="reference external" href="https://github.com/KernelTuner/kernel_float/"><img alt="github" src="https://img.shields.io/badge/github-repo-000.svg?logo=github&amp;labelColor=gray&amp;color=blue" /></a>
+<img alt="GitHub branch checks state" src="https://img.shields.io/github/actions/workflow/status/KernelTuner/kernel_float/docs.yml" />
+<img alt="GitHub" src="https://img.shields.io/github/license/KernelTuner/kernel_float" />
+<img alt="GitHub tag (latest by date)" src="https://img.shields.io/github/v/tag/KernelTuner/kernel_float" />
+<img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social" /></p>
 <p><em>Kernel Float</em> is a header-only library for CUDA that simplifies working with vector types and reduced precision floating-point arithmetic in GPU code.</p>
 <section id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this heading"></a></h2>
@@ -92,9 +93,8 @@ However, working with these types is cumbersome:
 mathematical operations require intrinsics (e.g., <code class="docutils literal notranslate"><span class="pre">__hadd2</span></code> performs addition for <code class="docutils literal notranslate"><span class="pre">__half2</span></code>),
 type conversion is awkward (e.g., <code class="docutils literal notranslate"><span class="pre">__nv_cvt_halfraw2_to_fp8x2</span></code> converts float16 to float8),
 and some functionality is missing (e.g., one cannot convert a <code class="docutils literal notranslate"><span class="pre">__half</span></code> to <code class="docutils literal notranslate"><span class="pre">__nv_bfloat16</span></code>).</p>
-<p><em>Kernel Float</em> resolves this by offering a single data type <code class="docutils literal notranslate"><span class="pre">kernel_float::vec&lt;T,</span> <span class="pre">N&gt;</span></code>
-that stores <code class="docutils literal notranslate"><span class="pre">N</span></code> elements of type <code class="docutils literal notranslate"><span class="pre">T</span></code>.
-Internally, the data is stored using the most optimal type available, for example, <code class="docutils literal notranslate"><span class="pre">vec&lt;half,</span> <span class="pre">2&gt;</span></code> stores a <code class="docutils literal notranslate"><span class="pre">__half2</span></code> and <code class="docutils literal notranslate"><span class="pre">vec&lt;fp8_e5m2,</span> <span class="pre">4&gt;</span></code> uses a <code class="docutils literal notranslate"><span class="pre">__nv_fp8x4_e5m2</span></code>.
+<p><em>Kernel Float</em> resolves this by offering a single data type <code class="docutils literal notranslate"><span class="pre">kernel_float::vec&lt;T,</span> <span class="pre">N&gt;</span></code> that stores <code class="docutils literal notranslate"><span class="pre">N</span></code> elements of type <code class="docutils literal notranslate"><span class="pre">T</span></code>.
+Internally, the data is stored as a fixed-sized array of elements.
 Operator overloading (like <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">&amp;&amp;</span></code>) has been implemented such that the most optimal intrinsic for the available types is selected automatically.
 Many mathetical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>) and common operations (such as <code class="docutils literal notranslate"><span class="pre">sum</span></code>, <code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">for_each</span></code>) are also available.</p>
 <p>By using this library, developers can avoid the complexity of working with reduced precision floating-point types in CUDA and focus on their applications.</p>
@@ -105,7 +105,8 @@ Many mathetical functions (like <code class="docutils literal notranslate"><span
 <ul class="simple">
 <li><p>Single type <code class="docutils literal notranslate"><span class="pre">vec&lt;T,</span> <span class="pre">N&gt;</span></code> that unifies all vector types.</p></li>
 <li><p>Operator overloading to simplify programming.</p></li>
-<li><p>Support for half (16 bit) and quarter (8 bit) floating-point precision.</p></li>
+<li><p>Support for half (16 bit) floating-point arithmetic, with a fallback to single precision for unsupported operations.</p></li>
+<li><p>Support for quarter (8 bit) floating-point types.</p></li>
 <li><p>Easy integration as a single header file.</p></li>
 <li><p>Written for C++17.</p></li>
 <li><p>Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).</p></li>
@@ -187,7 +188,7 @@ Notice how easy it would be change the precision (for example, <code class="docu
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="guides.html" class="btn btn-neutral float-right" title="Guides" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

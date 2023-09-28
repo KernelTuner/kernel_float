@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Type Promotion &mdash; Kernel Float  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Using kernel_float::prelude" href="prelude.html" />
+    <link rel="prev" title="Getting started" href="introduction.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Kernel Float
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Kernel Float</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../guides.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Type Promotion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="prelude.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::prelude</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Kernel Float</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../guides.html">Guides</a></li>
+      <li class="breadcrumb-item active">Type Promotion</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/guides/promotion.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="type-promotion">
+<h1>Type Promotion<a class="headerlink" href="#type-promotion" title="Permalink to this heading"></a></h1>
+<p>For operations that involve two input arguments (or more), <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> will first convert the inputs into a common type before applying the operation.
+For example, when adding <code class="docutils literal notranslate"><span class="pre">vec&lt;int,</span> <span class="pre">N&gt;</span></code> to a <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>, both arguments must first be converted into a <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>.</p>
+<p>This procedure is called “type promotion” and is implemented as follows.
+First, all arguments are converted into a vector by calling <code class="docutils literal notranslate"><span class="pre">into_vec</span></code>.
+Next, all arguments must have length <code class="docutils literal notranslate"><span class="pre">N</span></code> or length <code class="docutils literal notranslate"><span class="pre">1</span></code> and vectors of length <code class="docutils literal notranslate"><span class="pre">1</span></code> are resized to become length <code class="docutils literal notranslate"><span class="pre">N</span></code>.
+Finally, the vector element types are promoted into a common type.</p>
+<p>The rules for element type promotion in <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> are slightly different than in regular C++.
+In short, for two element types <code class="docutils literal notranslate"><span class="pre">T</span></code> and <code class="docutils literal notranslate"><span class="pre">U</span></code>, the promotion rules can be summarized as follows:</p>
+<ul class="simple">
+<li><p>If one of the types is <code class="docutils literal notranslate"><span class="pre">bool</span></code>, the result is the other type.</p></li>
+<li><p>If one type is a floating-point type and the other is a signed or unsigned integer, the result is the floating-point type.</p></li>
+<li><p>If both types are floating-point types, the result is the largest of the two types. An exception here is combining <code class="docutils literal notranslate"><span class="pre">half</span></code> and <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>, which results in <code class="docutils literal notranslate"><span class="pre">float</span></code>.</p></li>
+<li><p>If both types are integer types of the same signedness, the result is the largest of the two types.</p></li>
+<li><p>Combining a signed integer and unsigned integer type is not allowed.</p></li>
+</ul>
+<section id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
+<p>The type promotion rules are shown in the table below.
+The labels are as follows:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">b</span></code>: boolean</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">iN</span></code>: signed integer of <code class="docutils literal notranslate"><span class="pre">N</span></code> bits (e.g., <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">long</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">uN</span></code>: unsigned integer of <code class="docutils literal notranslate"><span class="pre">N</span></code> bits (e.g., <code class="docutils literal notranslate"><span class="pre">unsigned</span> <span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">size_t</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">fN</span></code>: floating-point type of <code class="docutils literal notranslate"><span class="pre">N</span></code> bits (e.g., <code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">double</span></code>)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bf16</span></code>: bfloat16 floating-point format.</p></li>
+</ul>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-text">Type Promotion Rules.</span><a class="headerlink" href="#id1" title="Permalink to this table"></a></caption>
+<tbody>
+<tr class="row-odd"><td></td>
+<td><p><strong>b</strong></p></td>
+<td><p><strong>i8</strong></p></td>
+<td><p><strong>i16</strong></p></td>
+<td><p><strong>i32</strong></p></td>
+<td><p><strong>i64</strong></p></td>
+<td><p><strong>u8</strong></p></td>
+<td><p><strong>u16</strong></p></td>
+<td><p><strong>u32</strong></p></td>
+<td><p><strong>u64</strong></p></td>
+<td><p><strong>f8</strong></p></td>
+<td><p><strong>f16</strong></p></td>
+<td><p><strong>bf16</strong></p></td>
+<td><p><strong>f32</strong></p></td>
+<td><p><strong>f64</strong></p></td>
+</tr>
+<tr class="row-even"><td><p><strong>b</strong></p></td>
+<td><p>b</p></td>
+<td><p>i8</p></td>
+<td><p>i16</p></td>
+<td><p>i32</p></td>
+<td><p>i64</p></td>
+<td><p>u8</p></td>
+<td><p>u16</p></td>
+<td><p>u32</p></td>
+<td><p>u64</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>i8</strong></p></td>
+<td><p>i8</p></td>
+<td><p>i8</p></td>
+<td><p>i16</p></td>
+<td><p>i32</p></td>
+<td><p>i64</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>i16</strong></p></td>
+<td><p>i16</p></td>
+<td><p>i16</p></td>
+<td><p>i16</p></td>
+<td><p>i32</p></td>
+<td><p>i64</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>i32</strong></p></td>
+<td><p>i32</p></td>
+<td><p>i32</p></td>
+<td><p>i32</p></td>
+<td><p>i32</p></td>
+<td><p>i64</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>i64</strong></p></td>
+<td><p>i64</p></td>
+<td><p>i64</p></td>
+<td><p>i64</p></td>
+<td><p>i64</p></td>
+<td><p>i64</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>u8</strong></p></td>
+<td><p>u8</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>u8</p></td>
+<td><p>u16</p></td>
+<td><p>u32</p></td>
+<td><p>u64</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>u16</strong></p></td>
+<td><p>u16</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>u16</p></td>
+<td><p>u16</p></td>
+<td><p>u32</p></td>
+<td><p>u64</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>u32</strong></p></td>
+<td><p>u32</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>u32</p></td>
+<td><p>u32</p></td>
+<td><p>u32</p></td>
+<td><p>u64</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>u64</strong></p></td>
+<td><p>u64</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>x</p></td>
+<td><p>u64</p></td>
+<td><p>u64</p></td>
+<td><p>u64</p></td>
+<td><p>u64</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>f8</strong></p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f8</p></td>
+<td><p>f16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>f16</strong></p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f16</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>bf16</strong></p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>bf16</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>f32</strong></p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f32</p></td>
+<td><p>f64</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>f64</strong></p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+<td><p>f64</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="introduction.html" class="btn btn-neutral float-left" title="Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="prelude.html" class="btn btn-neutral float-right" title="Using kernel_float::prelude" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Stijn Heldens, Ben van Werkhoven.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
