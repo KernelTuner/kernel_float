@@ -57,21 +57,21 @@ REGISTER_TEST_CASE("basics", basics_tests, int, float)
 
 struct creation_tests {
     __host__ __device__ void operator()(generator<int> gen) {
-        using kernel_float::into_vector;
+        using kernel_float::into_vec;
         using kernel_float::make_vec;
 
-        // into_vector on scalar
+        // into_vec on scalar
         {
-            kf::vec<int, 1> a = into_vector(int(5));
+            kf::vec<int, 1> a = into_vec(int(5));
             ASSERT(a[0] == 5);
         }
 
-        // into_vector on CUDA vector types
+        // into_vec on CUDA vector types
         {
-            kf::vec<int, 1> a = into_vector(make_int1(5));
-            kf::vec<int, 2> b = into_vector(make_int2(5, 4));
-            kf::vec<int, 3> c = into_vector(make_int3(5, 4, -1));
-            kf::vec<int, 4> d = into_vector(make_int4(5, 4, -1, 0));
+            kf::vec<int, 1> a = into_vec(make_int1(5));
+            kf::vec<int, 2> b = into_vec(make_int2(5, 4));
+            kf::vec<int, 3> c = into_vec(make_int3(5, 4, -1));
+            kf::vec<int, 4> d = into_vec(make_int4(5, 4, -1, 0));
 
             ASSERT(a[0] == 5);
             ASSERT(b[0] == 5 && b[1] == 4);
@@ -79,17 +79,17 @@ struct creation_tests {
             ASSERT(d[0] == 5 && d[1] == 4 && d[2] == -1 && d[3] == 0);
         }
 
-        // into_vector on C-style array
+        // into_vec on C-style array
         {
             int items[3] = {1, 2, 3};
-            kf::vec<int, 3> a = into_vector(items);
+            kf::vec<int, 3> a = into_vec(items);
             ASSERT(a[0] == 1 && a[1] == 2 && a[2] == 3);
         }
 
-        // into_vector on kf array
+        // into_vec on kf array
         {
             kf::vec<int, 3> items = {1, 2, 3};
-            kf::vec<int, 3> a = into_vector(items);
+            kf::vec<int, 3> a = into_vec(items);
             ASSERT(a[0] == 1 && a[1] == 2 && a[2] == 3);
         }
 
@@ -101,21 +101,21 @@ struct creation_tests {
     }
 
     __host__ __device__ void operator()(generator<float> gen) {
-        using kernel_float::into_vector;
+        using kernel_float::into_vec;
         using kernel_float::make_vec;
 
-        // into_vector on scalar
+        // into_vec on scalar
         {
-            kf::vec<float, 1> a = into_vector(float(5.0f));
+            kf::vec<float, 1> a = into_vec(float(5.0f));
             ASSERT(a[0] == 5.0f);
         }
 
-        // into_vector on CUDA vector types
+        // into_vec on CUDA vector types
         {
-            kf::vec<float, 1> a = into_vector(make_float1(5.0f));
-            kf::vec<float, 2> b = into_vector(make_float2(5.0f, 4.0f));
-            kf::vec<float, 3> c = into_vector(make_float3(5.0f, 4.0f, -1.0f));
-            kf::vec<float, 4> d = into_vector(make_float4(5.0f, 4.0f, -1.0f, 0.0f));
+            kf::vec<float, 1> a = into_vec(make_float1(5.0f));
+            kf::vec<float, 2> b = into_vec(make_float2(5.0f, 4.0f));
+            kf::vec<float, 3> c = into_vec(make_float3(5.0f, 4.0f, -1.0f));
+            kf::vec<float, 4> d = into_vec(make_float4(5.0f, 4.0f, -1.0f, 0.0f));
 
             ASSERT(a[0] == 5.0f);
             ASSERT(b[0] == 5.0f && b[1] == 4.0f);
@@ -123,17 +123,17 @@ struct creation_tests {
             ASSERT(d[0] == 5.0f && d[1] == 4.0f && d[2] == -1.0f && d[3] == 0.0f);
         }
 
-        // into_vector on C-style array
+        // into_vec on C-style array
         {
             float items[3] = {1.0f, 2.0f, 3.0f};
-            kf::vec<float, 3> a = into_vector(items);
+            kf::vec<float, 3> a = into_vec(items);
             ASSERT(a[0] == 1.0f && a[1] == 2.0f && a[2] == 3.0f);
         }
 
-        // into_vector on kf array
+        // into_vec on kf array
         {
             kf::vec<float, 3> items = {1.0f, 2.0f, 3.0f};
-            kf::vec<float, 3> a = into_vector(items);
+            kf::vec<float, 3> a = into_vec(items);
             ASSERT(a[0] == 1.0f && a[1] == 2.0f && a[2] == 3.0f);
         }
 

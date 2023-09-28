@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-09-28 09:58:58.074478
-// git hash: 46d598cbca2b9e15abe91848fdcb417d69f0820a
+// date: 2023-09-28 11:56:39.597009
+// git hash: f2078d86464553ef3c024dde759e5c4ab46fdf6e
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -3099,7 +3099,7 @@ struct vector: public S {
  * - For vector-like types (e.g., `int2`, `dim3`), it returns `vec<T, N>`.
  */
 template<typename V>
-KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
+KERNEL_FLOAT_INLINE into_vector_type<V> into_vec(V&& input) {
     return into_vector_impl<V>::call(std::forward<V>(input));
 }
 
@@ -3909,8 +3909,13 @@ static constexpr extent<N> kextent = {};
 
 template<typename... Args>
 KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&... args) {
-    return make_vec(std::forward<Args>(args)...);
+    return ::kernel_float::make_vec(std::forward<Args>(args)...);
 };
+
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> into_kvec(V&& input) {
+    return ::kernel_float::into_vec(std::forward<V>(input));
+}
 
 template<typename T = double>
 using kconstant = constant<T>;

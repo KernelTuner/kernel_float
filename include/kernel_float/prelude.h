@@ -82,8 +82,13 @@ static constexpr extent<N> kextent = {};
 
 template<typename... Args>
 KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&... args) {
-    return make_vec(std::forward<Args>(args)...);
+    return ::kernel_float::make_vec(std::forward<Args>(args)...);
 };
+
+template<typename V>
+KERNEL_FLOAT_INLINE into_vector_type<V> into_kvec(V&& input) {
+    return ::kernel_float::into_vec(std::forward<V>(input));
+}
 
 template<typename T = double>
 using kconstant = constant<T>;
