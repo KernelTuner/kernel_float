@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-09-28 11:56:39.597009
-// git hash: f2078d86464553ef3c024dde759e5c4ab46fdf6e
+// date: 2023-09-28 12:12:55.542179
+// git hash: 0ae5853b782118d9842541588429b4aec7ff186a
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -54,7 +54,11 @@
 #endif
 
 #ifndef KERNEL_FLOAT_FP8_AVAILABLE
+#ifdef __CUDACC_VER_MAJOR__
+#define KERNEL_FLOAT_FP8_AVAILABLE (__CUDACC_VER_MAJOR__ >= 12)
+#else
 #define KERNEL_FLOAT_FP8_AVAILABLE (0)
+#endif
 #endif
 
 #define KERNEL_FLOAT_ASSERT(expr) \

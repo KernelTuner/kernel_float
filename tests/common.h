@@ -6,8 +6,6 @@
 #include <cstdint>
 
 #include "catch2/catch_all.hpp"
-
-#define KERNEL_FLOAT_FP8_AVAILABLE (1)
 #include "kernel_float.h"
 
 namespace kf = kernel_float;
