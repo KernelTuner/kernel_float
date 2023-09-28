@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-09-21 10:00:11.122069
-// git hash: 227f987d3fc10499e680bb68f00e1c579afeda97
+// date: 2023-09-28 09:58:58.074478
+// git hash: 46d598cbca2b9e15abe91848fdcb417d69f0820a
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -3785,8 +3785,49 @@ struct promote_type<__half, __nv_bfloat16> {
 #endif
 
 #endif  //KERNEL_FLOAT_BF16_H
+#ifndef KERNEL_FLOAT_FP8_H
+#define KERNEL_FLOAT_FP8_H
+
+
+
+#if KERNEL_FLOAT_FP8_AVAILABLE
+#include <cuda_fp8.h>
+
+
+
+namespace kernel_float {
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_fp8_e4m3)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_fp8_e4m3)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_fp8_e4m3)
+
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_fp8_e5m2)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_fp8_e5m2)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_fp8_e5m2)
+}  // namespace kernel_float
+
+#if KERNEL_FLOAT_FP16_AVAILABLE
+
+
+namespace kernel_float {
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e4m3)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e5m2)
+}  // namespace kernel_float
+#endif  // KERNEL_FLOAT_FP16_AVAILABLE
+
+#if KERNEL_FLOAT_BF16_AVAILABLE
+
+
+namespace kernel_float {
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e4m3)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e5m2)
+}  // namespace kernel_float
+#endif  // KERNEL_FLOAT_BF16_AVAILABLE
+
+#endif  // KERNEL_FLOAT_FP8_AVAILABLE
+#endif  // KERNEL_FLOAT_FP8_H
 #ifndef KERNEL_FLOAT_PRELUDE_H
 #define KERNEL_FLOAT_PRELUDE_H
+
 
 
 
@@ -3853,8 +3894,14 @@ KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
 #endif
 
 #if KERNEL_FLOAT_BF16_AVAILABLE
-KERNEL_FLOAT_TYPE_ALIAS(bfloat16, __nv_bfloat16)
-KERNEL_FLOAT_TYPE_ALIAS(bf16, __nv_bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bf16x, __nv_bfloat16)
+#endif
+
+#if KERNEL_FLOAT_BF8_AVAILABLE
+KERNEL_FLOAT_TYPE_ALIAS(float8x, __nv_fp8_e4m3)
+KERNEL_FLOAT_TYPE_ALIAS(float8_e4m3x, __nv_fp8_e4m3)
+KERNEL_FLOAT_TYPE_ALIAS(float8_e5m2x, __nv_fp8_e5m2)
 #endif
 
 template<size_t N>

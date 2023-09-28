@@ -4,6 +4,7 @@
 #include "bf16.h"
 #include "constant.h"
 #include "fp16.h"
+#include "fp8.h"
 #include "vector.h"
 
 namespace kernel_float {
@@ -66,8 +67,14 @@ KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
 #endif
 
 #if KERNEL_FLOAT_BF16_AVAILABLE
-KERNEL_FLOAT_TYPE_ALIAS(bfloat16, __nv_bfloat16)
-KERNEL_FLOAT_TYPE_ALIAS(bf16, __nv_bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bf16x, __nv_bfloat16)
+#endif
+
+#if KERNEL_FLOAT_BF8_AVAILABLE
+KERNEL_FLOAT_TYPE_ALIAS(float8x, __nv_fp8_e4m3)
+KERNEL_FLOAT_TYPE_ALIAS(float8_e4m3x, __nv_fp8_e4m3)
+KERNEL_FLOAT_TYPE_ALIAS(float8_e5m2x, __nv_fp8_e5m2)
 #endif
 
 template<size_t N>
