@@ -84,7 +84,7 @@ groups = {
             "broadcast",
             "convert",
             "make_vec",
-            "into_vector",
+            "into_vec",
             "concat",
             "select",
             "for_each",
