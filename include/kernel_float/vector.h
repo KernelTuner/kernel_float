@@ -279,7 +279,7 @@ struct vector: public S {
  * - For vector-like types (e.g., `int2`, `dim3`), it returns `vec<T, N>`.
  */
 template<typename V>
-KERNEL_FLOAT_INLINE into_vector_type<V> into_vector(V&& input) {
+KERNEL_FLOAT_INLINE into_vector_type<V> into_vec(V&& input) {
     return into_vector_impl<V>::call(std::forward<V>(input));
 }
 

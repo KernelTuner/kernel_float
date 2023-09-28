@@ -32,7 +32,11 @@
 #endif
 
 #ifndef KERNEL_FLOAT_FP8_AVAILABLE
+#ifdef __CUDACC_VER_MAJOR__
+#define KERNEL_FLOAT_FP8_AVAILABLE (__CUDACC_VER_MAJOR__ >= 12)
+#else
 #define KERNEL_FLOAT_FP8_AVAILABLE (0)
+#endif
 #endif
 
 #define KERNEL_FLOAT_ASSERT(expr) \

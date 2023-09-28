@@ -21,9 +21,8 @@ mathematical operations require intrinsics (e.g., `__hadd2` performs addition fo
 type conversion is awkward (e.g., `__nv_cvt_halfraw2_to_fp8x2` converts float16 to float8),
 and some functionality is missing (e.g., one cannot convert a `__half` to `__nv_bfloat16`).
 
-_Kernel Float_ resolves this by offering a single data type `kernel_float::vec<T, N>`
-that stores `N` elements of type `T`.
-Internally, the data is stored using the most optimal type available, for example, `vec<half, 2>` stores a `__half2` and `vec<fp8_e5m2, 4>` uses a `__nv_fp8x4_e5m2`.
+_Kernel Float_ resolves this by offering a single data type `kernel_float::vec<T, N>` that stores `N` elements of type `T`.
+Internally, the data is stored as a fixed-sized array of elements.
 Operator overloading (like `+`, `*`, `&&`) has been implemented such that the most optimal intrinsic for the available types is selected automatically.
 Many mathetical functions (like `log`, `exp`, `sin`) and common operations (such as `sum`, `range`, `for_each`) are also available.
 
@@ -36,7 +35,8 @@ In a nutshell, _Kernel Float_ offers the following features:
 
 * Single type `vec<T, N>` that unifies all vector types.
 * Operator overloading to simplify programming.
-* Support for half (16 bit) and quarter (8 bit) floating-point precision.
+* Support for half (16 bit) floating-point arithmetic, with a fallback to single precision for unsupported operations.
+* Support for quarter (8 bit) floating-point types.
 * Easy integration as a single header file.
 * Written for C++17.
 * Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).

@@ -39,8 +39,8 @@ author = 'Stijn Heldens, Ben van Werkhoven'
 # ones.
 extensions = [
         "breathe",
-        #"myst_parser",
-        "sphinx_mdinclude",
+        "myst_parser",
+        #"sphinx_mdinclude",
 ]
 
 #source_suffix = {

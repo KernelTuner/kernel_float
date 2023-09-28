@@ -4,18 +4,20 @@
    :caption: Contents
 
    Kernel Float <self>
+   guides
    api
    license
    Github repository <https://github.com/KernelTuner/kernel_float>
 
 
-.. mdinclude:: ../README.md
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
 
 
 
 Indices and tables
-============
+==================
 
 * :ref:`genindex`
 * :ref:`modindex`
