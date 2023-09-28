@@ -9,4 +9,5 @@ API Reference
    api/reductions.rst
    api/mathematical.rst
    api/conditional.rst
+   api/memory_read_write.rst
 

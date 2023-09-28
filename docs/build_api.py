@@ -29,7 +29,7 @@ def build_doxygen_page(name, items):
         for symbol in symbols:
             content += f".. doxygen{directive}:: kernel_float::{symbol}\n\n"
 
-    stripped_name = name.lower().replace(" ", "_")
+    stripped_name = name.lower().replace(" ", "_").replace("/", "_")
     filename = f"api/{stripped_name}.rst"
     print(f"writing to {filename}")
 
@@ -197,6 +197,17 @@ groups = {
             ("where", "where(const C&, const L&, const R&)"),
             ("where", "where(const C&, const L&)"),
             ("where", "where(const C&)"),
+        ],
+        "Memory read/write": [
+            ("load", "load(const T*, const I&)"),
+            ("load", "load(const T*, const I&, const M&)"),
+            ("loadn", "loadn(const T*, ptrdiff_t)"),
+            ("loadn", "loadn(const T*, ptrdiff_t, ptrdiff_t)"),
+            ("store", "store(const V&, T *ptr, const I&)"),
+            ("store", "store(const V&, T *ptr, const I&, const M&)"),
+            ("storen", "storen(const V&, T*, ptrdiff_t)"),
+            ("storen", "storen(const V&, T*, ptrdiff_t, ptrdiff_t)"),
+            ("aligned_ptr", "aligned_ptr", "struct"),
         ]
 }
 

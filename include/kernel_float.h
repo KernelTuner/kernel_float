@@ -8,6 +8,7 @@
 #include "kernel_float/fp16.h"
 #include "kernel_float/iterate.h"
 #include "kernel_float/macros.h"
+#include "kernel_float/memory.h"
 #include "kernel_float/meta.h"
 #include "kernel_float/prelude.h"
 #include "kernel_float/reduce.h"
