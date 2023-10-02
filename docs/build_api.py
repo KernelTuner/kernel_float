@@ -199,6 +199,7 @@ groups = {
             ("where", "where(const C&)"),
         ],
         "Memory read/write": [
+            "cast_to",
             ("load", "load(const T*, const I&)"),
             ("load", "load(const T*, const I&, const M&)"),
             ("loadn", "loadn(const T*, ptrdiff_t)"),

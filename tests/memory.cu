@@ -128,3 +128,18 @@ struct store_test {
 
 REGISTER_TEST_CASE("store", store_test, int, float, double)
 REGISTER_TEST_CASE_GPU("store", store_test, __half, __nv_bfloat16)
+
+struct assign_conversion_test {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+        kf::vec<T, N> x = {gen.next(I)...};
+        kf::vec<float, N> y;
+
+        kf::cast_to(y) = x;
+
+        ASSERT_EQ_ALL(float(x[I]), y[I]);
+    }
+};
+
+REGISTER_TEST_CASE("assign conversion", assign_conversion_test, int, float, double)
+REGISTER_TEST_CASE_GPU("assign conversion", assign_conversion_test, __half, __nv_bfloat16)
