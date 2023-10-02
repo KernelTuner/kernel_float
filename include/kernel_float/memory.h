@@ -14,12 +14,12 @@ struct load_impl;
 template<typename T, size_t N, size_t... Is>
 struct load_impl<T, N, index_sequence<Is...>> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, N> call(const T* input, const ptrdiff_t* offsets) {
+    static vector_storage<T, N> call(const T* input, const size_t* offsets) {
         return {input[offsets[Is]]...};
     }
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, N> call(const T* input, const ptrdiff_t* offsets, const bool* mask) {
+    static vector_storage<T, N> call(const T* input, const size_t* offsets, const bool* mask) {
         bool all_valid = true;
         for (size_t i = 0; i < N; i++) {
             all_valid &= mask[i];
@@ -44,7 +44,7 @@ struct load_impl<T, N, index_sequence<Is...>> {
  */
 template<typename T, typename I>
 KERNEL_FLOAT_INLINE vector<T, vector_extent_type<I>> load(const T* ptr, const I& indices) {
-    return detail::load_impl<T, vector_extent<I>>::call(ptr, cast<ptrdiff_t>(indices).data());
+    return detail::load_impl<T, vector_extent<I>>::call(ptr, cast<size_t>(indices).data());
 }
 
 /**
@@ -65,7 +65,7 @@ KERNEL_FLOAT_INLINE vector<T, E> load(const T* ptr, const I& indices, const M& m
 
     return detail::load_impl<T, E::value>::call(
         ptr,
-        convert_storage<ptrdiff_t>(indices, new_size).data(),
+        convert_storage<size_t>(indices, new_size).data(),
         convert_storage<bool>(mask, new_size).data());
 }
 
@@ -82,8 +82,8 @@ KERNEL_FLOAT_INLINE vector<T, E> load(const T* ptr, const I& indices, const M& m
  * ```
  */
 template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, ptrdiff_t offset = 0) {
-    return load(ptr, offset + range<ptrdiff_t, N>());
+KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, size_t offset = 0) {
+    return load(ptr, offset + range<size_t, N>());
 }
 
 /**
@@ -97,9 +97,8 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, ptrdiff_t offset = 
  * ```
  */
 template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector<T, extent<N>>
-loadn(const T* ptr, ptrdiff_t offset, ptrdiff_t max_length) {
-    auto indices = offset + range<ptrdiff_t, N>();
+KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, size_t offset, size_t max_length) {
+    auto indices = offset + range<size_t, N>();
     return load(ptr, indices, indices < max_length);
 }
 
@@ -110,12 +109,12 @@ struct store_impl;
 template<typename T, size_t N, size_t... Is>
 struct store_impl<T, N, index_sequence<Is...>> {
     KERNEL_FLOAT_INLINE
-    static void call(T* outputs, const T* inputs, const ptrdiff_t* offsets) {
+    static void call(T* outputs, const T* inputs, const size_t* offsets) {
         ((outputs[offsets[Is]] = inputs[Is]), ...);
     }
 
     KERNEL_FLOAT_INLINE
-    static void call(T* outputs, const T* inputs, const ptrdiff_t* offsets, const bool* mask) {
+    static void call(T* outputs, const T* inputs, const size_t* offsets, const bool* mask) {
         bool all_valid = true;
         for (size_t i = 0; i < N; i++) {
             all_valid &= mask[i];
@@ -154,7 +153,7 @@ KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices, const 
     return detail::store_impl<T, E::value>::call(
         ptr,
         convert_storage<T>(values, E()).data(),
-        convert_storage<ptrdiff_t>(indices, E()).data(),
+        convert_storage<size_t>(indices, E()).data(),
         convert_storage<bool>(mask, E()).data());
 }
 
@@ -177,7 +176,7 @@ KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices) {
     return detail::store_impl<T, E::value>::call(
         ptr,
         convert_storage<T>(values, E()).data(),
-        convert_storage<ptrdiff_t>(indices, E()).data());
+        convert_storage<size_t>(indices, E()).data());
 }
 
 /**
@@ -194,8 +193,8 @@ KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices) {
  * ```
  */
 template<typename T, typename V, size_t N = vector_extent<V>>
-KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, ptrdiff_t offset = 0) {
-    auto indices = offset + range<ptrdiff_t, N>();
+KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset = 0) {
+    auto indices = offset + range<size_t, N>();
     return store(values, ptr, indices);
 }
 
@@ -211,8 +210,8 @@ KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, ptrdiff_t offset = 0) {
  * ```
  */
 template<typename T, typename V, size_t N = vector_extent<V>>
-KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, ptrdiff_t offset, ptrdiff_t max_length) {
-    auto indices = offset + range<ptrdiff_t, N>();
+KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset, size_t max_length) {
+    auto indices = offset + range<size_t, N>();
     return store(values, ptr, indices, indices < max_length);
 }
 
@@ -230,7 +229,7 @@ struct AssignConversionProxy {
 
     template<typename U>
     KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
-        auto indices = range<ptrdiff_t, N>();
+        auto indices = range<size_t, N>();
         detail::store_impl<T, N>::call(
             ptr_,
             convert_storage<T, N>(std::forward<U>(values)).data(),
@@ -307,7 +306,7 @@ struct aligned_ptr {
      * See ``kernel_float::loadn``
      */
     template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(ptrdiff_t offset = 0) const {
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset = 0) const {
         return ::kernel_float::loadn<N>(get(), offset);
     }
 
@@ -315,7 +314,7 @@ struct aligned_ptr {
      * See ``kernel_float::loadn``
      */
     template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(ptrdiff_t offset, ptrdiff_t max_length) const {
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset, size_t max_length) const {
         return ::kernel_float::loadn<N>(get(), offset, max_length);
     }
 
@@ -330,14 +329,14 @@ struct aligned_ptr {
      * See ``kernel_float::storen``
      */
     template<typename V, size_t N = vector_extent<V>>
-    KERNEL_FLOAT_INLINE void storen(const V& values, ptrdiff_t offset = 0) const {
+    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset = 0) const {
         ::kernel_float::storen(values, get(), offset);
     }
     /**
      * See ``kernel_float::storen``
      */
     template<typename V, size_t N = vector_extent<V>>
-    KERNEL_FLOAT_INLINE void storen(const V& values, ptrdiff_t offset, ptrdiff_t max_length) const {
+    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset, size_t max_length) const {
         ::kernel_float::storen(values, get(), offset, max_length);
     }
 
@@ -391,7 +390,7 @@ struct aligned_ptr<const T, alignment> {
      * See ``kernel_float::loadn``
      */
     template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(ptrdiff_t offset = 0) const {
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset = 0) const {
         return ::kernel_float::loadn<N>(get(), offset);
     }
 
@@ -399,7 +398,7 @@ struct aligned_ptr<const T, alignment> {
      * See ``kernel_float::loadn``
      */
     template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(ptrdiff_t offset, ptrdiff_t max_length) const {
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset, size_t max_length) const {
         return ::kernel_float::loadn<N>(get(), offset, max_length);
     }
 
