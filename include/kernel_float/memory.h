@@ -215,13 +215,6 @@ KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset, size_t m
     return store(values, ptr, indices, indices < max_length);
 }
 
-// TOOD: check if this way is support across all compilers
-#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
-#define KERNEL_FLOAT_ASSUME_ALIGNED(ptr, alignment) (__builtin_assume_aligned(ptr, alignment))
-#else
-#define KERNEL_FLOAT_ASSUME_ALIGNED(ptr, alignment) (ptr)
-#endif
-
 template<typename T, size_t N>
 struct AssignConversionProxy {
     KERNEL_FLOAT_INLINE
@@ -264,6 +257,20 @@ KERNEL_FLOAT_INLINE AssignConversionProxy<T, E::value> cast_to(vector<T, E>& inp
 }
 
 /**
+ * Returns the original pointer ``ptr`` and hints to the compiler that this pointer is aligned to ``alignment`` bytes.
+ * If this is not actually the case, compiler optimizations will break things and generate invalid code. Be careful!
+ */
+template<typename T>
+KERNEL_FLOAT_INLINE T* unsafe_assume_aligned(T* ptr, size_t alignment) {
+// TOOD: check if this way is support across all compilers
+#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
+    return static_cast<T*>(__builtin_assume_aligned(ptr, alignment));
+#else
+    return ptr;
+#endif
+}
+
+/**
  * Represents a pointer of type ``T*`` that is guaranteed to be aligned to ``alignment`` bytes.
  */
 template<typename T, size_t alignment = 256>
@@ -281,7 +288,7 @@ struct aligned_ptr {
      */
     KERNEL_FLOAT_INLINE
     T* get() const {
-        return KERNEL_FLOAT_ASSUME_ALIGNED(ptr_, alignment);
+        return unsafe_assume_aligned(ptr_, alignment);
     }
 
     KERNEL_FLOAT_INLINE
@@ -360,12 +367,18 @@ struct aligned_ptr<const T, alignment> {
     KERNEL_FLOAT_INLINE
     explicit aligned_ptr(const T* ptr) : ptr_(ptr) {}
 
+    KERNEL_FLOAT_INLINE
+    aligned_ptr(const aligned_ptr<T>& ptr) : ptr_(ptr.get()) {}
+
+    KERNEL_FLOAT_INLINE
+    aligned_ptr(const aligned_ptr<const T>& ptr) : ptr_(ptr.get()) {}
+
     /**
      * Return the pointer value.
      */
     KERNEL_FLOAT_INLINE
     const T* get() const {
-        return KERNEL_FLOAT_ASSUME_ALIGNED(ptr_, alignment);
+        return unsafe_assume_aligned(ptr_, alignment);
     }
 
     KERNEL_FLOAT_INLINE
@@ -405,6 +418,9 @@ struct aligned_ptr<const T, alignment> {
   private:
     const T* ptr_ = nullptr;
 };
+
+template<typename T>
+aligned_ptr(T*) -> aligned_ptr<T>;
 
 }  // namespace kernel_float
 
