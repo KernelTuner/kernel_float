@@ -193,6 +193,47 @@ KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_s
     return convert_storage(input);
 }
 
+template<typename T, RoundingMode M = RoundingMode::ANY>
+struct AssignConversionProxy {
+    KERNEL_FLOAT_INLINE
+    explicit AssignConversionProxy(T* ptr) : ptr_(ptr) {}
+
+    template<typename U>
+    KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
+        *ptr_ = detail::convert_impl<
+            vector_value_type<U>,
+            vector_extent_type<U>,
+            vector_value_type<T>,
+            vector_extent_type<T>,
+            M>::call(into_vector_storage(values));
+
+        return *this;
+    }
+
+  private:
+    T* ptr_;
+};
+
+/**
+ * Takes a vector reference and gives back a helper object. This object helps when you want to assign one vector to another
+ * vector of a different type. It's a way to enable implicit type conversion.
+ *
+ * For example, if `x = expression;` does not compile because `x` and `expression` are different vector types, you can use
+ * `cast_to(x) = expression;` to make it work.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 2> x;
+ * vec<double, 2> y = {1.0, 2.0};
+ * cast_to(x) = y;  // Normally, `x = y;` would give an error, but `cast_to` fixes that.
+ * ```
+ */
+template<typename T, RoundingMode M = RoundingMode::ANY>
+KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T& input) {
+    return AssignConversionProxy<T, M>(&input);
+}
+
 /**
  * Returns a vector containing `N` copies of `value`.
  *

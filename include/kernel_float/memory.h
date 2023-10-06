@@ -215,47 +215,6 @@ KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset, size_t m
     return store(values, ptr, indices, indices < max_length);
 }
 
-template<typename T, size_t N>
-struct AssignConversionProxy {
-    KERNEL_FLOAT_INLINE
-    explicit AssignConversionProxy(T* ptr) : ptr_(ptr) {}
-
-    template<typename U>
-    KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
-        auto indices = range<size_t, N>();
-        detail::store_impl<T, N>::call(
-            ptr_,
-            convert_storage<T, N>(std::forward<U>(values)).data(),
-            indices.data());
-
-        return *this;
-    }
-
-  private:
-    T* ptr_;
-};
-
-/**
- * Takes a reference to a vector and returns a special proxy object that automatically performs the correct conversion
- * when a vector of a different element type is assigned. This is useful to perform implicit type conversions.
- *
- * For example, let assume that a line like `x = expression;` would not compile since `x` and `expressions` are
- * vectors of different element types. Then it is possible to use `cast_to(x) = expression;` to fix this error,
- * which possibly introduces a type conversion.
- *
- * Example
- * =======
- * ```
- * vec<float, 2> x;
- * vec<double, 2> y = {1.0, 2.0};
- * cast_to(x) = y;  // normally, the line `x = y;` would not compile, but `cast_to` make this possible
- * ```
- */
-template<typename T, typename E>
-KERNEL_FLOAT_INLINE AssignConversionProxy<T, E::value> cast_to(vector<T, E>& input) {
-    return AssignConversionProxy<T, E::value>(input.data());
-}
-
 /**
  * Returns the original pointer ``ptr`` and hints to the compiler that this pointer is aligned to ``alignment`` bytes.
  * If this is not actually the case, compiler optimizations will break things and generate invalid code. Be careful!
