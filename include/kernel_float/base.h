@@ -45,6 +45,7 @@ struct alignas(Alignment) aligned_array<T, 1, Alignment> {
 };
 
 template<typename T, size_t Alignment>
+
 struct aligned_array<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
     T* data() {
