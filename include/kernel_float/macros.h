@@ -44,4 +44,9 @@
     } while (0)
 #define KERNEL_FLOAT_UNREACHABLE __builtin_unreachable()
 
+// Somet utility macros
+#define KERNEL_FLOAT_CONCAT_IMPL(A, B) A##B
+#define KERNEL_FLOAT_CONCAT(A, B)      KERNEL_FLOAT_CONCAT_IMPL(A, B)
+#define KERNEL_FLOAT_CALL(F, ...)      F(__VA_ARGS__)
+
 #endif  //KERNEL_FLOAT_MACROS_H

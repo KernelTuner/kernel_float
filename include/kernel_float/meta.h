@@ -77,7 +77,7 @@ template<typename T>
 using decay_t = typename detail::decay_impl<T>::type;
 
 template<typename A, typename B>
-struct promote_type;
+struct promote_type {};
 
 template<typename T>
 struct promote_type<T, T> {

@@ -504,11 +504,20 @@ template<size_t TileDim, size_t BlockDim, typename D = dist::cyclic, typename In
 using tiling_1d = tiling<tile_size<TileDim>, block_size<BlockDim>, distributions<D>, IndexType>;
 
 // clang-format off
-#define KERNEL_FLOAT_TILING_FOR(TILING_VARIABLE__, INDEX_VARIABLE__, POINT_VARIABLE__)                                      \
-        _Pragma("unroll")                                                                                                   \
-        for (::std::size_t INDEX_VARIABLE__ = 0; INDEX_VARIABLE__ < TILING_VARIABLE__.size(); INDEX_VARIABLE__++)           \
-            if (typename decltype(TILING_VARIABLE__)::point_type POINT_VARIABLE__ = TILING_VARIABLE__.at(INDEX_VARIABLE__); \
-                TILING_VARIABLE__.is_present(INDEX_VARIABLE__))
+#define KERNEL_FLOAT_TILING_FOR_IMPL1(ITER_VAR, TILING, POINT_VAR, _)      \
+        _Pragma("unroll")                                                         \
+        for (size_t ITER_VAR = 0; ITER_VAR < (TILING).size(); ITER_VAR++)         \
+            if (POINT_VAR = (TILING).at(ITER_VAR); (TILING).is_present(ITER_VAR)) \
+
+#define KERNEL_FLOAT_TILING_FOR_IMPL2(ITER_VAR, TILING, INDEX_VAR, POINT_VAR)      \
+        KERNEL_FLOAT_TILING_FOR_IMPL1(ITER_VAR, TILING, POINT_VAR, _) \
+            if (INDEX_VAR = ITER_VAR; true)
+
+#define KERNEL_FLOAT_TILING_FOR_IMPL(ITER_VAR, TILING, A, B, N, ...) \
+    KERNEL_FLOAT_CALL(KERNEL_FLOAT_CONCAT(KERNEL_FLOAT_TILING_FOR_IMPL, N), ITER_VAR, TILING, A, B)
+
+#define KERNEL_FLOAT_TILING_FOR(...) \
+    KERNEL_FLOAT_TILING_FOR_IMPL(KERNEL_FLOAT_CONCAT(__tiling_index_variable__, __LINE__), __VA_ARGS__, 2, 1)
 // clang-format on
 
 }  // namespace kernel_float
