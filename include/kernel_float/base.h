@@ -22,6 +22,29 @@ struct alignas(Alignment) aligned_array {
 };
 
 template<typename T, size_t Alignment>
+struct alignas(Alignment) aligned_array<T, 1, Alignment> {
+    KERNEL_FLOAT_INLINE
+    aligned_array(T item = {}) : item_(item) {}
+
+    KERNEL_FLOAT_INLINE
+    operator T() const {
+        return item_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    T* data() {
+        return &item_;
+    }
+
+    KERNEL_FLOAT_INLINE
+    const T* data() const {
+        return &item_;
+    }
+
+    T item_ = {};
+};
+
+template<typename T, size_t Alignment>
 struct aligned_array<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
     T* data() {
@@ -34,113 +57,6 @@ struct aligned_array<T, 0, Alignment> {
         while (true)
             ;
     }
-};
-
-template<typename T, size_t Alignment>
-struct alignas(Alignment) aligned_array<T, 1, Alignment> {
-    KERNEL_FLOAT_INLINE
-    aligned_array(T value = {}) : x(value) {}
-
-    KERNEL_FLOAT_INLINE
-    operator T() const {
-        return x;
-    }
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return &x;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return &x;
-    }
-
-    T x;
-};
-
-template<typename T, size_t Alignment>
-struct alignas(Alignment) aligned_array<T, 2, Alignment> {
-    KERNEL_FLOAT_INLINE
-    aligned_array(T x, T y) : x(x), y(y) {}
-
-    KERNEL_FLOAT_INLINE
-    aligned_array() : aligned_array(T {}, T {}) {}
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return items;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return items;
-    }
-
-    union {
-        T items[2];
-        struct {
-            T x;
-            T y;
-        };
-    };
-};
-
-template<typename T, size_t Alignment>
-struct alignas(Alignment) aligned_array<T, 3, Alignment> {
-    KERNEL_FLOAT_INLINE
-    aligned_array(T x, T y, T z) : x(x), y(y), z(z) {}
-
-    KERNEL_FLOAT_INLINE
-    aligned_array() : aligned_array(T {}, T {}, T {}) {}
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return items;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return items;
-    }
-
-    union {
-        T items[3];
-        struct {
-            T x;
-            T y;
-            T z;
-        };
-    };
-};
-
-template<typename T, size_t Alignment>
-struct alignas(Alignment) aligned_array<T, 4, Alignment> {
-    KERNEL_FLOAT_INLINE
-    aligned_array(T x, T y, T z, T w) : x(x), y(y), z(z), w(w) {}
-
-    KERNEL_FLOAT_INLINE
-    aligned_array() : aligned_array(T {}, T {}, T {}, T {}) {}
-
-    KERNEL_FLOAT_INLINE
-    T* data() {
-        return items;
-    }
-
-    KERNEL_FLOAT_INLINE
-    const T* data() const {
-        return items;
-    }
-
-    union {
-        T items[4];
-        struct {
-            T x;
-            T y;
-            T z;
-            T w;
-        };
-    };
 };
 
 KERNEL_FLOAT_INLINE
