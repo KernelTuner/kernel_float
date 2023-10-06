@@ -18,7 +18,7 @@ namespace kernel_float {
  * ```
  */
 template<typename V, typename F>
-void for_each(V&& input, F fun) {
+KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
     auto storage = into_vector_storage(input);
 
 #pragma unroll
