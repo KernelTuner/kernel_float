@@ -90,7 +90,8 @@ groups = {
             "for_each",
         ],
         "Generation": [
-            "range",
+            ("range", "range()"),
+            ("range", "range(F fun)"),
             "range_like",
             "each_index",
             "fill",
@@ -193,6 +194,14 @@ groups = {
             "isinf",
             "isnan",
         ],
+        "Fast math": [
+                "fast_exp",
+                "fast_log",
+                "fast_cos",
+                "fast_sin",
+                "fast_tan",
+                "fast_div",
+        ],
         "Conditional": [
             ("where", "where(const C&, const L&, const R&)"),
             ("where", "where(const C&, const L&)"),
@@ -202,12 +211,12 @@ groups = {
             "cast_to",
             ("load", "load(const T*, const I&)"),
             ("load", "load(const T*, const I&, const M&)"),
-            ("loadn", "loadn(const T*, ptrdiff_t)"),
-            ("loadn", "loadn(const T*, ptrdiff_t, ptrdiff_t)"),
+            ("loadn", "loadn(const T*, size_t)"),
+            ("loadn", "loadn(const T*, size_t, size_t)"),
             ("store", "store(const V&, T *ptr, const I&)"),
             ("store", "store(const V&, T *ptr, const I&, const M&)"),
-            ("storen", "storen(const V&, T*, ptrdiff_t)"),
-            ("storen", "storen(const V&, T*, ptrdiff_t, ptrdiff_t)"),
+            ("storen", "storen(const V&, T*, size_t)"),
+            ("storen", "storen(const V&, T*, size_t, size_t)"),
             ("aligned_ptr", "aligned_ptr", "struct"),
         ]
 }
