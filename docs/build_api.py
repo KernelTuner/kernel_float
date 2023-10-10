@@ -27,7 +27,10 @@ def build_doxygen_page(name, items):
         content += "-" * len(title) + "\n"
 
         for symbol in symbols:
-            content += f".. doxygen{directive}:: kernel_float::{symbol}\n\n"
+            if directive == "define":
+                content += f".. doxygendefine:: {symbol}\n\n"
+            else:
+                content += f".. doxygen{directive}:: kernel_float::{symbol}\n\n"
 
     stripped_name = name.lower().replace(" ", "_").replace("/", "_")
     filename = f"api/{stripped_name}.rst"
@@ -218,6 +221,11 @@ groups = {
             ("storen", "storen(const V&, T*, size_t)"),
             ("storen", "storen(const V&, T*, size_t, size_t)"),
             ("aligned_ptr", "aligned_ptr", "struct"),
+        ],
+        "Utilities": [
+            ("constant", "constant", "struct"),
+            ("tiling", "tiling", "struct"),
+            ("KERNEL_FLOAT_TILING_FOR", "KERNEL_FLOAT_TILING_FOR", "define"),
         ]
 }
 
