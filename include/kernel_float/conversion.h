@@ -215,11 +215,11 @@ struct AssignConversionProxy {
 };
 
 /**
- * Takes a vector reference and gives back a helper object. This object helps when you want to assign one vector to another
- * vector of a different type. It's a way to enable implicit type conversion.
+ * Takes a vector reference and gives back a helper object. This object allows you to assign
+ * a vector of a different type to another vector while perofrming implicit type converion.
  *
- * For example, if `x = expression;` does not compile because `x` and `expression` are different vector types, you can use
- * `cast_to(x) = expression;` to make it work.
+ * For example, if `x = expression;` does not compile because `x` and `expression` are
+ * different vector types, you can use `cast_to(x) = expression;` to make it work.
  *
  * Example
  * =======
@@ -240,7 +240,7 @@ KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T& input) {
  * Example
  * =======
  * ```
- * vec<int, 3> a = fill<3>(42); // return [42, 42, 42]
+ * vec<int, 3> a = fill<3>(42); // returns [42, 42, 42]
  * ```
  */
 template<size_t N, typename T>
@@ -255,7 +255,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
  * Example
  * =======
  * ```
- * vec<int, 3> a = zeros<int, 3>(); // return [0, 0, 0]
+ * vec<int, 3> a = zeros<int, 3>(); // returns [0, 0, 0]
  * ```
  */
 template<typename T, size_t N>
@@ -270,7 +270,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> zeros(extent<N> = {}) {
  * Example
  * =======
  * ```
- * vec<int, 3> a = ones<int, 3>(); // return [1, 1, 1]
+ * vec<int, 3> a = ones<int, 3>(); // returns [1, 1, 1]
  * ```
  */
 template<typename T, size_t N>
@@ -286,7 +286,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> ones(extent<N> = {}) {
  * =======
  * ```
  * vec<int, 3> a = {1, 2, 3};
- * vec<int, 3> b = fill_like(a, 42); // return [42, 42, 42]
+ * vec<int, 3> b = fill_like(a, 42); // returns [42, 42, 42]
  * ```
  */
 template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
@@ -301,7 +301,7 @@ KERNEL_FLOAT_INLINE vector<T, E> fill_like(const V&, T value) {
  * =======
  * ```
  * vec<int, 3> a = {1, 2, 3};
- * vec<int, 3> b = zeros_like(a); // return [0, 0, 0]
+ * vec<int, 3> b = zeros_like(a); // returns [0, 0, 0]
  * ```
  */
 template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>
@@ -316,7 +316,7 @@ KERNEL_FLOAT_INLINE vector<T, E> zeros_like(const V& = {}) {
  * =======
  * ```
  * vec<int, 3> a = {1, 2, 3};
- * vec<int, 3> b = ones_like(a); // return [1, 1, 1]
+ * vec<int, 3> b = ones_like(a); // returns [1, 1, 1]
  * ```
  */
 template<typename V, typename T = vector_value_type<V>, typename E = vector_extent_type<V>>

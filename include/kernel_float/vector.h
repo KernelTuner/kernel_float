@@ -11,9 +11,9 @@
 namespace kernel_float {
 
 /**
- * Container that stores ``N`` elements of type ``T``.
+ * Container that store fixed number of elements of type ``T``.
  *
- * It is not recommended to use this class directly, but instead, use the type `vec<T, N>` which is an alias for
+ * It is not recommended to use this class directly, instead, use the type `vec<T, N>` which is an alias for
  * `vector<T, extent<N>, vector_storage<T, E>>`.
  *
  * @tparam T The type of the values stored within the vector.
@@ -64,11 +64,17 @@ struct vector: public S {
         return E::size;
     }
 
+    /**
+     * Returns a reference to the underlying storage type.
+     */
     KERNEL_FLOAT_INLINE
     storage_type& storage() {
         return *this;
     }
 
+    /**
+     * Returns a reference to the underlying storage type.
+     */
     KERNEL_FLOAT_INLINE
     const storage_type& storage() const {
         return *this;

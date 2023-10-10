@@ -97,7 +97,7 @@ KERNEL_FLOAT_INLINE T sum(const V& input) {
  * =======
  * ```
  * vec<int, 5> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 5*0*2*1*0 = 0
+ * int y = product(x);  // Returns 5*0*2*1*0 = 0
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>

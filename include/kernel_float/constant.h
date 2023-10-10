@@ -6,17 +6,44 @@
 
 namespace kernel_float {
 
+/**
+ * `constant<T>` represents a constant value of type `T`.
+ *
+ * The object has the property that for any binary operation involving
+ * a `constant<T>` and a value of type `U`, the constant is automatically
+ * cast to also be of type `U`.
+ *
+ * For example:
+ * ```
+ * float a = 5;
+ * constant<double> b = 3;
+ *
+ * auto c = a + b; // The result will be of type `float`
+ * ```
+ */
 template<typename T = double>
 struct constant {
+    /**
+     * Create a new constant from the given value.
+     */
+    KERNEL_FLOAT_INLINE
+    constexpr constant(T value = {}) : value_(value) {}
+
+    KERNEL_FLOAT_INLINE
+    constexpr constant(const constant<T>& that) : value_(that.value) {}
+
+    /**
+     * Create a new constant from another constant of type `R`.
+     */
     template<typename R>
     KERNEL_FLOAT_INLINE explicit constexpr constant(const constant<R>& that) {
         auto f = ops::cast<R, T>();
         value_ = f(that.get());
     }
 
-    KERNEL_FLOAT_INLINE
-    constexpr constant(T value = {}) : value_(value) {}
-
+    /**
+     * Return the value of the constant
+     */
     KERNEL_FLOAT_INLINE
     constexpr T get() const {
         return value_;

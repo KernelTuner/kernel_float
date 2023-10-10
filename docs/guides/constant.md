@@ -1,18 +1,17 @@
 Using `kernel_float::constant`
 ===
 
-When working with mixed precision types, you will find that working with constants presents a bit a challenge.
+When working with mixed precision types, you will find that working with constants presents a bit of a challenge.
 
 For example, a simple expression such as `3.14 * x` where `x` is of type `vec<float, 2>` will NOT be performed
 in `float` precision as you might expect, but instead in `double` precision.
 This happens since the left-hand side of this expression
 (a constant) is a `double` and thus `kernel_float` will also cast the right-hand side to `double`.
 
-To solve this problem, `kernel_float` offers a type called `constant<T>` that can be used to represents
+To solve this problem, `kernel_float` offers a type called `constant<T>` that can be used to represent
 constants. Any binary operations between a value of type `U` and a `constant<T>` will result in both
 operands being cast to type `U` and the operation is performed in the precision of type `U`. This makes
-`constant<T>` useful for representing constant in your code.
-
+`constant<T>` useful for representing constants in your code.
 
 For example, consider the following code:
 

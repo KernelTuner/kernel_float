@@ -227,6 +227,22 @@ struct tiling_impl<TileDim, BlockDim, Distributions, index_sequence<Is...>> {
 template<typename T>
 struct tiling_iterator;
 
+/**
+ * Represents a tiling where the elements given by `TileDim` are distributed over the
+ * threads given by `BlockDim` according to the distributions given by `Distributions`.
+ *
+ * The template parameters should be the following:
+ *
+ * * ``TileDim``: Should be an instance of ``tile_size<...>``. For example,
+ *   ``tile_size<16, 16>`` represents a 2-dimensional 16x16 tile.
+ * * ``BlockDim``: Should be an instance of ``block_dim<...>``. For example,
+ *    ``block_dim<16, 4>`` represents a thread block having X dimension 16
+ *    and Y-dimension 4 for a total of 64 threads per block.
+ * * ``Distributions``: Should be an instance of ``distributions<...>``. For example,
+ *   ``distributions<dist::cyclic, dist::blocked>`` will distribute elements in
+ *   cyclic fashion along the X-axis and blocked fashion along the Y-axis.
+ * * ``IndexType``: The type used for index values (``int`` by default)
+ */
 template<
     typename TileDim,
     typename BlockDim,
@@ -516,6 +532,27 @@ using tiling_1d = tiling<tile_size<TileDim>, block_size<BlockDim>, distributions
 #define KERNEL_FLOAT_TILING_FOR_IMPL(ITER_VAR, TILING, A, B, N, ...) \
     KERNEL_FLOAT_CALL(KERNEL_FLOAT_CONCAT(KERNEL_FLOAT_TILING_FOR_IMPL, N), ITER_VAR, TILING, A, B)
 
+/**
+ * Iterate over the points in a ``tiling<...>`` using a for loop.
+ *
+ * There are two ways to use this macro. Using the 1 variable form:
+ * ```
+ * auto t = tiling<tile_size<16, 16>, block_size<4, 4>>;
+ *
+ * KERNEL_FLOAT_TILING_FOR(t, auto point) {
+ *  printf("%d,%d\n", point[0], point[1]);
+ * }
+ * ```
+ *
+ * Or using the 2 variables form:
+ * ```
+ * auto t = tiling<tile_size<16, 16>, block_size<4, 4>>;
+ *
+ * KERNEL_FLOAT_TILING_FOR(t, auto index, auto point) {
+ *  printf("%d] %d,%d\n", index, point[0], point[1]);
+ * }
+ * ```
+ */
 #define KERNEL_FLOAT_TILING_FOR(...) \
     KERNEL_FLOAT_TILING_FOR_IMPL(KERNEL_FLOAT_CONCAT(__tiling_index_variable__, __LINE__), __VA_ARGS__, 2, 1)
 // clang-format on

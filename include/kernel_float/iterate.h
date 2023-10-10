@@ -45,7 +45,7 @@ struct range_impl {
 }  // namespace detail
 
 /**
- * Generate vector consisting of the result `fun(0)...fun(N-1)`
+ * Generate vector consisting of the result `fun(0), ..., fun(N-1)`
  *
  * Example
  * =======
@@ -60,7 +60,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range(F fun) {
 }
 
 /**
- * Generate vector consisting of the numbers `0...N-1` of type `T`
+ * Generate vector consisting of the numbers `0, ..., N-1` of type `T`
  *
  * Example
  * =======
@@ -75,7 +75,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
 }
 
 /**
- * Takes a vector `vec<T, N>` and returns a new vector consisting of the numbers ``0...N-1`` of type ``T``
+ * Takes a vector `vec<T, N>` and returns a new vector consisting of the numbers ``0, ..., N-1`` of type ``T``
  *
  * Example
  * =======
@@ -90,7 +90,7 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
 }
 
 /**
- * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0...N-1``. The data type used
+ * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0, ..., N-1``. The data type used
  * for the indices is given by the first template argument, which is `size_t` by default. This function is useful when
  * needing to iterate over the indices of a vector.
  *
@@ -258,14 +258,14 @@ using concat_type = vector<concat_value_type<Vs...>, extent<concat_size<Vs...>>>
  * =======
  * ```
  * double vec1 = 1.0;
- * double3 vec2 = {3.0, 4.0, 5.0);
- * double4 vec3 = {6.0, 7.0, 8.0, 9.0};
- * vec<double, 9> concatenated = concat(vec1, vec2, vec3); // contains [1, 2, 3, 4, 5, 6, 7, 8, 9]
+ * double3 vec2 = {2.0, 3.0, 4.0);
+ * double4 vec3 = {5.0, 6.0, 7.0, 8.0};
+ * vec<double, 8> concatenated = concat(vec1, vec2, vec3); // contains [1, 2, 3, 4, 5, 6, 7, 8]
  *
  * int num1 = 42;
  * float num2 = 3.14159;
  * int2 num3 = {-10, 10};
- * vec<float, 3> concatenated = concat(num1, num2, num3); // contains [42, 3.14159, -10, 10]
+ * vec<float, 4> concatenated = concat(num1, num2, num3); // contains [42, 3.14159, -10, 10]
  * ```
  */
 template<typename... Vs>
