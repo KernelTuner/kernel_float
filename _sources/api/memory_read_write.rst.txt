@@ -1,0 +1,47 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Memory read/write
+=================
+cast_to
+-------
+.. doxygenfunction:: kernel_float::cast_to
+
+load
+----
+.. doxygenfunction:: kernel_float::load(const T*, const I&)
+
+load
+----
+.. doxygenfunction:: kernel_float::load(const T*, const I&, const M&)
+
+loadn
+-----
+.. doxygenfunction:: kernel_float::loadn(const T*, ptrdiff_t)
+
+loadn
+-----
+.. doxygenfunction:: kernel_float::loadn(const T*, ptrdiff_t, ptrdiff_t)
+
+store
+-----
+.. doxygenfunction:: kernel_float::store(const V&, T *ptr, const I&)
+
+store
+-----
+.. doxygenfunction:: kernel_float::store(const V&, T *ptr, const I&, const M&)
+
+storen
+------
+.. doxygenfunction:: kernel_float::storen(const V&, T*, ptrdiff_t)
+
+storen
+------
+.. doxygenfunction:: kernel_float::storen(const V&, T*, ptrdiff_t, ptrdiff_t)
+
+aligned_ptr
+-----------
+.. doxygenstruct:: kernel_float::aligned_ptr
+
