@@ -12,16 +12,16 @@ struct triops_tests {
         kf::vec<T, N> c = {z[I]...};
 
         kf::vec<T, N> answer = kf::where(a, b, c);
-        ASSERT_EQ_ALL(answer[I], bool(x[I]) ? y[I] : z[I]);
+        ASSERT_EQ_ALL(answer[I], (x[I] != T(0.0)) ? y[I] : z[I]);
 
         answer = kf::where(a, b);
-        ASSERT_EQ_ALL(answer[I], bool(x[I]) ? y[I] : T());
+        ASSERT_EQ_ALL(answer[I], (x[I] != T(0.0)) ? y[I] : T(0.0));
 
         answer = kf::where(a);
-        ASSERT_EQ_ALL(answer[I], T(bool(x[I])));
+        ASSERT_EQ_ALL(answer[I], T((x[I] == T(0.0)) ? T(0.0) : T(1.0)));
 
         answer = kf::fma(a, b, c);
-        ASSERT_EQ_ALL(answer[I], x[I] * y[I] + z[I]);
+        ASSERT_EQ_ALL(answer[I], T(x[I] * y[I] + z[I]));
     }
 };
 

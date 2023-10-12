@@ -7,7 +7,7 @@ file(GLOB FILES *.cu)
 add_executable(kernel_float_tests ${FILES})
 target_link_libraries(kernel_float_tests PRIVATE kernel_float)
 target_compile_options(kernel_float_tests PRIVATE "--extended-lambda")
-set_target_properties(kernel_float_tests PROPERTIES CUDA_ARCHITECTURES "80")
+set_target_properties(kernel_float_tests PROPERTIES CUDA_ARCHITECTURES "70;80")
 
 target_compile_options(kernel_float_tests PRIVATE "-ftime-report -ftime-report-details")
 

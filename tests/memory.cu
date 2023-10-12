@@ -3,40 +3,40 @@
 struct load_test {
     template<typename T>
     __host__ __device__ void operator()(generator<T> gen) {
-        T data[8] = {T(0), T(1), T(2), T(3), T(4), T(5), T(6), T(7)};
+        T data[8] = {T(0.0), T(1.0), T(2.0), T(3.0), T(4.0), T(5.0), T(6.0), T(7.0)};
 
         {
-            auto expected = kf::make_vec(T(3), T(2), T(7));
+            auto expected = kf::make_vec(T(3.0), T(2.0), T(7.0));
             auto output = kf::load(data, kf::make_vec(3, 2, 7));
             ASSERT_EQ(expected, output);
         }
 
         {
-            auto expected = kf::make_vec(T(3), T(2), T(7));
+            auto expected = kf::make_vec(T(3.0), T(2.0), T(7.0));
             auto output = kf::load(data, kf::make_vec(3, 2, 7), kf::make_vec(true, true, true));
             ASSERT_EQ(expected, output);
         }
 
         {
-            auto expected = kf::make_vec(T(3), T(), T(7));
+            auto expected = kf::make_vec(T(3.0), T(), T(7.0));
             auto output = kf::load(data, kf::make_vec(3, 100, 7), kf::make_vec(true, false, true));
             ASSERT_EQ(expected, output);
         }
 
         {
-            auto expected = kf::make_vec(T(0), T(1), T(2));
+            auto expected = kf::make_vec(T(0.0), T(1.0), T(2.0));
             auto output = kf::loadn<3>(data);
             ASSERT_EQ(expected, output);
         }
 
         {
-            auto expected = kf::make_vec(T(2), T(3), T(4));
+            auto expected = kf::make_vec(T(2.0), T(3.0), T(4.0));
             auto output = kf::loadn<3>(data, 2);
             ASSERT_EQ(expected, output);
         }
 
         {
-            auto expected = kf::make_vec(T(6), T(7), T());
+            auto expected = kf::make_vec(T(6.0), T(7.0), T());
             auto output = kf::loadn<3>(data, 6, 8);
             ASSERT_EQ(expected, output);
         }
@@ -50,78 +50,78 @@ struct store_test {
     template<typename T>
     __host__ __device__ void operator()(generator<T> gen) {
         {
-            T data[4] = {T(0), T(1), T(2), T(3)};
-            auto values = kf::make_vec(T(100), T(200));
+            T data[4] = {T(0.0), T(1.0), T(2.0), T(3.0)};
+            auto values = kf::make_vec(T(100.0), T(200.0));
             auto offsets = kf::make_vec(1, 3);
             kf::store(values, data, offsets);
-            ASSERT_EQ(data[0], T(0));
-            ASSERT_EQ(data[1], T(100));
-            ASSERT_EQ(data[2], T(2));
-            ASSERT_EQ(data[3], T(200));
+            ASSERT_EQ(data[0], T(0.0));
+            ASSERT_EQ(data[1], T(100.0));
+            ASSERT_EQ(data[2], T(2.0));
+            ASSERT_EQ(data[3], T(200.0));
         }
 
         {
-            T data[4] = {T(0), T(1), T(2), T(3)};
-            auto values = kf::make_vec(T(100), T(200));
+            T data[4] = {T(0.0), T(1.0), T(2.0), T(3.0)};
+            auto values = kf::make_vec(T(100.0), T(200.0));
             auto offsets = kf::make_vec(1, 3);
             auto mask = kf::make_vec(true, true);
             kf::store(values, data, offsets, mask);
-            ASSERT_EQ(data[0], T(0));
-            ASSERT_EQ(data[1], T(100));
-            ASSERT_EQ(data[2], T(2));
-            ASSERT_EQ(data[3], T(200));
+            ASSERT_EQ(data[0], T(0.0));
+            ASSERT_EQ(data[1], T(100.0));
+            ASSERT_EQ(data[2], T(2.0));
+            ASSERT_EQ(data[3], T(200.0));
         }
 
         {
-            T data[4] = {T(0), T(1), T(2), T(3)};
-            auto values = kf::make_vec(T(100), T(200));
+            T data[4] = {T(0.0), T(1.0), T(2.0), T(3.0)};
+            auto values = kf::make_vec(T(100.0), T(200.0));
             auto offsets = kf::make_vec(1, 3);
             auto mask = kf::make_vec(true, false);
             kf::store(values, data, offsets, mask);
-            ASSERT_EQ(data[0], T(0));
-            ASSERT_EQ(data[1], T(100));
-            ASSERT_EQ(data[2], T(2));
-            ASSERT_EQ(data[3], T(3));
+            ASSERT_EQ(data[0], T(0.0));
+            ASSERT_EQ(data[1], T(100.0));
+            ASSERT_EQ(data[2], T(2.0));
+            ASSERT_EQ(data[3], T(3.0));
         }
 
         {
-            T data[4] = {T(0), T(1), T(2), T(3)};
-            auto values = kf::make_vec(T(100), T(200));
+            T data[4] = {T(0.0), T(1.0), T(2.0), T(3.0)};
+            auto values = kf::make_vec(T(100.0), T(200.0));
             kf::storen(values, data);
-            ASSERT_EQ(data[0], T(100));
-            ASSERT_EQ(data[1], T(200));
-            ASSERT_EQ(data[2], T(2));
-            ASSERT_EQ(data[3], T(3));
+            ASSERT_EQ(data[0], T(100.0));
+            ASSERT_EQ(data[1], T(200.0));
+            ASSERT_EQ(data[2], T(2.0));
+            ASSERT_EQ(data[3], T(3.0));
         }
 
         {
-            T data[4] = {T(0), T(1), T(2), T(3)};
-            auto values = kf::make_vec(T(100), T(200));
+            T data[4] = {T(0.0), T(1.0), T(2.0), T(3.0)};
+            auto values = kf::make_vec(T(100.0), T(200.0));
             kf::storen(values, data, 1);
-            ASSERT_EQ(data[0], T(0));
-            ASSERT_EQ(data[1], T(100));
-            ASSERT_EQ(data[2], T(200));
-            ASSERT_EQ(data[3], T(3));
+            ASSERT_EQ(data[0], T(0.0));
+            ASSERT_EQ(data[1], T(100.0));
+            ASSERT_EQ(data[2], T(200.0));
+            ASSERT_EQ(data[3], T(3.0));
         }
 
         {
-            T data[4] = {T(0), T(1), T(2), T(3)};
-            auto values = kf::make_vec(T(100), T(200));
+            T data[4] = {T(0.0), T(1.0), T(2.0), T(3.0)};
+            auto values = kf::make_vec(T(100.0), T(200.0));
             kf::storen(values, data, 1, 4);
-            ASSERT_EQ(data[0], T(0));
-            ASSERT_EQ(data[1], T(100));
-            ASSERT_EQ(data[2], T(200));
-            ASSERT_EQ(data[3], T(3));
+            ASSERT_EQ(data[0], T(0.0));
+            ASSERT_EQ(data[1], T(100.0));
+            ASSERT_EQ(data[2], T(200.0));
+            ASSERT_EQ(data[3], T(3.0));
         }
 
         {
-            T data[4] = {T(0), T(1), T(2), T(3)};
-            auto values = kf::make_vec(T(100), T(200));
+            T data[4] = {T(0.0), T(1.0), T(2.0), T(3.0)};
+            auto values = kf::make_vec(T(100.0), T(200.0));
             kf::storen(values, data, 3, 4);
-            ASSERT_EQ(data[0], T(0));
-            ASSERT_EQ(data[1], T(1));
-            ASSERT_EQ(data[2], T(2));
-            ASSERT_EQ(data[3], T(100));
+            ASSERT_EQ(data[0], T(0.0));
+            ASSERT_EQ(data[1], T(1.0));
+            ASSERT_EQ(data[2], T(2.0));
+            ASSERT_EQ(data[3], T(100.0));
         }
     }
 };

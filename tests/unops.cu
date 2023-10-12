@@ -31,11 +31,13 @@ struct unops_float_tests {
         ASSERT(equals(b[I], T(-items[I])) && ...);
 
         b = !a;
-        ASSERT(equals(b[I], T(!items[I])) && ...);
+        ASSERT(equals(b[I], items[I] == 0.0 ? T(1.0) : T(0.0)) && ...);
 
         // Ideally, we would test all unary operators, but that would be a lot of work and not that useful since
         // all operators are generators by the same macro. Instead, we only check a few of them
         if constexpr (is_one_of<T, __half, __nv_bfloat16>) {
+            // operations on 16-bit numbers are only supported in CC >= 8
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
             b = sqrt(a);
             ASSERT(equals(b[I], hsqrt(T(items[I]))) && ...);
 
@@ -50,6 +52,7 @@ struct unops_float_tests {
 
             b = exp(a);
             ASSERT(equals(b[I], hexp(T(items[I]))) && ...);
+#endif
         } else {
             b = sqrt(a);
             ASSERT(equals(b[I], sqrt(T(items[I]))) && ...);

@@ -8,20 +8,20 @@ struct constant_tests {
         T value = gen.next();
         kf::vec<T, 2> vector = {gen.next(), gen.next()};
 
-        ASSERT_EQ(kf::make_constant(5.0) + value, T(5) + value);
-        ASSERT_EQ(value + kf::make_constant(5.0), value + T(5));
-        ASSERT_EQ(kf::make_constant(5.0) + vector, T(5) + vector);
-        ASSERT_EQ(vector + kf::make_constant(5.0), vector + T(5));
+        ASSERT_EQ(kf::make_constant(5.0) + value, T(5.0) + value);
+        ASSERT_EQ(value + kf::make_constant(5.0), value + T(5.0));
+        ASSERT_EQ(kf::make_constant(5.0) + vector, T(5.0) + vector);
+        ASSERT_EQ(vector + kf::make_constant(5.0), vector + T(5.0));
 
-        ASSERT_EQ(kf::make_constant(5.0) - value, T(5) - value);
-        ASSERT_EQ(value - kf::make_constant(5.0), value - T(5));
-        ASSERT_EQ(kf::make_constant(5.0) - vector, T(5) - vector);
-        ASSERT_EQ(vector - kf::make_constant(5.0), vector - T(5));
+        ASSERT_EQ(kf::make_constant(5.0) - value, T(5.0) - value);
+        ASSERT_EQ(value - kf::make_constant(5.0), value - T(5.0));
+        ASSERT_EQ(kf::make_constant(5.0) - vector, T(5.0) - vector);
+        ASSERT_EQ(vector - kf::make_constant(5.0), vector - T(5.0));
 
-        ASSERT_EQ(kf::make_constant(5.0) * value, T(5) * value);
-        ASSERT_EQ(value * kf::make_constant(5.0), value * T(5));
-        ASSERT_EQ(kf::make_constant(5.0) * vector, T(5) * vector);
-        ASSERT_EQ(vector * kf::make_constant(5.0), vector * T(5));
+        ASSERT_EQ(kf::make_constant(5.0) * value, T(5.0) * value);
+        ASSERT_EQ(value * kf::make_constant(5.0), value * T(5.0));
+        ASSERT_EQ(kf::make_constant(5.0) * vector, T(5.0) * vector);
+        ASSERT_EQ(vector * kf::make_constant(5.0), vector * T(5.0));
 
         // These results in division by zero for integers
         //        ASSERT_EQ(kf::make_constant(5.0) / value, T(5) / value);

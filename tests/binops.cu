@@ -29,23 +29,25 @@ struct binops_tests {
         //        ASSERT(equals(T(x[I] % y[I]), c[I]) && ...);
 
         // Comparison
+        auto from_bool = [](bool x) { return x ? T(1.0) : T(0.0); };
+
         c = a < b;
-        ASSERT(equals(T(x[I] < y[I]), c[I]) && ...);
+        ASSERT(equals(from_bool(x[I] < y[I]), c[I]) && ...);
 
         c = a > b;
-        ASSERT(equals(T(x[I] > y[I]), c[I]) && ...);
+        ASSERT(equals(from_bool(x[I] > y[I]), c[I]) && ...);
 
         c = a <= b;
-        ASSERT(equals(T(x[I] <= y[I]), c[I]) && ...);
+        ASSERT(equals(from_bool(x[I] <= y[I]), c[I]) && ...);
 
         c = a >= b;
-        ASSERT(equals(T(x[I] >= y[I]), c[I]) && ...);
+        ASSERT(equals(from_bool(x[I] >= y[I]), c[I]) && ...);
 
         c = a == b;
-        ASSERT(equals(T(x[I] == y[I]), c[I]) && ...);
+        ASSERT(equals(from_bool(x[I] == y[I]), c[I]) && ...);
 
         c = a != b;
-        ASSERT(equals(T(x[I] != y[I]), c[I]) && ...);
+        ASSERT(equals(from_bool(x[I] != y[I]), c[I]) && ...);
 
         // Assignment
         c = a;
@@ -108,8 +110,11 @@ struct minmax_tests {
             ASSERT(equals(fminf(a[I], b[I]), lo[I]) && ...);
             ASSERT(equals(fmaxf(a[I], b[I]), hi[I]) && ...);
         } else if constexpr (is_one_of<T, __half, __nv_bfloat16>) {
+            // __hmin/__hmax are only supported in CC >= 8
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
             ASSERT(equals(__hmin(a[I], b[I]), lo[I]) && ...);
             ASSERT(equals(__hmax(a[I], b[I]), hi[I]) && ...);
+#endif
         } else {
             ASSERT(equals(x[I] < y[I] ? x[I] : y[I], lo[I]) && ...);
             ASSERT(equals(x[I] < y[I] ? y[I] : x[I], hi[I]) && ...);
@@ -123,13 +128,13 @@ REGISTER_TEST_CASE_GPU("min/max functions", minmax_tests, __half, __nv_bfloat16)
 struct cross_test {
     template<typename T>
     __host__ __device__ void operator()(generator<T> gen) {
-        kf::vec<T, 3> a = {1, 2, 3};
-        kf::vec<T, 3> b = {4, 5, 6};
+        kf::vec<T, 3> a = {T(1.0), T(2.0), T(3.0)};
+        kf::vec<T, 3> b = {T(4.0), T(5.0), T(6.0)};
         kf::vec<T, 3> c = cross(a, b);
 
-        ASSERT(c[0] == T(-3));
-        ASSERT(c[1] == T(6));
-        ASSERT(c[2] == T(-3));
+        ASSERT(c[0] == T(-3.0));
+        ASSERT(c[1] == T(6.0));
+        ASSERT(c[2] == T(-3.0));
     }
 };
 
