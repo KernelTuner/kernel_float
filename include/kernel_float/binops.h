@@ -80,22 +80,27 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     return result;
 }
 
-#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \
-    namespace ops {                                                                        \
-    template<typename T>                                                                   \
-    struct NAME {                                                                          \
-        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                                \
-            return T(EXPR);                                                                \
-        }                                                                                  \
-    };                                                                                     \
-    }                                                                                      \
+#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                               \
     template<typename L, typename R, typename C = promoted_vector_value_type<L, R>>        \
     KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
         return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
     }
 
+#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)              \
+    namespace ops {                                         \
+    template<typename T>                                    \
+    struct NAME {                                           \
+        KERNEL_FLOAT_INLINE T operator()(T left, T right) { \
+            return T(EXPR);                                 \
+        }                                                   \
+    };                                                      \
+    }                                                       \
+                                                            \
+    KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)
+
 #define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                                   \
     KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                                               \
+                                                                                                  \
     template<typename L, typename R, typename C = promote_t<L, R>, typename E1, typename E2>      \
     KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E1>, vector<R, E2>> operator OP(  \
         const vector<L, E1>& left,                                                                \
@@ -167,15 +172,80 @@ KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_and, &=)
 KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_or, |=)
 KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_xor, ^=)
 
-#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME) KERNEL_FLOAT_DEFINE_BINARY(NAME, ::NAME(left, right))
+namespace ops {
+template<typename T>
+struct min {
+    KERNEL_FLOAT_INLINE T operator()(T left, T right) {
+        return left < right ? left : right;
+    }
+};
+
+template<typename T>
+struct max {
+    KERNEL_FLOAT_INLINE T operator()(T left, T right) {
+        return left > right ? left : right;
+    }
+};
+
+template<>
+struct min<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::fmin(left, right);
+    }
+};
+
+template<>
+struct max<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::fmax(left, right);
+    }
+};
+
+template<>
+struct min<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::fminf(left, right);
+    }
+};
+
+template<>
+struct max<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::fmaxf(left, right);
+    }
+};
+}  // namespace ops
 
 KERNEL_FLOAT_DEFINE_BINARY_FUN(min)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(max)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(copysign)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(modf)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(nextafter)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(pow)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(remainder)
+
+#define KERNEL_FLOAT_DEFINE_BINARY_MATH(NAME)                              \
+    namespace ops {                                                        \
+    template<typename T, typename = void>                                  \
+    struct NAME;                                                           \
+                                                                           \
+    template<typename T>                                                   \
+    struct NAME<T, enable_if_t<detail::allow_float_fallback<T>::value>> {  \
+        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                \
+            return T(::NAME(left, right));                                 \
+        }                                                                  \
+    };                                                                     \
+                                                                           \
+    template<>                                                             \
+    struct NAME<double> {                                                  \
+        KERNEL_FLOAT_INLINE double operator()(double left, double right) { \
+            return double(::NAME(left, right));                            \
+        }                                                                  \
+    };                                                                     \
+    }                                                                      \
+                                                                           \
+    KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)
+
+KERNEL_FLOAT_DEFINE_BINARY_MATH(copysign)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(fmod)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(nextafter)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(pow)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(remainder)
 
 KERNEL_FLOAT_DEFINE_BINARY(hypot, (ops::sqrt<T>()(left * left + right * right)))
 KERNEL_FLOAT_DEFINE_BINARY(rhypot, (T(1) / ops::hypot<T>()(left, right)))

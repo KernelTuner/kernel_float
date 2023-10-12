@@ -27,6 +27,11 @@ struct into_vector_impl<__nv_bfloat162> {
 };
 
 namespace detail {
+template<>
+struct allow_float_fallback<__nv_bfloat16> {
+    static constexpr bool value = true;
+};
+
 template<typename F>
 struct map_bfloat16x2 {
     KERNEL_FLOAT_INLINE
@@ -105,23 +110,6 @@ struct reduce_impl<F, N, __nv_bfloat16, enable_if_t<(N >= 2)>> {
 };
 }  // namespace detail
 
-#define KERNEL_FLOAT_BF16_UNARY_FORWARD(NAME)                               \
-    namespace ops {                                                         \
-    template<>                                                              \
-    struct NAME<__nv_bfloat16> {                                            \
-        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) { \
-            return __nv_bfloat16(ops::NAME<float> {}(float(input)));        \
-        }                                                                   \
-    };                                                                      \
-    }
-
-// There operations are not implemented in half precision, so they are forward to single precision
-KERNEL_FLOAT_BF16_UNARY_FORWARD(tan)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(asin)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(acos)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(atan)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(expm1)
-
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                       \
     namespace ops {                                                         \
@@ -142,9 +130,10 @@ KERNEL_FLOAT_BF16_UNARY_FORWARD(expm1)
     };                                                                      \
     }
 #else
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2) KERNEL_FLOAT_BF16_UNARY_FORWARD(NAME)
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2)
 KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
 KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
@@ -164,8 +153,9 @@ KERNEL_FLOAT_BF16_UNARY_FUN(fast_exp, ::hexp, ::h2exp)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_log, ::hlog, ::h2log)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
+#endif
 
-#if KERNEL_FLOAT_IS_DEVICE
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 #define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                              \
     namespace ops {                                                                 \
     template<>                                                                      \
@@ -214,6 +204,43 @@ KERNEL_FLOAT_BF16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 
+namespace ops {
+template<typename T>
+struct cast<T, __nv_bfloat16> {
+    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(T input) {
+        return __float2bfloat16(ops::cast<T, float> {}(input));
+    };
+};
+
+template<typename T>
+struct cast<__nv_bfloat16, T> {
+    KERNEL_FLOAT_INLINE T operator()(__nv_bfloat16 input) {
+        return ops::cast<float, T> {}(__bfloat162float(input));
+    };
+};
+
+template<>
+struct cast<double, __nv_bfloat16> {
+    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(double input) {
+        return __double2bfloat16(input);
+    };
+};
+
+template<>
+struct cast<float, __nv_bfloat16> {
+    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(float input) {
+        return __float2bfloat16(input);
+    };
+};
+
+template<>
+struct cast<__nv_bfloat16, float> {
+    KERNEL_FLOAT_INLINE float operator()(__nv_bfloat16 input) {
+        return __bfloat162float(input);
+    };
+};
+}  // namespace ops
+
 #define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)           \
     namespace ops {                                             \
     template<>                                                  \
@@ -230,9 +257,7 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
     };                                                          \
     }
 
-KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), double(__bfloat162float(input)));
-KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input));
-
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 // clang-format off
 // there are no official char casts. Instead, cast to int and then to char
 KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
@@ -249,12 +274,18 @@ KERNEL_FLOAT_BF16_CAST(unsigned int, __bfloat162uint_rz(input), __uint2bfloat16_
 KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
 KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
 // clang-format on
+#else
+KERNEL_FLOAT_BF16_CAST(
+    bool,
+    __nv_bfloat16_raw {input ? (unsigned short)0 : (unsigned short)0x3C00},
+    (__nv_bfloat16_raw(input).x & 0x7FFF) != 0);
+#endif
 
 using bfloat16 = __nv_bfloat16;
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
 
-#if KERNEL_FLOAT_IS_DEVICE
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 namespace detail {
 template<>
 struct dot_impl<__nv_bfloat16, 0> {
@@ -309,7 +340,9 @@ struct dot_impl<__nv_bfloat16, N> {
 #include "fp16.h"
 
 namespace kernel_float {
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
+#endif
 
 template<>
 struct promote_type<__nv_bfloat16, __half> {

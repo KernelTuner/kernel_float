@@ -6,56 +6,6 @@
 
 namespace kernel_float {
 
-enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
-
-namespace ops {
-template<typename T, typename R, RoundingMode m = RoundingMode::ANY, typename = void>
-struct cast;
-
-template<typename T, typename R>
-struct cast<T, R, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return R(input);
-    }
-};
-
-template<typename T, RoundingMode m>
-struct cast<T, T, m> {
-    KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
-        return input;
-    }
-};
-
-template<typename T>
-struct cast<T, T, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
-        return input;
-    }
-};
-}  // namespace ops
-
-/**
- * Cast the elements of the given vector `input` to a different type `R`.
- *
- * This function casts each element of the input vector to a different data type specified by
- * template parameter `R`.
- *
- * Optionally, the rounding mode can be set using the `Mode` template parameter. The default mode is `ANY`, which
- * uses the fastest rounding mode available.
- *
- * Example
- * =======
- * ```
- * vec<float, 4> input {1.2f, 2.7f, 3.5f, 4.9f};
- * auto casted = cast<int>(input); // [1, 2, 3, 4]
- * ```
- */
-template<typename R, RoundingMode Mode = RoundingMode::ANY, typename V>
-KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
-    using F = ops::cast<vector_value_type<V>, R, Mode>;
-    return map(F {}, input);
-}
-
 namespace detail {
 
 template<typename... Es>

@@ -16,6 +16,18 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_fp8_e5m2)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_fp8_e5m2)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_fp8_e5m2)
+
+namespace detail {
+template<>
+struct allow_float_fallback<__nv_fp8_e4m3> {
+    static constexpr bool value = true;
+};
+
+template<>
+struct allow_float_fallback<__nv_fp8_e5m2> {
+    static constexpr bool value = true;
+};
+}  // namespace detail
 }  // namespace kernel_float
 
 #if KERNEL_FLOAT_FP16_AVAILABLE

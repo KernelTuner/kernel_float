@@ -25,6 +25,11 @@ struct into_vector_impl<__half2> {
 };
 
 namespace detail {
+template<>
+struct allow_float_fallback<__half> {
+    static constexpr bool value = true;
+};
+
 template<typename F>
 struct map_halfx2 {
     KERNEL_FLOAT_INLINE
@@ -104,23 +109,6 @@ struct reduce_impl<F, N, __half, enable_if_t<(N >= 2)>> {
 
 };  // namespace detail
 
-#define KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)                 \
-    namespace ops {                                           \
-    template<>                                                \
-    struct NAME<__half> {                                     \
-        KERNEL_FLOAT_INLINE __half operator()(__half input) { \
-            return __half(ops::NAME<float> {}(float(input))); \
-        }                                                     \
-    };                                                        \
-    }
-
-// There operations are not implemented in half precision, so they are forward to single precision
-KERNEL_FLOAT_FP16_UNARY_FORWARD(tan)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(asin)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(acos)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(atan)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(expm1)
-
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                               \
     namespace ops {                                                                 \
@@ -140,7 +128,7 @@ KERNEL_FLOAT_FP16_UNARY_FORWARD(expm1)
     };                                                                              \
     }
 #else
-#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2) KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)
+#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
 KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2)

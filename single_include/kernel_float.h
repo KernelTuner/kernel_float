@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-10-06 16:02:20.461619
-// git hash: d578b7a87ead79baf78e181e8fbe14c03ea3f9a6
+// date: 2023-10-12 17:25:02.978518
+// git hash: 25f9bb64a14ef5a93b356d6089becd7139a0141f
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -389,6 +389,7 @@ struct alignas(Alignment) aligned_array<T, 1, Alignment> {
 };
 
 template<typename T, size_t Alignment>
+
 struct aligned_array<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
     T* data() {
@@ -844,6 +845,7 @@ struct promote_type<L, complex_type<R>> {
 }  // namespace kernel_float
 
 #endif
+
 #ifndef KERNEL_FLOAT_UNOPS_H
 #define KERNEL_FLOAT_UNOPS_H
 
@@ -889,115 +891,6 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
 
     return result;
 }
-
-#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                                      \
-    namespace ops {                                                                                \
-    template<typename T>                                                                           \
-    struct NAME {                                                                                  \
-        KERNEL_FLOAT_INLINE T operator()(T input) {                                                \
-            return T(EXPR);                                                                        \
-        }                                                                                          \
-    };                                                                                             \
-    }                                                                                              \
-    template<typename V>                                                                           \
-    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
-        using F = ops::NAME<vector_value_type<V>>;                                                 \
-        return map(F {}, input);                                                                   \
-    }
-
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                           \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                      \
-    template<typename T, typename E, typename S>                               \
-    KERNEL_FLOAT_INLINE vector<T, E> operator OP(const vector<T, E, S>& vec) { \
-        return NAME(vec);                                                      \
-    }
-
-KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
-KERNEL_FLOAT_DEFINE_UNARY_OP(bit_not, ~, ~input)
-KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, !bool(input))
-
-#define KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME) KERNEL_FLOAT_DEFINE_UNARY(NAME, ::NAME(input))
-
-KERNEL_FLOAT_DEFINE_UNARY_FUN(acos)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(abs)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(acosh)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(asin)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(asinh)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(atan)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(atanh)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(cbrt)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(ceil)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(cos)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(cosh)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(cospi)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(erf)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(erfc)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(erfcinv)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(erfcx)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(erfinv)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(exp)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(exp10)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(exp2)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(expm1)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(fabs)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(floor)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(ilogb)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(lgamma)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(log)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(log10)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(logb)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(nearbyint)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(normcdf)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(rcbrt)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(sin)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(sinh)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(sqrt)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(tan)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(tanh)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(tgamma)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(trunc)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(y0)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(y1)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(yn)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(rint)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(rsqrt)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(round)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(signbit)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(isinf)
-KERNEL_FLOAT_DEFINE_UNARY_FUN(isnan)
-
-#if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))   \
-    namespace ops {                                                  \
-    template<>                                                       \
-    struct OP_NAME<float> {                                          \
-        KERNEL_FLOAT_INLINE float operator()(float input) {          \
-            return FLOAT_FUN(input);                                 \
-        }                                                            \
-    };                                                               \
-    }
-#else
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))
-#endif
-
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_exp, exp, __expf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_log, log, __logf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
-
-}  // namespace kernel_float
-
-#endif  //KERNEL_FLOAT_UNOPS_H
-#ifndef KERNEL_FLOAT_CAST_H
-#define KERNEL_FLOAT_CAST_H
-
-
-
-
-namespace kernel_float {
 
 enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
 
@@ -1048,6 +941,151 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
     using F = ops::cast<vector_value_type<V>, R, Mode>;
     return map(F {}, input);
 }
+
+#define KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)                                                        \
+    template<typename V>                                                                           \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
+        using F = ops::NAME<vector_value_type<V>>;                                                 \
+        return map(F {}, input);                                                                   \
+    }
+
+#define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)       \
+    namespace ops {                                 \
+    template<typename T>                            \
+    struct NAME {                                   \
+        KERNEL_FLOAT_INLINE T operator()(T input) { \
+            return T(EXPR);                         \
+        }                                           \
+    };                                              \
+    }                                               \
+                                                    \
+    KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)
+
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                           \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                      \
+                                                                               \
+    template<typename T, typename E, typename S>                               \
+    KERNEL_FLOAT_INLINE vector<T, E> operator OP(const vector<T, E, S>& vec) { \
+        return NAME(vec);                                                      \
+    }
+
+KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
+KERNEL_FLOAT_DEFINE_UNARY_OP(bit_not, ~, ~input)
+KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T, bool> {}(input))))
+
+namespace detail {
+// Indicates that elements of type `T` offer less precision than floats, thus operations
+// on elements of type `T` can be performed by upcasting them to ` float`.
+template<typename T>
+struct allow_float_fallback {
+    static constexpr bool value = false;
+};
+
+template<>
+struct allow_float_fallback<float> {
+    static constexpr bool value = true;
+};
+}  // namespace detail
+
+#define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME)                              \
+    namespace ops {                                                       \
+    template<typename T, typename = void>                                 \
+    struct NAME;                                                          \
+                                                                          \
+    template<typename T>                                                  \
+    struct NAME<T, enable_if_t<detail::allow_float_fallback<T>::value>> { \
+        KERNEL_FLOAT_INLINE T operator()(T input) {                       \
+            return T(::NAME(float(input)));                               \
+        }                                                                 \
+    };                                                                    \
+                                                                          \
+    template<>                                                            \
+    struct NAME<double> {                                                 \
+        KERNEL_FLOAT_INLINE double operator()(double input) {             \
+            return double(::NAME(input));                                 \
+        }                                                                 \
+    };                                                                    \
+    }                                                                     \
+                                                                          \
+    KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)
+
+KERNEL_FLOAT_DEFINE_UNARY_MATH(acos)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(abs)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(acosh)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(asin)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(asinh)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(atan)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(atanh)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(cbrt)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(ceil)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(cos)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(cosh)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(cospi)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erf)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erfc)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erfcinv)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erfcx)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erfinv)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(exp)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(exp10)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(exp2)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(expm1)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(fabs)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(floor)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(ilogb)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(lgamma)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(log)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(log10)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(logb)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(nearbyint)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(normcdf)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(rcbrt)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(sin)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(sinh)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(sqrt)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(tan)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(tanh)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(tgamma)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(trunc)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(rint)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(rsqrt)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(round)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(signbit)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(isinf)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(isnan)
+
+#if KERNEL_FLOAT_IS_DEVICE
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))   \
+    namespace ops {                                                  \
+    template<>                                                       \
+    struct OP_NAME<float> {                                          \
+        KERNEL_FLOAT_INLINE float operator()(float input) {          \
+            return FLOAT_FUN(input);                                 \
+        }                                                            \
+    };                                                               \
+    }
+#else
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
+    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))
+#endif
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_exp, exp, __expf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_log, log, __logf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
+
+}  // namespace kernel_float
+
+#endif  //KERNEL_FLOAT_UNOPS_H
+#ifndef KERNEL_FLOAT_CAST_H
+#define KERNEL_FLOAT_CAST_H
+
+
+
+
+namespace kernel_float {
 
 namespace detail {
 
@@ -1411,22 +1449,27 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     return result;
 }
 
-#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)                                             \
-    namespace ops {                                                                        \
-    template<typename T>                                                                   \
-    struct NAME {                                                                          \
-        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                                \
-            return T(EXPR);                                                                \
-        }                                                                                  \
-    };                                                                                     \
-    }                                                                                      \
+#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                               \
     template<typename L, typename R, typename C = promoted_vector_value_type<L, R>>        \
     KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
         return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
     }
 
+#define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR)              \
+    namespace ops {                                         \
+    template<typename T>                                    \
+    struct NAME {                                           \
+        KERNEL_FLOAT_INLINE T operator()(T left, T right) { \
+            return T(EXPR);                                 \
+        }                                                   \
+    };                                                      \
+    }                                                       \
+                                                            \
+    KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)
+
 #define KERNEL_FLOAT_DEFINE_BINARY_OP(NAME, OP)                                                   \
     KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right)                                               \
+                                                                                                  \
     template<typename L, typename R, typename C = promote_t<L, R>, typename E1, typename E2>      \
     KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E1>, vector<R, E2>> operator OP(  \
         const vector<L, E1>& left,                                                                \
@@ -1498,15 +1541,80 @@ KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_and, &=)
 KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_or, |=)
 KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(bit_xor, ^=)
 
-#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME) KERNEL_FLOAT_DEFINE_BINARY(NAME, ::NAME(left, right))
+namespace ops {
+template<typename T>
+struct min {
+    KERNEL_FLOAT_INLINE T operator()(T left, T right) {
+        return left < right ? left : right;
+    }
+};
+
+template<typename T>
+struct max {
+    KERNEL_FLOAT_INLINE T operator()(T left, T right) {
+        return left > right ? left : right;
+    }
+};
+
+template<>
+struct min<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::fmin(left, right);
+    }
+};
+
+template<>
+struct max<double> {
+    KERNEL_FLOAT_INLINE double operator()(double left, double right) {
+        return ::fmax(left, right);
+    }
+};
+
+template<>
+struct min<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::fminf(left, right);
+    }
+};
+
+template<>
+struct max<float> {
+    KERNEL_FLOAT_INLINE float operator()(float left, float right) {
+        return ::fmaxf(left, right);
+    }
+};
+}  // namespace ops
 
 KERNEL_FLOAT_DEFINE_BINARY_FUN(min)
 KERNEL_FLOAT_DEFINE_BINARY_FUN(max)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(copysign)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(modf)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(nextafter)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(pow)
-KERNEL_FLOAT_DEFINE_BINARY_FUN(remainder)
+
+#define KERNEL_FLOAT_DEFINE_BINARY_MATH(NAME)                              \
+    namespace ops {                                                        \
+    template<typename T, typename = void>                                  \
+    struct NAME;                                                           \
+                                                                           \
+    template<typename T>                                                   \
+    struct NAME<T, enable_if_t<detail::allow_float_fallback<T>::value>> {  \
+        KERNEL_FLOAT_INLINE T operator()(T left, T right) {                \
+            return T(::NAME(left, right));                                 \
+        }                                                                  \
+    };                                                                     \
+                                                                           \
+    template<>                                                             \
+    struct NAME<double> {                                                  \
+        KERNEL_FLOAT_INLINE double operator()(double left, double right) { \
+            return double(::NAME(left, right));                            \
+        }                                                                  \
+    };                                                                     \
+    }                                                                      \
+                                                                           \
+    KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)
+
+KERNEL_FLOAT_DEFINE_BINARY_MATH(copysign)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(fmod)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(nextafter)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(pow)
+KERNEL_FLOAT_DEFINE_BINARY_MATH(remainder)
 
 KERNEL_FLOAT_DEFINE_BINARY(hypot, (ops::sqrt<T>()(left * left + right * right)))
 KERNEL_FLOAT_DEFINE_BINARY(rhypot, (T(1) / ops::hypot<T>()(left, right)))
@@ -2079,269 +2187,412 @@ KERNEL_FLOAT_INLINE select_type<V, Is...> select(const V& input, const Is&... in
 #ifndef KERNEL_FLOAT_MEMORY_H
 #define KERNEL_FLOAT_MEMORY_H
 
-/*
 
 
 
 
 namespace kernel_float {
 
-    namespace detail {
-        template <typename T, size_t N, typename Is = make_index_sequence_helper<N>>
-        struct load_helper;
+namespace detail {
+template<typename T, size_t N, typename Is = make_index_sequence<N>>
+struct load_impl;
 
-        template <typename T, size_t N, size_t... Is>
-        struct load_helper<T, N, index_sequence<Is...>> {
-            KERNEL_FLOAT_INLINE
-            vector_storage<T, N> call(
-                    T* base,
-                    vector_storage<ptrdiff_t, N> offsets
-            ) {
-                return {base[offsets.data()[Is]]...};
-            }
-
-            KERNEL_FLOAT_INLINE
-            vector_storage<T, N> call(
-                    T* base,
-                    vector_storage<ptrdiff_t, N> offsets,
-                    vector_storage<bool, N> mask
-            ) {
-                if (all(mask)) {
-                    return call(base, offsets);
-                } else {
-                    return {
-                            (mask.data()[Is] ? base[offsets.data()[Is]] : T())...
-                    };
-                }
-            }
-        };
-    }
-
-    template <
-            typename T,
-            typename I,
-            typename M,
-            typename E = broadcast_vector_extent_type<I, M>
-    >
+template<typename T, size_t N, size_t... Is>
+struct load_impl<T, N, index_sequence<Is...>> {
     KERNEL_FLOAT_INLINE
-    vector<T, E> load(const T* ptr, const I& indices, const M& mask) {
-        static constexpr E new_size = {};
-
-        return detail::load_helper<T, E::value>::call(
-                ptr,
-                convert_storage<ptrdiff_t>(indices, new_size),
-                convert_storage<bool>(mask, new_size)
-        );
+    static vector_storage<T, N> call(const T* input, const size_t* offsets) {
+        return {input[offsets[Is]]...};
     }
 
-    template <typename T, typename I>
     KERNEL_FLOAT_INLINE
-    vector<T, vector_extent<I>> load(const T* ptr, const I& indices) {
-        return detail::load_helper<T, vector_extent<I>::value>::call(
-                ptr,
-                cast<ptrdiff_t>(indices)
-        );
-    }
-
-    template <size_t N, typename T>
-    KERNEL_FLOAT_INLINE
-    vector<T, extent<N>> load(const T* ptr, ptrdiff_t length) {
-        using index_type = vector_value_type<I>;
-        return load_masked(ptr, range<ptrdiff_t, N>(), range<ptrdiff_t, N>() < length);
-    }
-
-    template <size_t N, typename T>
-    KERNEL_FLOAT_INLINE
-    vector<T, extent<N>> load(const T* ptr) {
-        return load(ptr, range<ptrdiff_t, N>());
-    }
-
-    namespace detail {
-        template <typename T, size_t N>
-        struct store_helper {
-            KERNEL_FLOAT_INLINE
-            vector_storage<T, N> call(
-                    T* base,
-                    vector_storage<ptrdiff_t, N> offsets,
-                    vector_storage<bool, N> mask,
-                    vector_storage<T, N> values
-            ) {
-                for (size_t i = 0; i < N; i++) {
-                    if (mask.data()[i]) {
-                        base[offset.data()[i]] = values.data()[i];
-                    }
-                }
-            }
-
-            KERNEL_FLOAT_INLINE
-            vector_storage<T, N> call(
-                    T* base,
-                    vector_storage<ptrdiff_t, N> offsets,
-                    vector_storage<T, N> values
-            ) {
-                for (size_t i = 0; i < N; i++) {
-                    base[offset.data()[i]] = values.data()[i];
-                }
-            }
-        };
-    }
-
-    template <
-            typename T,
-            typename I,
-            typename M,
-            typename V,
-            typename E = broadcast_extent<vector_extent_type<V>, broadcast_vector_extent_type<M, I>>>
-    >
-    KERNEL_FLOAT_INLINE
-    void store(const T* ptr, const I& indices, const M& mask, const V& values) {
-        static constexpr E new_size = {};
-
-        return detail::store_helper<T, E::value>::call(
-                ptr,
-                convert_storage<ptrdiff_t>(indices, new_size),
-                convert_storage<bool>(mask, new_size),
-                convert_storage<T>(values, new_size)
-        );
-    }
-
-    template <
-            typename T,
-            typename I,
-            typename V,
-            typename E = broadcast_vector_extent_type<V, I>
-    >
-    KERNEL_FLOAT_INLINE
-    void store(const T* ptr, const I& indices, const V& values) {
-        static constexpr E new_size = {};
-
-        return detail::store_helper<T, E::value>::call(
-                ptr,
-                convert_storage<ptrdiff_t>(indices, new_size),
-                convert_storage<T>(values, new_size)
-        );
-    }
-
-
-    template <
-            typename T,
-            typename V
-    >
-    KERNEL_FLOAT_INLINE
-    void store(const T* ptr, const V& values) {
-        using E = vector_extent<V>;
-        return store(ptr, range<ptrdiff_t, E::value>(), values);
-    }
-
-    template <typename T, typename I, typename S, typename V>
-    KERNEL_FLOAT_INLINE
-    void store(const T* ptr, const I& indices, const S& length, const V& values) {
-        using index_type = vector_value_type<I>;
-        return store(ptr, indices, (indices >= I(0)) & (indices < length), values);
-    }
-
-
-    template <typename T, size_t alignment>
-    struct aligned_ptr_base {
-        static_assert(alignof(T) % alignment == 0, "invalid alignment, must be multiple of alignment of `T`");
-
-        KERNEL_FLOAT_INLINE
-        aligned_ptr_base(): ptr_(nullptr) {}
-
-        KERNEL_FLOAT_INLINE
-        explicit aligned_ptr_base(T* ptr): ptr_(ptr) {}
-
-        KERNEL_FLOAT_INLINE
-        T* get() const {
-            // TOOD: check if this way is support across all compilers
-#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
-            return __builtin_assume_aligned(ptr_, alignment);
-#else
-            return ptr_;
-#endif
+    static vector_storage<T, N> call(const T* input, const size_t* offsets, const bool* mask) {
+        bool all_valid = true;
+        for (size_t i = 0; i < N; i++) {
+            all_valid &= mask[i];
         }
 
-        KERNEL_FLOAT_INLINE
-        operator T*() const {
-            return get();
+        if (all_valid) {
+            return {input[offsets[Is]]...};
+        } else {
+            return {(mask[Is] ? input[offsets[Is]] : T())...};
         }
-
-        KERNEL_FLOAT_INLINE
-        T& operator*() const {
-            return *get();
-        }
-
-        template <typename I>
-        KERNEL_FLOAT_INLINE
-        T& operator[](I index) const {
-            return get()[index);
-        }
-
-    private:
-        T* ptr_ = nullptr;
-    };
-
-    template <typename T, size_t alignment = 256>
-    struct aligned_ptr;
-
-    template <typename T, size_t alignment>
-    struct aligned_ptr: aligned_ptr_base<T, alignment> {
-        using base_type = aligned_ptr_base<T, alignment>;
-
-        KERNEL_FLOAT_INLINE
-        aligned_ptr(): base_type(nullptr) {}
-
-        KERNEL_FLOAT_INLINE
-        explicit aligned_ptr(T* ptr): base_type(ptr) {}
-
-        KERNEL_FLOAT_INLINE
-        aligned_ptr(aligned_ptr<T, alignment> ptr): base_type(ptr.get()) {}
-    };
-
-    template <typename T, size_t alignment>
-    struct aligned_ptr<const T, alignment>: aligned_ptr_base<const T, alignment> {
-        using base_type = aligned_ptr_base<const T, alignment>;
-
-        KERNEL_FLOAT_INLINE
-        aligned_ptr(): base_type(nullptr) {}
-
-        KERNEL_FLOAT_INLINE
-        explicit aligned_ptr(T* ptr): base_type(ptr) {}
-
-        KERNEL_FLOAT_INLINE
-        explicit aligned_ptr(const T* ptr): base_type(ptr) {}
-
-        KERNEL_FLOAT_INLINE
-        aligned_ptr(aligned_ptr<T, alignment> ptr): base_type(ptr.get()) {}
-
-        KERNEL_FLOAT_INLINE
-        aligned_ptr(aligned_ptr<const T, alignment> ptr): base_type(ptr.get()) {}
-    };
-
-
-    template <typename T, size_t alignment>
-    KERNEL_FLOAT_INLINE
-    T* operator+(aligned_ptr<T, alignment> ptr, ptrdiff_t index) {
-        return ptr.get() + index;
     }
+};
+}  // namespace detail
 
-    template <typename T, size_t alignment>
-    KERNEL_FLOAT_INLINE
-    T* operator+(ptrdiff_t index, aligned_ptr<T, alignment> ptr) {
-        return ptr.get() + index;
-    }
-
-    template <typename T, size_t alignment, size_t alignment2>
-    KERNEL_FLOAT_INLINE
-    ptrdiff_t operator-(aligned_ptr<T, alignment> left, aligned_ptr<T, alignment2> right) {
-        return left.get() - right.get();
-    }
-
-    template <typename T>
-    using unaligned_ptr = aligned_ptr<T, alignof(T)>;
-
+/**
+ * Load the elements from the buffer ``ptr`` at the locations specified by ``indices``.
+ *
+ * ```
+ * // Load 4 elements at data[0], data[2], data[4], data[8]
+ * vec<T, 4> values = load(data, make_vec(0, 2, 4, 8));
+ * ```
+ */
+template<typename T, typename I>
+KERNEL_FLOAT_INLINE vector<T, vector_extent_type<I>> load(const T* ptr, const I& indices) {
+    return detail::load_impl<T, vector_extent<I>>::call(ptr, cast<size_t>(indices).data());
 }
-*/
+
+/**
+ * Load the elements from the buffer ``ptr`` at the locations specified by ``indices``.
+ *
+ * The ``mask`` should be a vector of booleans where ``true`` indicates that the value should
+ * be loaded and ``false`` indicates that the value should be skipped. This can be used
+ * to prevent reading out of bounds.
+ *
+ * ```
+ * // Load 2 elements at data[0] and data[8], skip data[2] and data[4]
+ * vec<T, 4> values = = load(data, make_vec(0, 2, 4, 8), make_vec(true, false, false, true));
+ * ```
+ */
+template<typename T, typename I, typename M, typename E = broadcast_vector_extent_type<I, M>>
+KERNEL_FLOAT_INLINE vector<T, E> load(const T* ptr, const I& indices, const M& mask) {
+    static constexpr E new_size = {};
+
+    return detail::load_impl<T, E::value>::call(
+        ptr,
+        convert_storage<size_t>(indices, new_size).data(),
+        convert_storage<bool>(mask, new_size).data());
+}
+
+/**
+ * Load ``N`` elements at the location ``ptr[0], ptr[1], ptr[2], ...``. Optionally, an
+ * ``offset`` can be given that shifts all the indices by a fixed amount.
+ *
+ * ```
+ * // Load 4 elements at locations data[0], data[1], data[2], data[3]
+ * vec<T, 4> values = loadn<4>(data);
+ *
+ * // Load 4 elements at locations data[10], data[11], data[12], data[13]
+ * vec<T, 4> values2 = loadn<4>(data, 10);
+ * ```
+ */
+template<size_t N, typename T>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, size_t offset = 0) {
+    return load(ptr, offset + range<size_t, N>());
+}
+
+/**
+ * Load ``N`` elements at the location ``ptr[offset+0], ptr[offset+1], ptr[offset+2], ...``.
+ * Locations for which the index equals or exceeds ``max_length`` are ignored. This can be used
+ * to prevent reading out of bounds.
+ *
+ * ```
+ * // Returns {ptr[8], ptr[9], 0, 0};
+ * vec<T, 4> values = loadn<4>(data, 8, 10);
+ * ```
+ */
+template<size_t N, typename T>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, size_t offset, size_t max_length) {
+    auto indices = offset + range<size_t, N>();
+    return load(ptr, indices, indices < max_length);
+}
+
+namespace detail {
+template<typename T, size_t N, typename Is = make_index_sequence<N>>
+struct store_impl;
+
+template<typename T, size_t N, size_t... Is>
+struct store_impl<T, N, index_sequence<Is...>> {
+    KERNEL_FLOAT_INLINE
+    static void call(T* outputs, const T* inputs, const size_t* offsets) {
+        ((outputs[offsets[Is]] = inputs[Is]), ...);
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void call(T* outputs, const T* inputs, const size_t* offsets, const bool* mask) {
+        bool all_valid = true;
+        for (size_t i = 0; i < N; i++) {
+            all_valid &= mask[i];
+        }
+
+        if (all_valid) {
+            ((outputs[offsets[Is]] = inputs[Is]), ...);
+        } else {
+#pragma unroll
+            for (size_t i = 0; i < N; i++) {
+                if (mask[i]) {
+                    outputs[offsets[i]] = inputs[i];
+                }
+            }
+        }
+    }
+};
+}  // namespace detail
+
+/**
+ * Load the elements from the vector `values` in the buffer ``ptr`` at the locations specified by ``indices``.
+ *
+ * ```
+ * // Store 4 elements at data[0], data[2], data[4], data[8]
+ * auto values = make_vec(42, 13, 87, 12);
+ * store(values, data, make_vec(0, 2, 4, 8));
+ * ```
+ */
+template<
+    typename T,
+    typename V,
+    typename I,
+    typename M,
+    typename E = broadcast_vector_extent_type<V, I, M>>
+KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices, const M& mask) {
+    return detail::store_impl<T, E::value>::call(
+        ptr,
+        convert_storage<T>(values, E()).data(),
+        convert_storage<size_t>(indices, E()).data(),
+        convert_storage<bool>(mask, E()).data());
+}
+
+/**
+ * Load the elements from the vector `values` in the buffer ``ptr`` at the locations specified by ``indices``.
+ *
+ * The ``mask`` should be a vector of booleans where ``true`` indicates that the value should
+ * be store and ``false`` indicates that the value should be skipped. This can be used
+ * to prevent writing out of bounds.
+ *
+ * ```
+ * // Store 2 elements at data[0] and data[8], skip data[2] and data[4]
+ * auto values = make_vec(42, 13, 87, 12);
+ * auto mask = make_vec(true, false, false, true);
+ * store(values, data, make_vec(0, 2, 4, 8), mask);
+ * ```
+ */
+template<typename T, typename V, typename I, typename E = broadcast_vector_extent_type<V, I>>
+KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices) {
+    return detail::store_impl<T, E::value>::call(
+        ptr,
+        convert_storage<T>(values, E()).data(),
+        convert_storage<size_t>(indices, E()).data());
+}
+
+/**
+ * Store ``N`` elements at the location ``ptr[0], ptr[1], ptr[2], ...``. Optionally, an
+ * ``offset`` can be given that shifts all the indices by a fixed amount.
+ *
+ * ```
+ * // Store 4 elements at locations data[0], data[1], data[2], data[3]
+ * vec<float, 4> values = {1.0f, 2.0f, 3.0f, 4.0f};
+ * storen<4>(values, data);
+ *
+ * // Load 4 elements at locations data[10], data[11], data[12], data[13]
+ * storen<4>(values, data, 10);
+ * ```
+ */
+template<typename T, typename V, size_t N = vector_extent<V>>
+KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset = 0) {
+    auto indices = offset + range<size_t, N>();
+    return store(values, ptr, indices);
+}
+
+/**
+ * Store ``N`` elements at the location ``ptr[offset+0], ptr[offset+1], ptr[offset+2], ...``.
+ * Locations for which the index equals or exceeds ``max_length`` are ignored. This can be used
+ * to prevent reading out of bounds.
+ *
+ * ```
+ * // Store 1.0f at data[8] and 2.0f at data[9]. Ignores remaining values.
+ * vec<float, 4> values = {1.0f, 2.0f, 3.0f, 4.0f};
+ * storen<4>(values, data, 8, 10);
+ * ```
+ */
+template<typename T, typename V, size_t N = vector_extent<V>>
+KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset, size_t max_length) {
+    auto indices = offset + range<size_t, N>();
+    return store(values, ptr, indices, indices < max_length);
+}
+
+// TOOD: check if this way is support across all compilers
+#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
+#define KERNEL_FLOAT_ASSUME_ALIGNED(ptr, alignment) (__builtin_assume_aligned(ptr, alignment))
+#else
+#define KERNEL_FLOAT_ASSUME_ALIGNED(ptr, alignment) (ptr)
+#endif
+
+template<typename T, size_t N>
+struct AssignConversionProxy {
+    KERNEL_FLOAT_INLINE
+    explicit AssignConversionProxy(T* ptr) : ptr_(ptr) {}
+
+    template<typename U>
+    KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
+        auto indices = range<size_t, N>();
+        detail::store_impl<T, N>::call(
+            ptr_,
+            convert_storage<T, N>(std::forward<U>(values)).data(),
+            indices.data());
+
+        return *this;
+    }
+
+  private:
+    T* ptr_;
+};
+
+/**
+ * Takes a reference to a vector and returns a special proxy object that automatically performs the correct conversion
+ * when a vector of a different element type is assigned. This is useful to perform implicit type conversions.
+ *
+ * For example, let assume that a line like `x = expression;` would not compile since `x` and `expressions` are
+ * vectors of different element types. Then it is possible to use `cast_to(x) = expression;` to fix this error,
+ * which possibly introduces a type conversion.
+ *
+ * Example
+ * =======
+ * ```
+ * vec<float, 2> x;
+ * vec<double, 2> y = {1.0, 2.0};
+ * cast_to(x) = y;  // normally, the line `x = y;` would not compile, but `cast_to` make this possible
+ * ```
+ */
+template<typename T, typename E>
+KERNEL_FLOAT_INLINE AssignConversionProxy<T, E::value> cast_to(vector<T, E>& input) {
+    return AssignConversionProxy<T, E::value>(input.data());
+}
+
+/**
+ * Represents a pointer of type ``T*`` that is guaranteed to be aligned to ``alignment`` bytes.
+ */
+template<typename T, size_t alignment = 256>
+struct aligned_ptr {
+    static_assert(alignment >= alignof(T), "invalid alignment");
+
+    KERNEL_FLOAT_INLINE
+    aligned_ptr(nullptr_t = nullptr) {}
+
+    KERNEL_FLOAT_INLINE
+    explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
+
+    /**
+     * Return the pointer value.
+     */
+    KERNEL_FLOAT_INLINE
+    T* get() const {
+        return KERNEL_FLOAT_ASSUME_ALIGNED(ptr_, alignment);
+    }
+
+    KERNEL_FLOAT_INLINE
+    operator T*() const {
+        return get();
+    }
+
+    template<typename I>
+    KERNEL_FLOAT_INLINE T& operator[](I&& index) const {
+        return get()[std::forward<I>(index)];
+    }
+
+    /**
+     * See ``kernel_float::load``
+     */
+    template<typename I, typename M, typename E = broadcast_vector_extent_type<I, M>>
+    KERNEL_FLOAT_INLINE vector<T, E> load(const I& indices, const M& mask = true) const {
+        return ::kernel_float::load(get(), indices, mask);
+    }
+
+    /**
+     * See ``kernel_float::loadn``
+     */
+    template<size_t N>
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset = 0) const {
+        return ::kernel_float::loadn<N>(get(), offset);
+    }
+
+    /**
+     * See ``kernel_float::loadn``
+     */
+    template<size_t N>
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset, size_t max_length) const {
+        return ::kernel_float::loadn<N>(get(), offset, max_length);
+    }
+
+    /**
+     * See ``kernel_float::store``
+     */
+    template<typename V, typename I, typename M, typename E = broadcast_vector_extent_type<V, I, M>>
+    KERNEL_FLOAT_INLINE void store(const V& values, const I& indices, const M& mask = true) const {
+        ::kernel_float::store(values, get(), indices, mask);
+    }
+    /**
+     * See ``kernel_float::storen``
+     */
+    template<typename V, size_t N = vector_extent<V>>
+    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset = 0) const {
+        ::kernel_float::storen(values, get(), offset);
+    }
+    /**
+     * See ``kernel_float::storen``
+     */
+    template<typename V, size_t N = vector_extent<V>>
+    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset, size_t max_length) const {
+        ::kernel_float::storen(values, get(), offset, max_length);
+    }
+
+  private:
+    T* ptr_ = nullptr;
+};
+
+/**
+ * Represents a pointer of type ``const T*`` that is guaranteed to be aligned to ``alignment`` bytes.
+ */
+template<typename T, size_t alignment>
+struct aligned_ptr<const T, alignment> {
+    static_assert(alignment >= alignof(T), "invalid alignment");
+
+    KERNEL_FLOAT_INLINE
+    aligned_ptr(nullptr_t = nullptr) {}
+
+    KERNEL_FLOAT_INLINE
+    explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
+
+    KERNEL_FLOAT_INLINE
+    explicit aligned_ptr(const T* ptr) : ptr_(ptr) {}
+
+    /**
+     * Return the pointer value.
+     */
+    KERNEL_FLOAT_INLINE
+    const T* get() const {
+        return KERNEL_FLOAT_ASSUME_ALIGNED(ptr_, alignment);
+    }
+
+    KERNEL_FLOAT_INLINE
+    operator const T*() const {
+        return get();
+    }
+
+    template<typename I>
+    KERNEL_FLOAT_INLINE const T& operator[](I&& index) const {
+        return get()[std::forward<I>(index)];
+    }
+
+    /**
+     * See ``kernel_float::load``
+     */
+    template<typename I, typename M, typename E = broadcast_vector_extent_type<I, M>>
+    KERNEL_FLOAT_INLINE vector<T, E> load(const I& indices, const M& mask = true) const {
+        return ::kernel_float::load(get(), indices, mask);
+    }
+
+    /**
+     * See ``kernel_float::loadn``
+     */
+    template<size_t N>
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset = 0) const {
+        return ::kernel_float::loadn<N>(get(), offset);
+    }
+
+    /**
+     * See ``kernel_float::loadn``
+     */
+    template<size_t N>
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset, size_t max_length) const {
+        return ::kernel_float::loadn<N>(get(), offset, max_length);
+    }
+
+  private:
+    const T* ptr_ = nullptr;
+};
+
+}  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_MEMORY_H
 #ifndef KERNEL_FLOAT_REDUCE_H
@@ -3101,6 +3352,11 @@ struct into_vector_impl<__half2> {
 };
 
 namespace detail {
+template<>
+struct allow_float_fallback<__half> {
+    static constexpr bool value = true;
+};
+
 template<typename F>
 struct map_halfx2 {
     KERNEL_FLOAT_INLINE
@@ -3180,23 +3436,6 @@ struct reduce_impl<F, N, __half, enable_if_t<(N >= 2)>> {
 
 };  // namespace detail
 
-#define KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)                 \
-    namespace ops {                                           \
-    template<>                                                \
-    struct NAME<__half> {                                     \
-        KERNEL_FLOAT_INLINE __half operator()(__half input) { \
-            return __half(ops::NAME<float> {}(float(input))); \
-        }                                                     \
-    };                                                        \
-    }
-
-// There operations are not implemented in half precision, so they are forward to single precision
-KERNEL_FLOAT_FP16_UNARY_FORWARD(tan)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(asin)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(acos)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(atan)
-KERNEL_FLOAT_FP16_UNARY_FORWARD(expm1)
-
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                               \
     namespace ops {                                                                 \
@@ -3216,7 +3455,7 @@ KERNEL_FLOAT_FP16_UNARY_FORWARD(expm1)
     };                                                                              \
     }
 #else
-#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2) KERNEL_FLOAT_FP16_UNARY_FORWARD(NAME)
+#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
 KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2)
@@ -3405,6 +3644,11 @@ struct into_vector_impl<__nv_bfloat162> {
 };
 
 namespace detail {
+template<>
+struct allow_float_fallback<__nv_bfloat16> {
+    static constexpr bool value = true;
+};
+
 template<typename F>
 struct map_bfloat16x2 {
     KERNEL_FLOAT_INLINE
@@ -3483,23 +3727,6 @@ struct reduce_impl<F, N, __nv_bfloat16, enable_if_t<(N >= 2)>> {
 };
 }  // namespace detail
 
-#define KERNEL_FLOAT_BF16_UNARY_FORWARD(NAME)                               \
-    namespace ops {                                                         \
-    template<>                                                              \
-    struct NAME<__nv_bfloat16> {                                            \
-        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) { \
-            return __nv_bfloat16(ops::NAME<float> {}(float(input)));        \
-        }                                                                   \
-    };                                                                      \
-    }
-
-// There operations are not implemented in half precision, so they are forward to single precision
-KERNEL_FLOAT_BF16_UNARY_FORWARD(tan)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(asin)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(acos)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(atan)
-KERNEL_FLOAT_BF16_UNARY_FORWARD(expm1)
-
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                       \
     namespace ops {                                                         \
@@ -3520,9 +3747,10 @@ KERNEL_FLOAT_BF16_UNARY_FORWARD(expm1)
     };                                                                      \
     }
 #else
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2) KERNEL_FLOAT_BF16_UNARY_FORWARD(NAME)
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2)
 KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
 KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
@@ -3542,8 +3770,9 @@ KERNEL_FLOAT_BF16_UNARY_FUN(fast_exp, ::hexp, ::h2exp)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_log, ::hlog, ::h2log)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
 KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
+#endif
 
-#if KERNEL_FLOAT_IS_DEVICE
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 #define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                              \
     namespace ops {                                                                 \
     template<>                                                                      \
@@ -3592,6 +3821,43 @@ KERNEL_FLOAT_BF16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 
+namespace ops {
+template<typename T>
+struct cast<T, __nv_bfloat16> {
+    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(T input) {
+        return __float2bfloat16(ops::cast<T, float> {}(input));
+    };
+};
+
+template<typename T>
+struct cast<__nv_bfloat16, T> {
+    KERNEL_FLOAT_INLINE T operator()(__nv_bfloat16 input) {
+        return ops::cast<float, T> {}(__bfloat162float(input));
+    };
+};
+
+template<>
+struct cast<double, __nv_bfloat16> {
+    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(double input) {
+        return __double2bfloat16(input);
+    };
+};
+
+template<>
+struct cast<float, __nv_bfloat16> {
+    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(float input) {
+        return __float2bfloat16(input);
+    };
+};
+
+template<>
+struct cast<__nv_bfloat16, float> {
+    KERNEL_FLOAT_INLINE float operator()(__nv_bfloat16 input) {
+        return __bfloat162float(input);
+    };
+};
+}  // namespace ops
+
 #define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)           \
     namespace ops {                                             \
     template<>                                                  \
@@ -3608,9 +3874,7 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
     };                                                          \
     }
 
-KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), double(__bfloat162float(input)));
-KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input));
-
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 // clang-format off
 // there are no official char casts. Instead, cast to int and then to char
 KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
@@ -3627,12 +3891,18 @@ KERNEL_FLOAT_BF16_CAST(unsigned int, __bfloat162uint_rz(input), __uint2bfloat16_
 KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
 KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
 // clang-format on
+#else
+KERNEL_FLOAT_BF16_CAST(
+    bool,
+    __nv_bfloat16_raw {input ? (unsigned short)0 : (unsigned short)0x3C00},
+    (__nv_bfloat16_raw(input).x & 0x7FFF) != 0);
+#endif
 
 using bfloat16 = __nv_bfloat16;
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
 
-#if KERNEL_FLOAT_IS_DEVICE
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 namespace detail {
 template<>
 struct dot_impl<__nv_bfloat16, 0> {
@@ -3687,7 +3957,9 @@ struct dot_impl<__nv_bfloat16, N> {
 
 
 namespace kernel_float {
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
 KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
+#endif
 
 template<>
 struct promote_type<__nv_bfloat16, __half> {
@@ -3723,6 +3995,18 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_fp8_e5m2)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_fp8_e5m2)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_fp8_e5m2)
+
+namespace detail {
+template<>
+struct allow_float_fallback<__nv_fp8_e4m3> {
+    static constexpr bool value = true;
+};
+
+template<>
+struct allow_float_fallback<__nv_fp8_e5m2> {
+    static constexpr bool value = true;
+};
+}  // namespace detail
 }  // namespace kernel_float
 
 #if KERNEL_FLOAT_FP16_AVAILABLE
