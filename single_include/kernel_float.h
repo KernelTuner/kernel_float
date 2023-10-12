@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-10-12 17:25:02.978518
-// git hash: 25f9bb64a14ef5a93b356d6089becd7139a0141f
+// date: 2023-10-12 19:42:20.177310
+// git hash: 4824f9787b219562d394b19c74f701ff75d8fb56
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -892,18 +892,26 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     return result;
 }
 
+namespace detail {
+// Indicates that elements of type `T` offer less precision than floats, thus operations
+// on elements of type `T` can be performed by upcasting them to ` float`.
+template<typename T>
+struct allow_float_fallback {
+    static constexpr bool value = false;
+};
+
+template<>
+struct allow_float_fallback<float> {
+    static constexpr bool value = true;
+};
+}  // namespace detail
+
 enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
 
 namespace ops {
+
 template<typename T, typename R, RoundingMode m = RoundingMode::ANY, typename = void>
 struct cast;
-
-template<typename T, typename R>
-struct cast<T, R, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return R(input);
-    }
-};
 
 template<typename T, RoundingMode m>
 struct cast<T, T, m> {
@@ -918,6 +926,41 @@ struct cast<T, T, RoundingMode::ANY> {
         return input;
     }
 };
+
+template<typename T, typename R, typename = void>
+struct cast_float_fallback;
+
+template<typename T, typename R>
+struct cast<T, R, RoundingMode::ANY> {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return cast_float_fallback<T, R> {}(input);
+    }
+};
+
+template<typename T, typename R, typename>
+struct cast_float_fallback {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return R(input);
+    }
+};
+
+// clang-format off
+template<typename T, typename R>
+struct cast_float_fallback<
+    T,
+    R,
+    enable_if_t<
+        !is_same_type<T, float> &&
+        !is_same_type<R, float> &&
+        (detail::allow_float_fallback<T>::value || detail::allow_float_fallback<R>::value)
+    >
+> {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return cast<float, R> {}(cast<T, float> {}(input));
+    }
+};
+// clang-format on
+
 }  // namespace ops
 
 /**
@@ -972,20 +1015,6 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
 KERNEL_FLOAT_DEFINE_UNARY_OP(bit_not, ~, ~input)
 KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T, bool> {}(input))))
-
-namespace detail {
-// Indicates that elements of type `T` offer less precision than floats, thus operations
-// on elements of type `T` can be performed by upcasting them to ` float`.
-template<typename T>
-struct allow_float_fallback {
-    static constexpr bool value = false;
-};
-
-template<>
-struct allow_float_fallback<float> {
-    static constexpr bool value = true;
-};
-}  // namespace detail
 
 #define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME)                              \
     namespace ops {                                                       \
@@ -1460,7 +1489,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     template<typename T>                                    \
     struct NAME {                                           \
         KERNEL_FLOAT_INLINE T operator()(T left, T right) { \
-            return T(EXPR);                                 \
+            return ops::cast<decltype(EXPR), T> {}(EXPR);   \
         }                                                   \
     };                                                      \
     }                                                       \
@@ -3497,15 +3526,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
     };                                                                                            \
     }
 #else
-#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                           \
-    namespace ops {                                                              \
-    template<>                                                                   \
-    struct NAME<__half> {                                                        \
-        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const { \
-            return __half(ops::NAME<float> {}(float(left), float(right)));       \
-        }                                                                        \
-    };                                                                           \
-    }
+#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)
 #endif
 
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)
@@ -3793,16 +3814,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
     };                                                                              \
     }
 #else
-#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                            \
-    namespace ops {                                                               \
-    template<>                                                                    \
-    struct NAME<__nv_bfloat16> {                                                  \
-        KERNEL_FLOAT_INLINE __nv_bfloat16                                         \
-        operator()(__nv_bfloat16 left, __nv_bfloat16 right) const {               \
-            return __nv_bfloat16(ops::NAME<float> {}(float(left), float(right))); \
-        }                                                                         \
-    };                                                                            \
-    }
+#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)
 #endif
 
 KERNEL_FLOAT_BF16_BINARY_FUN(add, __hadd, __hadd2)
@@ -3822,20 +3834,6 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 
 namespace ops {
-template<typename T>
-struct cast<T, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(T input) {
-        return __float2bfloat16(ops::cast<T, float> {}(input));
-    };
-};
-
-template<typename T>
-struct cast<__nv_bfloat16, T> {
-    KERNEL_FLOAT_INLINE T operator()(__nv_bfloat16 input) {
-        return ops::cast<float, T> {}(__bfloat162float(input));
-    };
-};
-
 template<>
 struct cast<double, __nv_bfloat16> {
     KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(double input) {
@@ -3957,10 +3955,6 @@ struct dot_impl<__nv_bfloat16, N> {
 
 
 namespace kernel_float {
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
-KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
-#endif
-
 template<>
 struct promote_type<__nv_bfloat16, __half> {
     using type = float;
@@ -4007,6 +4001,39 @@ struct allow_float_fallback<__nv_fp8_e5m2> {
     static constexpr bool value = true;
 };
 }  // namespace detail
+
+#define KERNEL_FLOAT_FP8_CAST(T)                                  \
+    namespace ops {                                               \
+    template<>                                                    \
+    struct cast<T, __nv_fp8_e4m3> {                               \
+        KERNEL_FLOAT_INLINE __nv_fp8_e4m3 operator()(T v) const { \
+            return __nv_fp8_e4m3(v);                              \
+        }                                                         \
+    };                                                            \
+                                                                  \
+    template<>                                                    \
+    struct cast<__nv_fp8_e4m3, T> {                               \
+        KERNEL_FLOAT_INLINE T operator()(__nv_fp8_e4m3 v) const { \
+            return T(v);                                          \
+        }                                                         \
+    };                                                            \
+                                                                  \
+    template<>                                                    \
+    struct cast<T, __nv_fp8_e5m2> {                               \
+        KERNEL_FLOAT_INLINE __nv_fp8_e5m2 operator()(T v) const { \
+            return __nv_fp8_e5m2(v);                              \
+        }                                                         \
+    };                                                            \
+                                                                  \
+    template<>                                                    \
+    struct cast<__nv_fp8_e5m2, T> {                               \
+        KERNEL_FLOAT_INLINE T operator()(__nv_fp8_e5m2 v) const { \
+            return T(v);                                          \
+        }                                                         \
+    };                                                            \
+    }
+
+KERNEL_FLOAT_FP8_CAST(double)
 }  // namespace kernel_float
 
 #if KERNEL_FLOAT_FP16_AVAILABLE
@@ -4015,6 +4042,7 @@ struct allow_float_fallback<__nv_fp8_e5m2> {
 namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e5m2)
+KERNEL_FLOAT_FP8_CAST(__half)
 }  // namespace kernel_float
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
 
@@ -4024,6 +4052,7 @@ KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e5m2)
 namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e5m2)
+KERNEL_FLOAT_FP8_CAST(__nv_bfloat16)
 }  // namespace kernel_float
 #endif  // KERNEL_FLOAT_BF16_AVAILABLE
 

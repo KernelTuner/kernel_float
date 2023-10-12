@@ -44,18 +44,26 @@ KERNEL_FLOAT_INLINE map_type<F, V> map(F fun, const V& input) {
     return result;
 }
 
+namespace detail {
+// Indicates that elements of type `T` offer less precision than floats, thus operations
+// on elements of type `T` can be performed by upcasting them to ` float`.
+template<typename T>
+struct allow_float_fallback {
+    static constexpr bool value = false;
+};
+
+template<>
+struct allow_float_fallback<float> {
+    static constexpr bool value = true;
+};
+}  // namespace detail
+
 enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
 
 namespace ops {
+
 template<typename T, typename R, RoundingMode m = RoundingMode::ANY, typename = void>
 struct cast;
-
-template<typename T, typename R>
-struct cast<T, R, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return R(input);
-    }
-};
 
 template<typename T, RoundingMode m>
 struct cast<T, T, m> {
@@ -70,6 +78,41 @@ struct cast<T, T, RoundingMode::ANY> {
         return input;
     }
 };
+
+template<typename T, typename R, typename = void>
+struct cast_float_fallback;
+
+template<typename T, typename R>
+struct cast<T, R, RoundingMode::ANY> {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return cast_float_fallback<T, R> {}(input);
+    }
+};
+
+template<typename T, typename R, typename>
+struct cast_float_fallback {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return R(input);
+    }
+};
+
+// clang-format off
+template<typename T, typename R>
+struct cast_float_fallback<
+    T,
+    R,
+    enable_if_t<
+        !is_same_type<T, float> &&
+        !is_same_type<R, float> &&
+        (detail::allow_float_fallback<T>::value || detail::allow_float_fallback<R>::value)
+    >
+> {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return cast<float, R> {}(cast<T, float> {}(input));
+    }
+};
+// clang-format on
+
 }  // namespace ops
 
 /**
@@ -124,20 +167,6 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
 KERNEL_FLOAT_DEFINE_UNARY_OP(bit_not, ~, ~input)
 KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T, bool> {}(input))))
-
-namespace detail {
-// Indicates that elements of type `T` offer less precision than floats, thus operations
-// on elements of type `T` can be performed by upcasting them to ` float`.
-template<typename T>
-struct allow_float_fallback {
-    static constexpr bool value = false;
-};
-
-template<>
-struct allow_float_fallback<float> {
-    static constexpr bool value = true;
-};
-}  // namespace detail
 
 #define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME)                              \
     namespace ops {                                                       \
