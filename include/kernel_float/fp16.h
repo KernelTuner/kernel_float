@@ -170,15 +170,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
     };                                                                                            \
     }
 #else
-#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                           \
-    namespace ops {                                                              \
-    template<>                                                                   \
-    struct NAME<__half> {                                                        \
-        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const { \
-            return __half(ops::NAME<float> {}(float(left), float(right)));       \
-        }                                                                        \
-    };                                                                           \
-    }
+#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)
 #endif
 
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)

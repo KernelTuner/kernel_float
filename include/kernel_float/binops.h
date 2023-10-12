@@ -91,7 +91,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     template<typename T>                                    \
     struct NAME {                                           \
         KERNEL_FLOAT_INLINE T operator()(T left, T right) { \
-            return T(EXPR);                                 \
+            return ops::cast<decltype(EXPR), T> {}(EXPR);   \
         }                                                   \
     };                                                      \
     }                                                       \

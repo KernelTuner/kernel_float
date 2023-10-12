@@ -176,16 +176,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
     };                                                                              \
     }
 #else
-#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                            \
-    namespace ops {                                                               \
-    template<>                                                                    \
-    struct NAME<__nv_bfloat16> {                                                  \
-        KERNEL_FLOAT_INLINE __nv_bfloat16                                         \
-        operator()(__nv_bfloat16 left, __nv_bfloat16 right) const {               \
-            return __nv_bfloat16(ops::NAME<float> {}(float(left), float(right))); \
-        }                                                                         \
-    };                                                                            \
-    }
+#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)
 #endif
 
 KERNEL_FLOAT_BF16_BINARY_FUN(add, __hadd, __hadd2)
@@ -205,20 +196,6 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 
 namespace ops {
-template<typename T>
-struct cast<T, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(T input) {
-        return __float2bfloat16(ops::cast<T, float> {}(input));
-    };
-};
-
-template<typename T>
-struct cast<__nv_bfloat16, T> {
-    KERNEL_FLOAT_INLINE T operator()(__nv_bfloat16 input) {
-        return ops::cast<float, T> {}(__bfloat162float(input));
-    };
-};
-
 template<>
 struct cast<double, __nv_bfloat16> {
     KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(double input) {
@@ -340,10 +317,6 @@ struct dot_impl<__nv_bfloat16, N> {
 #include "fp16.h"
 
 namespace kernel_float {
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
-KERNEL_FLOAT_BF16_CAST(__half, __float2bfloat16(input), __bfloat162float(input));
-#endif
-
 template<>
 struct promote_type<__nv_bfloat16, __half> {
     using type = float;
