@@ -27,9 +27,9 @@ __global__ void my_kernel(
     auto points = int(blockIdx.x * tiling.tile_size(0)) + tiling.local_points(0);
     auto mask = tiling.local_mask();
 
-    auto a = kf::load(input.get(), points, mask);
+    auto a = input.read(points, mask);
     auto b = (a * a) * constant;
-    kf::store(b, output.get(), points, mask);
+    output.write(points, b, mask);
 }
 
 template<int items_per_thread, int block_size = 256>

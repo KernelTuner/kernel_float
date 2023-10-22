@@ -13,11 +13,13 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N>
-__global__ void my_kernel(int length, const khalf<N>* input, double constant, kfloat<N>* output) {
+__global__ void my_kernel(int length, const __half* input, double constant, float* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        kf::cast_to(output[i]) = (input[i] * input[i]) * constant;
+        auto a = kf::read_aligned<N>(input + i * N);
+        auto b = (a * a) * constant;
+        kf::write_aligned(output + i * N, b);
     }
 }
 
@@ -35,8 +37,8 @@ void run_kernel(int n) {
     }
 
     // Allocate device memory
-    khalf<items_per_thread>* input_dev;
-    kfloat<items_per_thread>* output_dev;
+    __half* input_dev;
+    float* output_dev;
     cuda_check(cudaMalloc(&input_dev, sizeof(half) * n));
     cuda_check(cudaMalloc(&output_dev, sizeof(float) * n));
 
@@ -47,7 +49,11 @@ void run_kernel(int n) {
     int block_size = 256;
     int items_per_block = block_size * items_per_thread;
     int grid_size = (n + items_per_block - 1) / items_per_block;
-    my_kernel<items_per_thread><<<grid_size, block_size>>>(n, input_dev, constant, output_dev);
+    my_kernel<items_per_thread><<<grid_size, block_size>>>(
+        n,
+        kf::aligned_ptr(input_dev),
+        constant,
+        kf::aligned_ptr(output_dev));
 
     // Copy results back
     cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));
