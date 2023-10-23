@@ -124,17 +124,17 @@ REGISTER_TEST_CASE(
 
 struct aligned_ptr_test {
     template<typename T, size_t... I, size_t N = sizeof...(I)>
-    __host__ __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+    __host__ __device__ void operator()(generator<T>, std::index_sequence<I...>) {
         struct alignas(32) storage_type {
             T data[N];
         };
 
         storage_type input = {T(double(I))...};
-        storage_type output = {T(double(I * 0))...};
-
         auto v = kf::read_aligned<N>(input.data);
-        kf::write_aligned(output.data, v);
+        ASSERT_EQ_ALL(v[I], T(double(I)));
 
+        storage_type output = {T(double(I * 0))...};
+        kf::write_aligned<N>(output.data, v);
         ASSERT_EQ_ALL(output.data[I], T(double(I)));
     }
 };

@@ -112,21 +112,21 @@ constexpr size_t gcd(size_t a, size_t b) {
     return b == 0 ? a : gcd(b, a % b);
 }
 
-template<typename T, size_t N, size_t alignment>
+template<typename T, size_t N, size_t alignment, typename = void>
 struct copy_aligned_impl {
-    static constexpr size_t half = N > 8 ? 8 : (N > 4 ? 4 : (N > 2 ? 2 : 1));
-    static constexpr size_t new_alignment = gcd(alignment, sizeof(T) * half);
+    static constexpr size_t K = N > 8 ? 8 : (N > 4 ? 4 : (N > 2 ? 2 : 1));
+    static constexpr size_t alignment_K = gcd(alignment, sizeof(T) * K);
 
     KERNEL_FLOAT_INLINE
     static void load(T* output, const T* input) {
-        copy_aligned_impl<T, half, new_alignment>::load(output, input);
-        copy_aligned_impl<T, N - half, new_alignment>::load(output + half, input + half);
+        copy_aligned_impl<T, K, alignment>::load(output, input);
+        copy_aligned_impl<T, N - K, alignment_K>::load(output + K, input + K);
     }
 
     KERNEL_FLOAT_INLINE
     static void store(T* output, const T* input) {
-        copy_aligned_impl<T, half, new_alignment>::store(output, input);
-        copy_aligned_impl<T, N - half, new_alignment>::store(output + half, input + half);
+        copy_aligned_impl<T, K, alignment>::store(output, input);
+        copy_aligned_impl<T, N - K, alignment_K>::store(output + K, input + K);
     }
 };
 
@@ -141,6 +141,8 @@ struct copy_aligned_impl<T, 0, alignment> {
 
 template<typename T, size_t alignment>
 struct copy_aligned_impl<T, 1, alignment> {
+    using storage_type = T;
+
     KERNEL_FLOAT_INLINE
     static void load(T* output, const T* input) {
         output[0] = input[0];
@@ -153,9 +155,9 @@ struct copy_aligned_impl<T, 1, alignment> {
 };
 
 template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 2, alignment> {
-    static constexpr size_t new_alignment = gcd(alignment, 2 * sizeof(T));
-    struct alignas(new_alignment) storage_type {
+struct copy_aligned_impl<T, 2, alignment, enable_if_t<(alignment > sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(alignment, 2 * sizeof(T));
+    struct alignas(storage_alignment) storage_type {
         T v0, v1;
     };
 
@@ -173,9 +175,9 @@ struct copy_aligned_impl<T, 2, alignment> {
 };
 
 template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 4, alignment> {
-    static constexpr size_t new_alignment = gcd(alignment, 4 * sizeof(T));
-    struct alignas(new_alignment) storage_type {
+struct copy_aligned_impl<T, 4, alignment, enable_if_t<(alignment > 2 * sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(alignment, 4 * sizeof(T));
+    struct alignas(storage_alignment) storage_type {
         T v0, v1, v2, v3;
     };
 
@@ -199,9 +201,9 @@ struct copy_aligned_impl<T, 4, alignment> {
 };
 
 template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 8, alignment> {
-    static constexpr size_t new_alignment = gcd(alignment, 8 * sizeof(T));
-    struct alignas(new_alignment) storage_type {
+struct copy_aligned_impl<T, 8, alignment, enable_if_t<(alignment > 4 * sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(alignment, 8 * sizeof(T));
+    struct alignas(storage_alignment) storage_type {
         T v0, v1, v2, v3, v4, v5, v6, v7;
     };
 
@@ -248,9 +250,9 @@ struct copy_aligned_impl<T, 8, alignment> {
  * vec<T, 4> values2 = read_aligned<4>(data + 10);
  * ```
  */
-template<size_t N, typename T>
+template<size_t Align, size_t N = Align, typename T>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
-    static constexpr size_t alignment = detail::gcd(N * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
+    static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
     vector_storage<T, N> result;
     detail::copy_aligned_impl<T, N, alignment>::load(
         result.data(),
@@ -273,10 +275,10 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
  * write_aligned(data + 10, values);
  * ```
  */
-template<typename V, typename T>
+template<size_t Align, typename V, typename T>
 KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
     static constexpr size_t N = vector_extent<V>;
-    static constexpr size_t alignment = detail::gcd(N * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
+    static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
 
     return detail::copy_aligned_impl<T, N, alignment>::store(
         KERNEL_FLOAT_ASSUME_ALIGNED(T, ptr, alignment),

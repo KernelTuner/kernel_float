@@ -16,13 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-<<<<<<< HEAD
-// date: 2023-10-13 14:55:52.284209
-// git hash: 3da5ba08788e4d89a1b20b6a12bb4ba0f8de6b40
-=======
-// date: 2023-10-11 15:46:04.149164
-// git hash: b1f6c1b73c2212223b10142054a28806f56b5ee6
->>>>>>> 9bf416c (Update single_include)
+// date: 2023-10-23 10:41:33.267957
+// git hash: 5844245b6d2d679f23d9ccc9693a3274b75917f9
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -36,35 +31,35 @@
 #define KERNEL_FLOAT_IS_DEVICE (1)
 #define KERNEL_FLOAT_IS_HOST   (0)
 #define KERNEL_FLOAT_CUDA_ARCH (__CUDA_ARCH__)
-#else
+#else  // __CUDA_ARCH__
 #define KERNEL_FLOAT_INLINE    __forceinline__ __host__
 #define KERNEL_FLOAT_IS_DEVICE (0)
 #define KERNEL_FLOAT_IS_HOST   (1)
 #define KERNEL_FLOAT_CUDA_ARCH (0)
-#endif
-#else
+#endif  // __CUDA_ARCH__
+#else  // __CUDACC__
 #define KERNEL_FLOAT_INLINE    inline
 #define KERNEL_FLOAT_CUDA      (0)
 #define KERNEL_FLOAT_IS_HOST   (1)
 #define KERNEL_FLOAT_IS_DEVICE (0)
 #define KERNEL_FLOAT_CUDA_ARCH (0)
-#endif
+#endif  // __CUDACC__
 
 #ifndef KERNEL_FLOAT_FP16_AVAILABLE
 #define KERNEL_FLOAT_FP16_AVAILABLE (1)
-#endif
+#endif  // KERNEL_FLOAT_FP16_AVAILABLE
 
 #ifndef KERNEL_FLOAT_BF16_AVAILABLE
 #define KERNEL_FLOAT_BF16_AVAILABLE (1)
-#endif
+#endif  // KERNEL_FLOAT_BF16_AVAILABLE
 
 #ifndef KERNEL_FLOAT_FP8_AVAILABLE
 #ifdef __CUDACC_VER_MAJOR__
 #define KERNEL_FLOAT_FP8_AVAILABLE (__CUDACC_VER_MAJOR__ >= 12)
-#else
+#else  // __CUDACC_VER_MAJOR__
 #define KERNEL_FLOAT_FP8_AVAILABLE (0)
-#endif
-#endif
+#endif  // __CUDACC_VER_MAJOR__
+#endif  // KERNEL_FLOAT_FP8_AVAILABLE
 
 #define KERNEL_FLOAT_ASSERT(expr) \
     do {                          \
@@ -75,6 +70,16 @@
 #define KERNEL_FLOAT_CONCAT_IMPL(A, B) A##B
 #define KERNEL_FLOAT_CONCAT(A, B)      KERNEL_FLOAT_CONCAT_IMPL(A, B)
 #define KERNEL_FLOAT_CALL(F, ...)      F(__VA_ARGS__)
+
+// TOOD: check if this way is support across all compilers
+#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned) && 0
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) \
+    static_cast<TYPE*>(__builtin_assume_aligned(static_cast<TYPE*>(PTR), (ALIGNMENT)))
+#else
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
+#endif
+
+#define KERNEL_FLOAT_MAX_ALIGNMENT (32)
 
 #endif  //KERNEL_FLOAT_MACROS_H
 #ifndef KERNEL_FLOAT_CORE_H
@@ -855,7 +860,6 @@ struct promote_type<L, complex_type<R>> {
 }  // namespace kernel_float
 
 #endif
-
 #ifndef KERNEL_FLOAT_UNOPS_H
 #define KERNEL_FLOAT_UNOPS_H
 
@@ -2277,46 +2281,23 @@ KERNEL_FLOAT_INLINE select_type<V, Is...> select(const V& input, const Is&... in
 
 
 namespace kernel_float {
-
 namespace detail {
 template<typename T, size_t N, typename Is = make_index_sequence<N>>
-struct load_impl;
+struct copy_impl;
 
 template<typename T, size_t N, size_t... Is>
-struct load_impl<T, N, index_sequence<Is...>> {
+struct copy_impl<T, N, index_sequence<Is...>> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, N> call(const T* input, const size_t* offsets) {
-        return {input[offsets[Is]]...};
+    static vector_storage<T, N> load(const T* input, const size_t* offsets, const bool* mask) {
+        return {(mask[Is] ? input[offsets[Is]] : T {})...};
     }
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, N> call(const T* input, const size_t* offsets, const bool* mask) {
-        bool all_valid = true;
-        for (size_t i = 0; i < N; i++) {
-            all_valid &= mask[i];
-        }
-
-        if (all_valid) {
-            return {input[offsets[Is]]...};
-        } else {
-            return {(mask[Is] ? input[offsets[Is]] : T())...};
-        }
+    static void store(T* outputs, const T* inputs, const size_t* offsets, const bool* mask) {
+        ((mask[Is] ? outputs[offsets[Is]] = inputs[Is] : T {}), ...);
     }
 };
 }  // namespace detail
-
-/**
- * Load the elements from the buffer ``ptr`` at the locations specified by ``indices``.
- *
- * ```
- * // Load 4 elements at data[0], data[2], data[4], data[8]
- * vec<T, 4> values = load(data, make_vec(0, 2, 4, 8));
- * ```
- */
-template<typename T, typename I>
-KERNEL_FLOAT_INLINE vector<T, vector_extent_type<I>> load(const T* ptr, const I& indices) {
-    return detail::load_impl<T, vector_extent<I>>::call(ptr, cast<size_t>(indices).data());
-}
 
 /**
  * Load the elements from the buffer ``ptr`` at the locations specified by ``indices``.
@@ -2327,109 +2308,19 @@ KERNEL_FLOAT_INLINE vector<T, vector_extent_type<I>> load(const T* ptr, const I&
  *
  * ```
  * // Load 2 elements at data[0] and data[8], skip data[2] and data[4]
- * vec<T, 4> values = = load(data, make_vec(0, 2, 4, 8), make_vec(true, false, false, true));
+ * vec<T, 4> values = = read(data, make_vec(0, 2, 4, 8), make_vec(true, false, false, true));
  * ```
  */
-template<typename T, typename I, typename M, typename E = broadcast_vector_extent_type<I, M>>
-KERNEL_FLOAT_INLINE vector<T, E> load(const T* ptr, const I& indices, const M& mask) {
-    static constexpr E new_size = {};
-
-    return detail::load_impl<T, E::value>::call(
+template<typename T, typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
+KERNEL_FLOAT_INLINE vector<T, E> read(const T* ptr, const I& indices, const M& mask = true) {
+    return detail::copy_impl<T, E::value>::load(
         ptr,
-        convert_storage<size_t>(indices, new_size).data(),
-        convert_storage<bool>(mask, new_size).data());
-}
-
-/**
- * Load ``N`` elements at the location ``ptr[0], ptr[1], ptr[2], ...``. Optionally, an
- * ``offset`` can be given that shifts all the indices by a fixed amount.
- *
- * ```
- * // Load 4 elements at locations data[0], data[1], data[2], data[3]
- * vec<T, 4> values = loadn<4>(data);
- *
- * // Load 4 elements at locations data[10], data[11], data[12], data[13]
- * vec<T, 4> values2 = loadn<4>(data, 10);
- * ```
- */
-template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, size_t offset = 0) {
-    return load(ptr, offset + range<size_t, N>());
-}
-
-/**
- * Load ``N`` elements at the location ``ptr[offset+0], ptr[offset+1], ptr[offset+2], ...``.
- * Locations for which the index equals or exceeds ``max_length`` are ignored. This can be used
- * to prevent reading out of bounds.
- *
- * ```
- * // Returns {ptr[8], ptr[9], 0, 0};
- * vec<T, 4> values = loadn<4>(data, 8, 10);
- * ```
- */
-template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(const T* ptr, size_t offset, size_t max_length) {
-    auto indices = offset + range<size_t, N>();
-    return load(ptr, indices, indices < max_length);
-}
-
-namespace detail {
-template<typename T, size_t N, typename Is = make_index_sequence<N>>
-struct store_impl;
-
-template<typename T, size_t N, size_t... Is>
-struct store_impl<T, N, index_sequence<Is...>> {
-    KERNEL_FLOAT_INLINE
-    static void call(T* outputs, const T* inputs, const size_t* offsets) {
-        ((outputs[offsets[Is]] = inputs[Is]), ...);
-    }
-
-    KERNEL_FLOAT_INLINE
-    static void call(T* outputs, const T* inputs, const size_t* offsets, const bool* mask) {
-        bool all_valid = true;
-        for (size_t i = 0; i < N; i++) {
-            all_valid &= mask[i];
-        }
-
-        if (all_valid) {
-            ((outputs[offsets[Is]] = inputs[Is]), ...);
-        } else {
-#pragma unroll
-            for (size_t i = 0; i < N; i++) {
-                if (mask[i]) {
-                    outputs[offsets[i]] = inputs[i];
-                }
-            }
-        }
-    }
-};
-}  // namespace detail
-
-/**
- * Load the elements from the vector `values` in the buffer ``ptr`` at the locations specified by ``indices``.
- *
- * ```
- * // Store 4 elements at data[0], data[2], data[4], data[8]
- * auto values = make_vec(42, 13, 87, 12);
- * store(values, data, make_vec(0, 2, 4, 8));
- * ```
- */
-template<
-    typename T,
-    typename V,
-    typename I,
-    typename M,
-    typename E = broadcast_vector_extent_type<V, I, M>>
-KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices, const M& mask) {
-    return detail::store_impl<T, E::value>::call(
-        ptr,
-        convert_storage<T>(values, E()).data(),
         convert_storage<size_t>(indices, E()).data(),
         convert_storage<bool>(mask, E()).data());
 }
 
 /**
- * Load the elements from the vector `values` in the buffer ``ptr`` at the locations specified by ``indices``.
+ * Store the elements from the vector `values` in the buffer ``ptr`` at the locations specified by ``indices``.
  *
  * The ``mask`` should be a vector of booleans where ``true`` indicates that the value should
  * be store and ``false`` indicates that the value should be skipped. This can be used
@@ -2439,106 +2330,240 @@ KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices, const 
  * // Store 2 elements at data[0] and data[8], skip data[2] and data[4]
  * auto values = make_vec(42, 13, 87, 12);
  * auto mask = make_vec(true, false, false, true);
- * store(values, data, make_vec(0, 2, 4, 8), mask);
+ * write(data, make_vec(0, 2, 4, 8), values, mask);
  * ```
  */
-template<typename T, typename V, typename I, typename E = broadcast_vector_extent_type<V, I>>
-KERNEL_FLOAT_INLINE void store(const V& values, T* ptr, const I& indices) {
-    return detail::store_impl<T, E::value>::call(
+template<
+    typename T,
+    typename V,
+    typename I,
+    typename M = bool,
+    typename E = broadcast_vector_extent_type<V, I, M>>
+KERNEL_FLOAT_INLINE void write(T* ptr, const I& indices, const V& values, const M& mask = true) {
+    return detail::copy_impl<T, E::value>::store(
         ptr,
         convert_storage<T>(values, E()).data(),
-        convert_storage<size_t>(indices, E()).data());
+        convert_storage<size_t>(indices, E()).data(),
+        convert_storage<bool>(mask, E()).data());
 }
 
 /**
- * Store ``N`` elements at the location ``ptr[0], ptr[1], ptr[2], ...``. Optionally, an
- * ``offset`` can be given that shifts all the indices by a fixed amount.
+ * Load ``N`` elements at the location ``ptr[0], ptr[1], ptr[2], ...``.
+ *
+ * ```
+ * // Load 4 elements at locations data[0], data[1], data[2], data[3]
+ * vec<T, 4> values = read<4>(data);
+ *
+ * // Load 4 elements at locations data[10], data[11], data[12], data[13]
+ * vec<T, 4> values = read<4>(values + 10, data);
+ * ```
+ */
+template<size_t N, typename T>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> read(const T* ptr) {
+    return read(ptr, range<size_t, N>());
+}
+
+/**
+ * Store ``N`` elements at the location ``ptr[0], ptr[1], ptr[2], ...``.
  *
  * ```
  * // Store 4 elements at locations data[0], data[1], data[2], data[3]
  * vec<float, 4> values = {1.0f, 2.0f, 3.0f, 4.0f};
- * storen<4>(values, data);
+ * write(data, values);
+ *
+ * // Store 4 elements at locations data[10], data[11], data[12], data[13]
+ * write(data + 10, values);
+ * ```
+ */
+template<typename V, typename T>
+KERNEL_FLOAT_INLINE void write(T* ptr, const V& values) {
+    static constexpr size_t N = vector_extent<V>;
+    write(ptr, range<size_t, N>(), values);
+}
+
+namespace detail {
+KERNEL_FLOAT_INLINE
+constexpr size_t gcd(size_t a, size_t b) {
+    return b == 0 ? a : gcd(b, a % b);
+}
+
+template<typename T, size_t N, size_t alignment, typename = void>
+struct copy_aligned_impl {
+    static constexpr size_t K = N > 8 ? 8 : (N > 4 ? 4 : (N > 2 ? 2 : 1));
+    static constexpr size_t alignment_K = gcd(alignment, sizeof(T) * K);
+
+    KERNEL_FLOAT_INLINE
+    static void load(T* output, const T* input) {
+        copy_aligned_impl<T, K, alignment>::load(output, input);
+        copy_aligned_impl<T, N - K, alignment_K>::load(output + K, input + K);
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void store(T* output, const T* input) {
+        copy_aligned_impl<T, K, alignment>::store(output, input);
+        copy_aligned_impl<T, N - K, alignment_K>::store(output + K, input + K);
+    }
+};
+
+template<typename T, size_t alignment>
+struct copy_aligned_impl<T, 0, alignment> {
+    KERNEL_FLOAT_INLINE
+    static void load(T* output, const T* input) {}
+
+    KERNEL_FLOAT_INLINE
+    static void store(T* output, const T* input) {}
+};
+
+template<typename T, size_t alignment>
+struct copy_aligned_impl<T, 1, alignment> {
+    using storage_type = T;
+
+    KERNEL_FLOAT_INLINE
+    static void load(T* output, const T* input) {
+        output[0] = input[0];
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void store(T* output, const T* input) {
+        output[0] = input[0];
+    }
+};
+
+template<typename T, size_t alignment>
+struct copy_aligned_impl<T, 2, alignment, enable_if_t<(alignment > sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(alignment, 2 * sizeof(T));
+    struct alignas(storage_alignment) storage_type {
+        T v0, v1;
+    };
+
+    KERNEL_FLOAT_INLINE
+    static void load(T* output, const T* input) {
+        storage_type storage = *reinterpret_cast<const storage_type*>(input);
+        output[0] = storage.v0;
+        output[1] = storage.v1;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void store(T* output, const T* input) {
+        *reinterpret_cast<storage_type*>(output) = storage_type {input[0], input[1]};
+    }
+};
+
+template<typename T, size_t alignment>
+struct copy_aligned_impl<T, 4, alignment, enable_if_t<(alignment > 2 * sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(alignment, 4 * sizeof(T));
+    struct alignas(storage_alignment) storage_type {
+        T v0, v1, v2, v3;
+    };
+
+    KERNEL_FLOAT_INLINE
+    static void load(T* output, const T* input) {
+        storage_type storage = *reinterpret_cast<const storage_type*>(input);
+        output[0] = storage.v0;
+        output[1] = storage.v1;
+        output[2] = storage.v2;
+        output[3] = storage.v3;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void store(T* output, const T* input) {
+        *reinterpret_cast<storage_type*>(output) = storage_type {
+            input[0],  //
+            input[1],
+            input[2],
+            input[3]};
+    }
+};
+
+template<typename T, size_t alignment>
+struct copy_aligned_impl<T, 8, alignment, enable_if_t<(alignment > 4 * sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(alignment, 8 * sizeof(T));
+    struct alignas(storage_alignment) storage_type {
+        T v0, v1, v2, v3, v4, v5, v6, v7;
+    };
+
+    KERNEL_FLOAT_INLINE
+    static void load(T* output, const T* input) {
+        storage_type storage = *reinterpret_cast<const storage_type*>(input);
+        output[0] = storage.v0;
+        output[1] = storage.v1;
+        output[2] = storage.v2;
+        output[3] = storage.v3;
+        output[4] = storage.v4;
+        output[5] = storage.v5;
+        output[6] = storage.v6;
+        output[7] = storage.v7;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static void store(T* output, const T* input) {
+        *reinterpret_cast<storage_type*>(output) = storage_type {
+            input[0],  //
+            input[1],
+            input[2],
+            input[3],
+            input[4],
+            input[5],
+            input[6],
+            input[7]};
+    }
+};
+
+}  // namespace detail
+
+/**
+ * Load ``N`` elements at the locations ``ptr[0], ptr[1], ptr[2], ...``.
+ *
+ * It is assumed that ``ptr`` is maximum aligned such that all ``N`` elements can be loaded at once using a vector
+ * operation. If the pointer is not aligned, undefined behavior will occur.
+ *
+ * ```
+ * // Load 4 elements at locations data[0], data[1], data[2], data[3]
+ * vec<T, 4> values = read_aligned<4>(data);
  *
  * // Load 4 elements at locations data[10], data[11], data[12], data[13]
- * storen<4>(values, data, 10);
+ * vec<T, 4> values2 = read_aligned<4>(data + 10);
  * ```
  */
-template<typename T, typename V, size_t N = vector_extent<V>>
-KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset = 0) {
-    auto indices = offset + range<size_t, N>();
-    return store(values, ptr, indices);
+template<size_t Align, size_t N = Align, typename T>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
+    static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
+    vector_storage<T, N> result;
+    detail::copy_aligned_impl<T, N, alignment>::load(
+        result.data(),
+        KERNEL_FLOAT_ASSUME_ALIGNED(const T, ptr, alignment));
+    return result;
 }
 
 /**
- * Store ``N`` elements at the location ``ptr[offset+0], ptr[offset+1], ptr[offset+2], ...``.
- * Locations for which the index equals or exceeds ``max_length`` are ignored. This can be used
- * to prevent reading out of bounds.
+ * Store ``N`` elements at the locations ``ptr[0], ptr[1], ptr[2], ...``.
+ *
+ * It is assumed that ``ptr`` is maximum aligned such that all ``N`` elements can be loaded at once using a vector
+ * operation. If the pointer is not aligned, undefined behavior will occur.
  *
  * ```
- * // Store 1.0f at data[8] and 2.0f at data[9]. Ignores remaining values.
+ * // Store 4 elements at locations data[0], data[1], data[2], data[3]
  * vec<float, 4> values = {1.0f, 2.0f, 3.0f, 4.0f};
- * storen<4>(values, data, 8, 10);
+ * write_aligned(data, values);
+ *
+ * // Load 4 elements at locations data[10], data[11], data[12], data[13]
+ * write_aligned(data + 10, values);
  * ```
  */
-template<typename T, typename V, size_t N = vector_extent<V>>
-KERNEL_FLOAT_INLINE void storen(const V& values, T* ptr, size_t offset, size_t max_length) {
-    auto indices = offset + range<size_t, N>();
-    return store(values, ptr, indices, indices < max_length);
-}
+template<size_t Align, typename V, typename T>
+KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
+    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
 
-<<<<<<< HEAD
-// TOOD: check if this way is support across all compilers
-#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
-#define KERNEL_FLOAT_ASSUME_ALIGNED(ptr, alignment) (__builtin_assume_aligned(ptr, alignment))
-#else
-#define KERNEL_FLOAT_ASSUME_ALIGNED(ptr, alignment) (ptr)
-#endif
-
-template<typename T, size_t N>
-struct AssignConversionProxy {
-    KERNEL_FLOAT_INLINE
-    explicit AssignConversionProxy(T* ptr) : ptr_(ptr) {}
-
-    template<typename U>
-    KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
-        auto indices = range<size_t, N>();
-        detail::store_impl<T, N>::call(
-            ptr_,
-            convert_storage<T, N>(std::forward<U>(values)).data(),
-            indices.data());
-
-        return *this;
-    }
-
-  private:
-    T* ptr_;
-};
-
-/**
- * Takes a reference to a vector and returns a special proxy object that automatically performs the correct conversion
- * when a vector of a different element type is assigned. This is useful to perform implicit type conversions.
- *
- * For example, let assume that a line like `x = expression;` would not compile since `x` and `expressions` are
- * vectors of different element types. Then it is possible to use `cast_to(x) = expression;` to fix this error,
- * which possibly introduces a type conversion.
- *
- * Example
- * =======
- * ```
- * vec<float, 2> x;
- * vec<double, 2> y = {1.0, 2.0};
- * cast_to(x) = y;  // normally, the line `x = y;` would not compile, but `cast_to` make this possible
- * ```
- */
-template<typename T, typename E>
-KERNEL_FLOAT_INLINE AssignConversionProxy<T, E::value> cast_to(vector<T, E>& input) {
-    return AssignConversionProxy<T, E::value>(input.data());
+    return detail::copy_aligned_impl<T, N, alignment>::store(
+        KERNEL_FLOAT_ASSUME_ALIGNED(T, ptr, alignment),
+        convert_storage<T, N>(values).data());
 }
 
 /**
  * Represents a pointer of type ``T*`` that is guaranteed to be aligned to ``alignment`` bytes.
  */
-template<typename T, size_t alignment = 256>
+template<typename T, size_t alignment = KERNEL_FLOAT_MAX_ALIGNMENT>
 struct aligned_ptr {
     static_assert(alignment >= alignof(T), "invalid alignment");
 
@@ -2548,12 +2573,15 @@ struct aligned_ptr {
     KERNEL_FLOAT_INLINE
     explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
 
+    KERNEL_FLOAT_INLINE
+    aligned_ptr(const aligned_ptr<T>& ptr) : ptr_(ptr.get()) {}
+
     /**
      * Return the pointer value.
      */
     KERNEL_FLOAT_INLINE
     T* get() const {
-        return KERNEL_FLOAT_ASSUME_ALIGNED(ptr_, alignment);
+        return KERNEL_FLOAT_ASSUME_ALIGNED(T, ptr_, alignment);
     }
 
     KERNEL_FLOAT_INLINE
@@ -2567,169 +2595,111 @@ struct aligned_ptr {
     }
 
     /**
-     * See ``kernel_float::load``
+     * Returns a new pointer that is offset by ``Step * offset`` items
+     *
+     * Example
+     * =======
+     * ```
+     * aligned_ptr<int> ptr = vector.data();
+     *
+     * // Returns a pointer to element `vector[8]` with alignment of 4
+     * ptr.offset(8);
+     *
+     * // Returns a pointer to element `vector[4]` with alignment of 16
+     * ptr.offset<4>();
+     *
+     * // Returns a pointer to element `vector[8]` with alignment of 16
+     * ptr.offset<4>(2);
+     * ```
      */
-    template<typename I, typename M, typename E = broadcast_vector_extent_type<I, M>>
-    KERNEL_FLOAT_INLINE vector<T, E> load(const I& indices, const M& mask = true) const {
-        return ::kernel_float::load(get(), indices, mask);
+    template<size_t Step = 1>
+    KERNEL_FLOAT_INLINE aligned_ptr<T, detail::gcd(sizeof(T) * Step, alignment)>
+    offset(size_t n = 1) const {
+        return aligned_ptr<T, detail::gcd(sizeof(T) * Step, alignment)> {get() + Step * n};
     }
 
     /**
-     * See ``kernel_float::loadn``
+     * See ``kernel_float::read``
      */
     template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset = 0) const {
-        return ::kernel_float::loadn<N>(get(), offset);
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> read() const {
+        vector_storage<T, N> result;
+        detail::copy_aligned_impl<T, N, alignment>::load(result.data(), get());
+        return result;
     }
 
     /**
-     * See ``kernel_float::loadn``
+     * See ``kernel_float::write``
      */
-    template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset, size_t max_length) const {
-        return ::kernel_float::loadn<N>(get(), offset, max_length);
+    template<typename V>
+    KERNEL_FLOAT_INLINE void write(const V& values) const {
+        constexpr size_t N = vector_extent<V>;
+        return detail::copy_aligned_impl<T, N, alignment>::store(
+            get(),
+            convert_storage<T, N>(values).data());
     }
 
     /**
-     * See ``kernel_float::store``
+     * See ``kernel_float::read``
      */
-    template<typename V, typename I, typename M, typename E = broadcast_vector_extent_type<V, I, M>>
-    KERNEL_FLOAT_INLINE void store(const V& values, const I& indices, const M& mask = true) const {
-        ::kernel_float::store(values, get(), indices, mask);
+    template<typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
+    KERNEL_FLOAT_INLINE vector<T, E> read(const I& indices, const M& mask = true) {
+        return ::kernel_float::read(get(), indices, mask);
     }
+
     /**
-     * See ``kernel_float::storen``
+     * See ``kernel_float::write``
      */
-    template<typename V, size_t N = vector_extent<V>>
-    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset = 0) const {
-        ::kernel_float::storen(values, get(), offset);
+    template<typename V, typename I, typename M = bool>
+    KERNEL_FLOAT_INLINE void write(const I& indices, const V& values, const M& mask = true) {
+        return ::kernel_float::write(get(), indices, values, mask);
     }
+
     /**
-     * See ``kernel_float::storen``
+     * Offsets the pointer by `Step * offset` items and then read the subsequent `N` items.
+     *
+     * Example
+     * =======
+     * ```
+     * aligned_ptr<int> ptr = vector.data();
+     *
+     * // Returns vector[40], vector[41], vector[42], vector[43]
+     * ptr.read_at<4>(10);
+     *
+     * // Returns vector[20], vector[21], vector[22]
+     * ptr.read_at<2, 3>(10);
+     * ```
      */
-    template<typename V, size_t N = vector_extent<V>>
-    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset, size_t max_length) const {
-        ::kernel_float::storen(values, get(), offset, max_length);
+    template<size_t Step = 1, size_t N = Step>
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> read_at(size_t offset) const {
+        return this->offset<Step>(offset).template read<N>();
+    }
+
+    /**
+     * Offsets the pointer by `Step * offset` items and then writes the subsequent `N` items.
+     *
+     * Example
+     * =======
+     * ```
+     * aligned_ptr<int> ptr = vector.data();
+     * vec<int, 4> values = {1, 2, 3, 4};
+     *
+     * // Writes to vector[40], vector[41], vector[42], vector[43]
+     * ptr.write_at<4>(10, values);
+     *
+     * // Returns vector[20], vector[21], vector[22], vector[23]
+     * ptr.write_at<2>(10, values);
+     * ```
+     */
+    template<size_t Step = 1, typename V>
+    KERNEL_FLOAT_INLINE void write_at(size_t offset, const V& values) const {
+        return this->offset<Step>(offset).template write(values);
     }
 
   private:
     T* ptr_ = nullptr;
 };
 
-/**
- * Represents a pointer of type ``const T*`` that is guaranteed to be aligned to ``alignment`` bytes.
- */
-template<typename T, size_t alignment>
-struct aligned_ptr<const T, alignment> {
-    static_assert(alignment >= alignof(T), "invalid alignment");
-
-    KERNEL_FLOAT_INLINE
-    aligned_ptr(nullptr_t = nullptr) {}
-
-    KERNEL_FLOAT_INLINE
-    explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
-
-    KERNEL_FLOAT_INLINE
-    explicit aligned_ptr(const T* ptr) : ptr_(ptr) {}
-=======
-/**
- * Returns the original pointer ``ptr`` and hints to the compiler that this pointer is aligned to ``alignment`` bytes.
- * If this is not actually the case, compiler optimizations will break things and generate invalid code. Be careful!
- */
-template<typename T>
-KERNEL_FLOAT_INLINE T* unsafe_assume_aligned(T* ptr, size_t alignment) {
-// TOOD: check if this way is support across all compilers
-#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
-    return static_cast<T*>(__builtin_assume_aligned(ptr, alignment));
-#else
-    return ptr;
-#endif
-}
-
-/**
- * Represents a pointer of type ``T*`` that is guaranteed to be aligned to ``alignment`` bytes.
- */
-template<typename T, size_t alignment = 256>
-struct aligned_ptr {
-    static_assert(alignment >= alignof(T), "invalid alignment");
-
-    KERNEL_FLOAT_INLINE
-    aligned_ptr(nullptr_t = nullptr) {}
-
-    KERNEL_FLOAT_INLINE
-    explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
-
-    /**
-     * Return the pointer value.
-     */
-    KERNEL_FLOAT_INLINE
-    T* get() const {
-        return unsafe_assume_aligned(ptr_, alignment);
-    }
-
-    KERNEL_FLOAT_INLINE
-    operator T*() const {
-        return get();
-    }
-
-    template<typename I>
-    KERNEL_FLOAT_INLINE T& operator[](I&& index) const {
-        return get()[std::forward<I>(index)];
-    }
-
-    /**
-     * See ``kernel_float::load``
-     */
-    template<typename I, typename M, typename E = broadcast_vector_extent_type<I, M>>
-    KERNEL_FLOAT_INLINE vector<T, E> load(const I& indices, const M& mask = true) const {
-        return ::kernel_float::load(get(), indices, mask);
-    }
-
-    /**
-     * See ``kernel_float::loadn``
-     */
-    template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset = 0) const {
-        return ::kernel_float::loadn<N>(get(), offset);
-    }
-
-    /**
-     * See ``kernel_float::loadn``
-     */
-    template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset, size_t max_length) const {
-        return ::kernel_float::loadn<N>(get(), offset, max_length);
-    }
-
-    /**
-     * See ``kernel_float::store``
-     */
-    template<typename V, typename I, typename M, typename E = broadcast_vector_extent_type<V, I, M>>
-    KERNEL_FLOAT_INLINE void store(const V& values, const I& indices, const M& mask = true) const {
-        ::kernel_float::store(values, get(), indices, mask);
-    }
-    /**
-     * See ``kernel_float::storen``
-     */
-    template<typename V, size_t N = vector_extent<V>>
-    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset = 0) const {
-        ::kernel_float::storen(values, get(), offset);
-    }
-    /**
-     * See ``kernel_float::storen``
-     */
-    template<typename V, size_t N = vector_extent<V>>
-    KERNEL_FLOAT_INLINE void storen(const V& values, size_t offset, size_t max_length) const {
-        ::kernel_float::storen(values, get(), offset, max_length);
-    }
-
-  private:
-    T* ptr_ = nullptr;
-};
-
-/**
- * Represents a pointer of type ``const T*`` that is guaranteed to be aligned to ``alignment`` bytes.
- */
 template<typename T, size_t alignment>
 struct aligned_ptr<const T, alignment> {
     static_assert(alignment >= alignof(T), "invalid alignment");
@@ -2748,18 +2718,13 @@ struct aligned_ptr<const T, alignment> {
 
     KERNEL_FLOAT_INLINE
     aligned_ptr(const aligned_ptr<const T>& ptr) : ptr_(ptr.get()) {}
->>>>>>> 9bf416c (Update single_include)
 
     /**
      * Return the pointer value.
      */
     KERNEL_FLOAT_INLINE
     const T* get() const {
-<<<<<<< HEAD
-        return KERNEL_FLOAT_ASSUME_ALIGNED(ptr_, alignment);
-=======
-        return unsafe_assume_aligned(ptr_, alignment);
->>>>>>> 9bf416c (Update single_include)
+        return KERNEL_FLOAT_ASSUME_ALIGNED(const T, ptr_, alignment);
     }
 
     KERNEL_FLOAT_INLINE
@@ -2773,39 +2738,71 @@ struct aligned_ptr<const T, alignment> {
     }
 
     /**
-     * See ``kernel_float::load``
+     * Returns a new pointer that is offset by ``Step * offset`` items
+     *
+     * Example
+     * =======
+     * ```
+     * aligned_ptr<int> ptr = vector.data();
+     *
+     * // Returns a pointer to element `vector[8]` with alignment of 4
+     * ptr.offset(8);
+     *
+     * // Returns a pointer to element `vector[4]` with alignment of 16
+     * ptr.offset<4>();
+     *
+     * // Returns a pointer to element `vector[8]` with alignment of 16
+     * ptr.offset<4>(2);
+     * ```
      */
-    template<typename I, typename M, typename E = broadcast_vector_extent_type<I, M>>
-    KERNEL_FLOAT_INLINE vector<T, E> load(const I& indices, const M& mask = true) const {
-        return ::kernel_float::load(get(), indices, mask);
+    template<size_t Step = 1>
+    KERNEL_FLOAT_INLINE aligned_ptr<const T, detail::gcd(sizeof(T) * Step, alignment)>
+    offset(size_t n = 1) const {
+        return aligned_ptr<const T, detail::gcd(sizeof(T) * Step, alignment)> {get() + Step * n};
     }
 
     /**
-     * See ``kernel_float::loadn``
+     * See ``kernel_float::read``
      */
     template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset = 0) const {
-        return ::kernel_float::loadn<N>(get(), offset);
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> read() const {
+        vector_storage<T, N> result;
+        detail::copy_aligned_impl<T, N, alignment>::load(result.data(), get());
+        return result;
     }
 
     /**
-     * See ``kernel_float::loadn``
+     * See ``kernel_float::write``
      */
-    template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> loadn(size_t offset, size_t max_length) const {
-        return ::kernel_float::loadn<N>(get(), offset, max_length);
+    template<typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
+    KERNEL_FLOAT_INLINE vector<T, E> read(const I& indices, const M& mask = true) {
+        return ::kernel_float::read(get(), indices, mask);
+    }
+
+    /**
+     * Offsets the pointer by `Step * offset` items and then read the subsequent `N` items.
+     *
+     * Example
+     * =======
+     * ```
+     * aligned_ptr<int> ptr = vector.data();
+     *
+     * // Returns vector[40], vector[41], vector[42], vector[43]
+     * ptr.read_at<4>(10);
+     *
+     * // Returns vector[20], vector[21], vector[22]
+     * ptr.read_at<2, 3>(10);
+     * ```
+     */
+    template<size_t Step = 1, size_t N = Step>
+    KERNEL_FLOAT_INLINE vector<T, extent<N>> read_at(size_t offset) const {
+        return this->offset<Step>(offset).template read<N>();
     }
 
   private:
     const T* ptr_ = nullptr;
 };
 
-<<<<<<< HEAD
-=======
-template<typename T>
-aligned_ptr(T*) -> aligned_ptr<T>;
-
->>>>>>> 9bf416c (Update single_include)
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_MEMORY_H
