@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-10-23 12:07:20.751837
-// git hash: ed7143d9b83a89f043191f4957760081bda60b4d
+// date: 2023-10-23 12:19:00.301788
+// git hash: f668fa44813fadb51dc48192391b51502ba17618
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -4549,7 +4549,7 @@ struct instantiate_distribution_impl {
 template<typename First, typename... Rest>
 struct instantiate_distribution_impl<0, distributions<First, Rest...>> {
     template<size_t N, size_t K>
-    using type = typename First::type<N, K>;
+    using type = typename First::template type<N, K>;
 };
 
 template<size_t I, typename First, typename... Rest>
@@ -4567,7 +4567,7 @@ template<typename TileDim, typename BlockDim, typename Distributions, size_t... 
 struct tiling_impl<TileDim, BlockDim, Distributions, index_sequence<Is...>> {
     template<size_t I>
     using dist_type = typename instantiate_distribution_impl<I, Distributions>::
-        type<TileDim::size(I, BlockDim::size(I)), BlockDim::size(I)>;
+        template type<TileDim::size(I, BlockDim::size(I)), BlockDim::size(I)>;
 
     static constexpr size_t rank = TileDim::rank;
     static constexpr size_t items_per_thread = (dist_type<Is>::items_per_thread * ... * 1);
