@@ -293,7 +293,7 @@ struct aligned_ptr {
     static_assert(alignment >= alignof(T), "invalid alignment");
 
     KERNEL_FLOAT_INLINE
-    aligned_ptr(nullptr_t = nullptr) {}
+    aligned_ptr(decltype(nullptr) = nullptr) {}
 
     KERNEL_FLOAT_INLINE
     explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
@@ -430,7 +430,7 @@ struct aligned_ptr<const T, alignment> {
     static_assert(alignment >= alignof(T), "invalid alignment");
 
     KERNEL_FLOAT_INLINE
-    aligned_ptr(nullptr_t = nullptr) {}
+    aligned_ptr(decltype(nullptr) = nullptr) {}
 
     KERNEL_FLOAT_INLINE
     explicit aligned_ptr(T* ptr) : ptr_(ptr) {}

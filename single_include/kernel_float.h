@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-10-23 10:41:33.267957
-// git hash: 5844245b6d2d679f23d9ccc9693a3274b75917f9
+// date: 2023-10-23 12:07:20.751837
+// git hash: ed7143d9b83a89f043191f4957760081bda60b4d
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2568,7 +2568,7 @@ struct aligned_ptr {
     static_assert(alignment >= alignof(T), "invalid alignment");
 
     KERNEL_FLOAT_INLINE
-    aligned_ptr(nullptr_t = nullptr) {}
+    aligned_ptr(decltype(nullptr) = nullptr) {}
 
     KERNEL_FLOAT_INLINE
     explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
@@ -2705,7 +2705,7 @@ struct aligned_ptr<const T, alignment> {
     static_assert(alignment >= alignof(T), "invalid alignment");
 
     KERNEL_FLOAT_INLINE
-    aligned_ptr(nullptr_t = nullptr) {}
+    aligned_ptr(decltype(nullptr) = nullptr) {}
 
     KERNEL_FLOAT_INLINE
     explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
