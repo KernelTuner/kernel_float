@@ -18,7 +18,7 @@ __global__ void my_kernel(int length, const __half* input, double constant, floa
 
     if (i * N < length) {
         auto a = kf::read_aligned<N>(input + i * N);
-        auto b = (a * a) * constant;
+        auto b = kf::fma(a, a, kf::cast<__half>(constant));
         kf::write_aligned<N>(output + i * N, b);
     }
 }

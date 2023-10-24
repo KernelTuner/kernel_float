@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-10-24 14:03:49.849025
-// git hash: a35b9f600525b2253f9b2e1fb3cb91d382ac2a7d
+// date: 2023-10-24 14:14:37.228322
+// git hash: 28f811af866d73bef37acd541bac6a95df9a94c3
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -354,6 +354,7 @@ struct enable_if_impl<true, T> {
 template<bool C, typename T = void>
 using enable_if_t = typename detail::enable_if_impl<C, T>::type;
 
+KERNEL_FLOAT_INLINE
 constexpr size_t round_up_to_power_of_two(size_t n) {
     size_t result = 1;
     while (result < n) {
