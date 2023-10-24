@@ -29,103 +29,26 @@ template<>
 struct allow_float_fallback<__half> {
     static constexpr bool value = true;
 };
-
-template<typename F>
-struct map_halfx2 {
-    KERNEL_FLOAT_INLINE
-    static __half2 call(F fun, __half2 input) {
-        __half a = fun(input.x);
-        __half b = fun(input.y);
-        return {a, b};
-    }
-};
-
-template<typename F>
-struct zip_halfx2 {
-    KERNEL_FLOAT_INLINE
-    static __half2 call(F fun, __half2 left, __half2 right) {
-        __half a = fun(left.x, left.y);
-        __half b = fun(right.y, right.y);
-        return {a, b};
-    }
-};
-
-template<typename F, size_t N>
-struct apply_impl<F, N, __half, __half> {
-    KERNEL_FLOAT_INLINE static void call(F fun, __half* result, const __half* input) {
-#pragma unroll
-        for (size_t i = 0; 2 * i + 1 < N; i++) {
-            __half2 a = {input[2 * i], input[2 * i + 1]};
-            __half2 b = map_halfx2<F>::call(fun, a);
-            result[2 * i + 0] = b.x;
-            result[2 * i + 1] = b.y;
-        }
-
-        if (N % 2 != 0) {
-            result[N - 1] = fun(input[N - 1]);
-        }
-    }
-};
-
-template<typename F, size_t N>
-struct apply_impl<F, N, __half, __half, __half> {
-    KERNEL_FLOAT_INLINE static void
-    call(F fun, __half* result, const __half* left, const __half* right) {
-#pragma unroll
-        for (size_t i = 0; 2 * i + 1 < N; i++) {
-            __half2 a = {left[2 * i], left[2 * i + 1]};
-            __half2 b = {right[2 * i], right[2 * i + 1]};
-            __half2 c = zip_halfx2<F>::call(fun, a, b);
-            result[2 * i + 0] = c.x;
-            result[2 * i + 1] = c.y;
-        }
-
-        if (N % 2 != 0) {
-            result[N - 1] = fun(left[N - 1], right[N - 1]);
-        }
-    }
-};
-
-template<typename F, size_t N>
-struct reduce_impl<F, N, __half, enable_if_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __half call(F fun, const __half* input) {
-        __half2 accum = {input[0], input[1]};
-
-#pragma unroll
-        for (size_t i = 0; 2 * i + 1 < N; i++) {
-            __half2 a = {input[2 * i], input[2 * i + 1]};
-            accum = zip_halfx2<F>::call(fun, accum, a);
-        }
-
-        __half result = fun(accum.x, accum.y);
-
-        if (N % 2 != 0) {
-            result = fun(result, input[N - 1]);
-        }
-
-        return result;
-    }
-};
-
 };  // namespace detail
 
 #if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                               \
-    namespace ops {                                                                 \
-    template<>                                                                      \
-    struct NAME<__half> {                                                           \
-        KERNEL_FLOAT_INLINE __half operator()(__half input) {                       \
-            return FUN1(input);                                                     \
-        }                                                                           \
-    };                                                                              \
-    }                                                                               \
-    namespace detail {                                                              \
-    template<>                                                                      \
-    struct map_halfx2<ops::NAME<__half>> {                                          \
-        KERNEL_FLOAT_INLINE static __half2 call(ops::NAME<__half>, __half2 input) { \
-            return FUN2(input);                                                     \
-        }                                                                           \
-    };                                                                              \
+#define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                                              \
+    namespace ops {                                                                                \
+    template<>                                                                                     \
+    struct NAME<__half> {                                                                          \
+        KERNEL_FLOAT_INLINE __half operator()(__half input) {                                      \
+            return FUN1(input);                                                                    \
+        }                                                                                          \
+    };                                                                                             \
+    }                                                                                              \
+    namespace detail {                                                                             \
+    template<>                                                                                     \
+    struct apply_impl<ops::NAME<__half>, 2, __half, __half> {                                      \
+        KERNEL_FLOAT_INLINE static void call(ops::NAME<__half>, __half* result, const __half* a) { \
+            __half2 r = FUN2(__half2 {a[0], a[1]});                                                \
+            result[0] = r.x, result[1] = r.y;                                                      \
+        }                                                                                          \
+    };                                                                                             \
     }
 #else
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)
@@ -152,22 +75,24 @@ KERNEL_FLOAT_FP16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
 KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
 
 #if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                            \
-    namespace ops {                                                                               \
-    template<>                                                                                    \
-    struct NAME<__half> {                                                                         \
-        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const {                  \
-            return FUN1(left, right);                                                             \
-        }                                                                                         \
-    };                                                                                            \
-    }                                                                                             \
-    namespace detail {                                                                            \
-    template<>                                                                                    \
-    struct zip_halfx2<ops::NAME<__half>> {                                                        \
-        KERNEL_FLOAT_INLINE static __half2 call(ops::NAME<__half>, __half2 left, __half2 right) { \
-            return FUN2(left, right);                                                             \
-        }                                                                                         \
-    };                                                                                            \
+#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                              \
+    namespace ops {                                                                 \
+    template<>                                                                      \
+    struct NAME<__half> {                                                           \
+        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const {    \
+            return FUN1(left, right);                                               \
+        }                                                                           \
+    };                                                                              \
+    }                                                                               \
+    namespace detail {                                                              \
+    template<>                                                                      \
+    struct apply_impl<ops::NAME<__half>, 2, __half, __half, __half> {               \
+        KERNEL_FLOAT_INLINE static void                                             \
+        call(ops::NAME<__half>, __half* result, const __half* a, const __half* b) { \
+            __half2 r = FUN2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]});           \
+            result[0] = r.x, result[1] = r.y;                                       \
+        }                                                                           \
+    };                                                                              \
     }
 #else
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)
@@ -187,6 +112,28 @@ KERNEL_FLOAT_FP16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater_equal, __hge, __hgt2)
+
+#if KERNEL_FLOAT_IS_DEVICE
+namespace ops {
+template<>
+struct fma<__half> {
+    KERNEL_FLOAT_INLINE __half operator()(__half a, __half b, __half c) const {
+        return __hfma(a, b, c);
+    }
+};
+}  // namespace ops
+
+namespace detail {
+template<>
+struct apply_impl<ops::fma<__half>, 2, __half, __half, __half, __half> {
+    KERNEL_FLOAT_INLINE static void
+    call(ops::fma<__half>, __half* result, const __half* a, const __half* b, const __half* c) {
+        __half2 r = __hfma2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]}, __half2 {c[0], c[1]});
+        result[0] = r.x, result[1] = r.y;
+    }
+};
+}  // namespace detail
+#endif
 
 #define KERNEL_FLOAT_FP16_CAST(T, TO_HALF, FROM_HALF)    \
     namespace ops {                                      \

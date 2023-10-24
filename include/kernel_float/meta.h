@@ -270,6 +270,14 @@ struct enable_if_impl<true, T> {
 template<bool C, typename T = void>
 using enable_if_t = typename detail::enable_if_impl<C, T>::type;
 
+constexpr size_t round_up_to_power_of_two(size_t n) {
+    size_t result = 1;
+    while (result < n) {
+        result *= 2;
+    }
+    return result;
+}
+
 }  // namespace kernel_float
 
 #endif

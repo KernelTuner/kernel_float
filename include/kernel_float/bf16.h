@@ -31,103 +31,27 @@ template<>
 struct allow_float_fallback<__nv_bfloat16> {
     static constexpr bool value = true;
 };
-
-template<typename F>
-struct map_bfloat16x2 {
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat162 call(F fun, __nv_bfloat162 input) {
-        __nv_bfloat16 a = fun(input.x);
-        __nv_bfloat16 b = fun(input.y);
-        return {a, b};
-    }
-};
-
-template<typename F>
-struct zip_bfloat16x2 {
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat162 call(F fun, __nv_bfloat162 left, __nv_bfloat162 right) {
-        __nv_bfloat16 a = fun(left.x, left.y);
-        __nv_bfloat16 b = fun(right.y, right.y);
-        return {a, b};
-    }
-};
-
-template<typename F, size_t N>
-struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static void call(F fun, __nv_bfloat16* result, const __nv_bfloat16* input) {
-#pragma unroll
-        for (size_t i = 0; 2 * i + 1 < N; i++) {
-            __nv_bfloat162 a = {input[2 * i], input[2 * i + 1]};
-            __nv_bfloat162 b = map_bfloat16x2<F>::call(fun, a);
-            result[2 * i + 0] = b.x;
-            result[2 * i + 1] = b.y;
-        }
-
-        if (N % 2 != 0) {
-            result[N - 1] = fun(input[N - 1]);
-        }
-    }
-};
-
-template<typename F, size_t N>
-struct apply_impl<F, N, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE static void
-    call(F fun, __nv_bfloat16* result, const __nv_bfloat16* left, const __nv_bfloat16* right) {
-#pragma unroll
-        for (size_t i = 0; 2 * i + 1 < N; i++) {
-            __nv_bfloat162 a = {left[2 * i], left[2 * i + 1]};
-            __nv_bfloat162 b = {right[2 * i], right[2 * i + 1]};
-            __nv_bfloat162 c = zip_bfloat16x2<F>::call(fun, a, b);
-            result[2 * i + 0] = c.x;
-            result[2 * i + 1] = c.y;
-        }
-
-        if (N % 2 != 0) {
-            result[N - 1] = fun(left[N - 1], right[N - 1]);
-        }
-    }
-};
-
-template<typename F, size_t N>
-struct reduce_impl<F, N, __nv_bfloat16, enable_if_t<(N >= 2)>> {
-    KERNEL_FLOAT_INLINE static __nv_bfloat16 call(F fun, const __nv_bfloat16* input) {
-        __nv_bfloat162 accum = {input[0], input[1]};
-
-#pragma unroll
-        for (size_t i = 0; 2 * i + 1 < N; i++) {
-            __nv_bfloat162 a = {input[2 * i], input[2 * i + 1]};
-            accum = zip_bfloat16x2<F>::call(fun, accum, a);
-        }
-
-        __nv_bfloat16 result = fun(accum.x, accum.y);
-
-        if (N % 2 != 0) {
-            result = fun(result, input[N - 1]);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
+};  // namespace detail
 
 #if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                       \
-    namespace ops {                                                         \
-    template<>                                                              \
-    struct NAME<__nv_bfloat16> {                                            \
-        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) { \
-            return FUN1(input);                                             \
-        }                                                                   \
-    };                                                                      \
-    }                                                                       \
-    namespace detail {                                                      \
-    template<>                                                              \
-    struct map_bfloat16x2<ops::NAME<__nv_bfloat16>> {                       \
-        KERNEL_FLOAT_INLINE static __nv_bfloat162                           \
-        call(ops::NAME<__nv_bfloat16>, __nv_bfloat162 input) {              \
-            return FUN2(input);                                             \
-        }                                                                   \
-    };                                                                      \
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                                   \
+    namespace ops {                                                                     \
+    template<>                                                                          \
+    struct NAME<__nv_bfloat16> {                                                        \
+        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) {             \
+            return FUN1(input);                                                         \
+        }                                                                               \
+    };                                                                                  \
+    }                                                                                   \
+    namespace detail {                                                                  \
+    template<>                                                                          \
+    struct apply_impl<ops::NAME<__nv_bfloat16>, 2, __nv_bfloat16, __nv_bfloat16> {      \
+        KERNEL_FLOAT_INLINE static void                                                 \
+        call(ops::NAME<__nv_bfloat16>, __nv_bfloat16* result, const __nv_bfloat16* a) { \
+            __nv_bfloat162 r = FUN2(__nv_bfloat162 {a[0], a[1]});                       \
+            result[0] = r.x, result[1] = r.y;                                           \
+        }                                                                               \
+    };                                                                                  \
     }
 #else
 #define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)
@@ -156,24 +80,28 @@ KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
 #endif
 
 #if KERNEL_FLOAT_CUDA_ARCH >= 800
-#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                              \
-    namespace ops {                                                                 \
-    template<>                                                                      \
-    struct NAME<__nv_bfloat16> {                                                    \
-        KERNEL_FLOAT_INLINE __nv_bfloat16                                           \
-        operator()(__nv_bfloat16 left, __nv_bfloat16 right) const {                 \
-            return FUN1(left, right);                                               \
-        }                                                                           \
-    };                                                                              \
-    }                                                                               \
-    namespace detail {                                                              \
-    template<>                                                                      \
-    struct zip_bfloat16x2<ops::NAME<__nv_bfloat16>> {                               \
-        KERNEL_FLOAT_INLINE static __nv_bfloat162                                   \
-        call(ops::NAME<__nv_bfloat16>, __nv_bfloat162 left, __nv_bfloat162 right) { \
-            return FUN2(left, right);                                               \
-        }                                                                           \
-    };                                                                              \
+#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                                            \
+    namespace ops {                                                                               \
+    template<>                                                                                    \
+    struct NAME<__nv_bfloat16> {                                                                  \
+        KERNEL_FLOAT_INLINE __nv_bfloat16                                                         \
+        operator()(__nv_bfloat16 left, __nv_bfloat16 right) const {                               \
+            return FUN1(left, right);                                                             \
+        }                                                                                         \
+    };                                                                                            \
+    }                                                                                             \
+    namespace detail {                                                                            \
+    template<>                                                                                    \
+    struct apply_impl<ops::NAME<__nv_bfloat16>, 2, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> { \
+        KERNEL_FLOAT_INLINE static void call(                                                     \
+            ops::NAME<__nv_bfloat16>,                                                             \
+            __nv_bfloat16* result,                                                                \
+            const __nv_bfloat16* a,                                                               \
+            const __nv_bfloat16* b) {                                                             \
+            __nv_bfloat162 r = FUN2(__nv_bfloat162 {a[0], a[1]}, __nv_bfloat162 {b[0], b[1]});    \
+            result[0] = r.x, result[1] = r.y;                                                     \
+        }                                                                                         \
+    };                                                                                            \
     }
 #else
 #define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)
@@ -194,6 +122,42 @@ KERNEL_FLOAT_BF16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
+
+#if KERNEL_FLOAT_CUDA_ARCH >= 800
+namespace ops {
+template<>
+struct fma<__nv_bfloat16> {
+    KERNEL_FLOAT_INLINE __nv_bfloat16
+    operator()(__nv_bfloat16 a, __nv_bfloat16 b, __nv_bfloat16 c) const {
+        return __hfma(a, b, c);
+    }
+};
+}  // namespace ops
+
+namespace detail {
+template<>
+struct apply_impl<
+    ops::fma<__nv_bfloat16>,
+    2,
+    __nv_bfloat16,
+    __nv_bfloat16,
+    __nv_bfloat16,
+    __nv_bfloat16> {
+    KERNEL_FLOAT_INLINE static void call(
+        ops::fma<__nv_bfloat16>,
+        __nv_bfloat16* result,
+        const __nv_bfloat16* a,
+        const __nv_bfloat16* b,
+        const __nv_bfloat16* c) {
+        __nv_bfloat162 r = __hfma2(
+            __nv_bfloat162 {a[0], a[1]},
+            __nv_bfloat162 {b[0], b[1]},
+            __nv_bfloat162 {c[0], c[1]});
+        result[0] = r.x, result[1] = r.y;
+    }
+};
+}  // namespace detail
+#endif
 
 namespace ops {
 template<>

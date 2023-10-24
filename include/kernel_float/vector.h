@@ -6,6 +6,7 @@
 #include "iterate.h"
 #include "macros.h"
 #include "reduce.h"
+#include "triops.h"
 #include "unops.h"
 
 namespace kernel_float {
