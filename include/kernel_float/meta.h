@@ -77,7 +77,7 @@ template<typename T>
 using decay_t = typename detail::decay_impl<T>::type;
 
 template<typename A, typename B>
-struct promote_type;
+struct promote_type {};
 
 template<typename T>
 struct promote_type<T, T> {
@@ -269,6 +269,15 @@ struct enable_if_impl<true, T> {
 
 template<bool C, typename T = void>
 using enable_if_t = typename detail::enable_if_impl<C, T>::type;
+
+KERNEL_FLOAT_INLINE
+constexpr size_t round_up_to_power_of_two(size_t n) {
+    size_t result = 1;
+    while (result < n) {
+        result *= 2;
+    }
+    return result;
+}
 
 }  // namespace kernel_float
 

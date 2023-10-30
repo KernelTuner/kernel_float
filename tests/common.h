@@ -11,7 +11,8 @@
 namespace kf = kernel_float;
 
 namespace detail {
-static __host__ __device__ void __assertion_failed(const char* expr, const char* file, int line) {
+__attribute__((noinline)) static __host__ __device__ void
+__assertion_failed(const char* expr, const char* file, int line) {
 #ifndef __CUDA_ARCH__
     std::string msg =
         "assertion failed: " + std::string(expr) + " (" + file + ":" + std::to_string(line) + ")";

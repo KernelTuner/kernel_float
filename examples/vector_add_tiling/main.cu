@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "kernel_float.h"
+#include "kernel_float/tiling.h"
 using namespace kernel_float::prelude;
 
 void cuda_check(cudaError_t code) {
@@ -12,18 +13,26 @@ void cuda_check(cudaError_t code) {
     }
 }
 
-template<int N>
-__global__ void my_kernel(int length, const __half* input, double constant, float* output) {
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
+template<int N, int B>
+__global__ void my_kernel(
+    int length,
+    kf::aligned_ptr<const __half> input,
+    double constant,
+    kf::aligned_ptr<float> output) {
+    auto tiling = kf::tiling<
+        kf::tile_factor<N>,
+        kf::block_size<B>,
+        kf::distributions<kf::dist::block_cyclic<2>>>();
 
-    if (i * N < length) {
-        auto a = kf::read_aligned<N>(input + i * N);
-        auto b = kf::fma(a, a, kf::cast<__half>(constant));
-        kf::write_aligned<N>(output + i * N, b);
-    }
+    auto points = int(blockIdx.x * tiling.tile_size(0)) + tiling.local_points(0);
+    auto mask = tiling.local_mask();
+
+    auto a = input.read(points, mask);
+    auto b = (a * a) * constant;
+    output.write(points, b, mask);
 }
 
-template<int items_per_thread>
+template<int items_per_thread, int block_size = 256>
 void run_kernel(int n) {
     double constant = 1.0;
     std::vector<half> input(n);
@@ -39,17 +48,16 @@ void run_kernel(int n) {
     // Allocate device memory
     __half* input_dev;
     float* output_dev;
-    cuda_check(cudaMalloc(&input_dev, sizeof(half) * n));
+    cuda_check(cudaMalloc(&input_dev, sizeof(__half) * n));
     cuda_check(cudaMalloc(&output_dev, sizeof(float) * n));
 
     // Copy device memory
     cuda_check(cudaMemcpy(input_dev, input.data(), sizeof(half) * n, cudaMemcpyDefault));
 
     // Launch kernel!
-    int block_size = 256;
     int items_per_block = block_size * items_per_thread;
     int grid_size = (n + items_per_block - 1) / items_per_block;
-    my_kernel<items_per_thread><<<grid_size, block_size>>>(
+    my_kernel<items_per_thread, block_size><<<grid_size, block_size>>>(
         n,
         kf::aligned_ptr(input_dev),
         constant,

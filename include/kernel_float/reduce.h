@@ -5,23 +5,56 @@
 
 namespace kernel_float {
 namespace detail {
+
+template<size_t N>
+struct reduce_recur_impl;
+
 template<typename F, size_t N, typename T, typename = void>
 struct reduce_impl {
     KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
-        return call(fun, input, make_index_sequence<N> {});
-    }
-
-  private:
-    template<size_t... Is>
-    KERNEL_FLOAT_INLINE static T call(F fun, const T* input, index_sequence<0, Is...>) {
-        T result = input[0];
-#pragma unroll
-        for (size_t i = 1; i < N; i++) {
-            result = fun(result, input[i]);
-        }
-        return result;
+        return reduce_recur_impl<N>::call(fun, input);
     }
 };
+
+template<size_t N>
+struct reduce_recur_impl {
+    static constexpr size_t K = round_up_to_power_of_two(N) / 2;
+
+    template<typename F, typename T>
+    KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
+        vector_storage<T, K> temp;
+        apply_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
+
+        if constexpr (N < 2 * K) {
+#pragma unroll
+            for (size_t i = N - K; i < K; i++) {
+                temp.data()[i] = input[i];
+            }
+        }
+
+        return reduce_impl<F, K, T>::call(fun, temp.data());
+    }
+};
+
+template<>
+struct reduce_recur_impl<0> {};
+
+template<>
+struct reduce_recur_impl<1> {
+    template<typename F, typename T>
+    KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
+        return input[0];
+    }
+};
+
+template<>
+struct reduce_recur_impl<2> {
+    template<typename F, typename T>
+    KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
+        return fun(input[0], input[1]);
+    }
+};
+
 }  // namespace detail
 
 /**
@@ -97,7 +130,7 @@ KERNEL_FLOAT_INLINE T sum(const V& input) {
  * =======
  * ```
  * vec<int, 5> x = {5, 0, 2, 1, 0};
- * int y = sum(x);  // Returns 5*0*2*1*0 = 0
+ * int y = product(x);  // Returns 5*0*2*1*0 = 0
  * ```
  */
 template<typename V, typename T = vector_value_type<V>>

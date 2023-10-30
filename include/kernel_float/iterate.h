@@ -18,7 +18,7 @@ namespace kernel_float {
  * ```
  */
 template<typename V, typename F>
-void for_each(V&& input, F fun) {
+KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
     auto storage = into_vector_storage(input);
 
 #pragma unroll
@@ -30,13 +30,13 @@ void for_each(V&& input, F fun) {
 namespace detail {
 template<typename T, size_t N>
 struct range_impl {
-    KERNEL_FLOAT_INLINE
-    static vector_storage<T, N> call() {
+    template<typename F>
+    KERNEL_FLOAT_INLINE static vector_storage<T, N> call(F fun) {
         vector_storage<T, N> result;
 
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            result.data()[i] = T(i);
+            result.data()[i] = fun(i);
         }
 
         return result;
@@ -45,7 +45,22 @@ struct range_impl {
 }  // namespace detail
 
 /**
- * Generate vector consisting of the numbers `0...N-1` of type `T`
+ * Generate vector consisting of the result `fun(0), ..., fun(N-1)`
+ *
+ * Example
+ * =======
+ * ```
+ * // Returns [0.0f, 2.0f, 4.0f]
+ * vec<float, 3> vec = range<3>([](auto i){ return float(i * 2.0f); });
+ * ```
+ */
+template<size_t N, typename F, typename T = result_t<F, size_t>>
+KERNEL_FLOAT_INLINE vector<T, extent<N>> range(F fun) {
+    return detail::range_impl<T, N>::call(fun);
+}
+
+/**
+ * Generate vector consisting of the numbers `0, ..., N-1` of type `T`
  *
  * Example
  * =======
@@ -56,11 +71,11 @@ struct range_impl {
  */
 template<typename T, size_t N>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
-    return detail::range_impl<T, N>::call();
+    return detail::range_impl<T, N>::call(ops::cast<size_t, T>());
 }
 
 /**
- * Takes a vector `vec<T, N>` and returns a new vector consisting of the numbers ``0...N-1`` of type ``T``
+ * Takes a vector `vec<T, N>` and returns a new vector consisting of the numbers ``0, ..., N-1`` of type ``T``
  *
  * Example
  * =======
@@ -71,11 +86,11 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
-    return detail::range_impl<vector_value_type<V>, vector_extent<V>>::call();
+    return range<vector_value_type<V>, vector_extent<V>>();
 }
 
 /**
- * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0...N-1``. The data type used
+ * Takes a vector of size ``N`` and returns a new vector consisting of the numbers ``0, ..., N-1``. The data type used
  * for the indices is given by the first template argument, which is `size_t` by default. This function is useful when
  * needing to iterate over the indices of a vector.
  *
@@ -96,7 +111,7 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  */
 template<typename T = size_t, typename V>
 KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> each_index(const V& = {}) {
-    return detail::range_impl<T, vector_extent<V>>::call();
+    return range<T, vector_extent<V>>();
 }
 
 namespace detail {
@@ -243,14 +258,14 @@ using concat_type = vector<concat_value_type<Vs...>, extent<concat_size<Vs...>>>
  * =======
  * ```
  * double vec1 = 1.0;
- * double3 vec2 = {3.0, 4.0, 5.0);
- * double4 vec3 = {6.0, 7.0, 8.0, 9.0};
- * vec<double, 9> concatenated = concat(vec1, vec2, vec3); // contains [1, 2, 3, 4, 5, 6, 7, 8, 9]
+ * double3 vec2 = {2.0, 3.0, 4.0);
+ * double4 vec3 = {5.0, 6.0, 7.0, 8.0};
+ * vec<double, 8> concatenated = concat(vec1, vec2, vec3); // contains [1, 2, 3, 4, 5, 6, 7, 8]
  *
  * int num1 = 42;
  * float num2 = 3.14159;
  * int2 num3 = {-10, 10};
- * vec<float, 3> concatenated = concat(num1, num2, num3); // contains [42, 3.14159, -10, 10]
+ * vec<float, 4> concatenated = concat(num1, num2, num3); // contains [42, 3.14159, -10, 10]
  * ```
  */
 template<typename... Vs>
