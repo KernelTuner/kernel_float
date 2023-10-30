@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Utilities &mdash; Kernel Float  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="License" href="../license.html" />
+    <link rel="prev" title="Memory read/write" href="memory_read_write.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Kernel Float
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Kernel Float</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../guides.html">Guides</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="types.html">Types</a></li>
+<li class="toctree-l2"><a class="reference internal" href="primitives.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="generation.html">Generation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="unary_operators.html">Unary Operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="binary_operators.html">Binary Operators</a></li>
+<li class="toctree-l2"><a class="reference internal" href="reductions.html">Reductions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mathematical.html">Mathematical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="fast_math.html">Fast math</a></li>
+<li class="toctree-l2"><a class="reference internal" href="conditional.html">Conditional</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory_read_write.html">Memory read/write</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Utilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#constant">constant</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tiling">tiling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#kernel-float-tiling-for">KERNEL_FLOAT_TILING_FOR</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Kernel Float</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../api.html">API Reference</a></li>
+      <li class="breadcrumb-item active">Utilities</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/utilities.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="utilities">
+<h1>Utilities<a class="headerlink" href="#utilities" title="Permalink to this heading"></a></h1>
+<section id="constant">
+<h2>constant<a class="headerlink" href="#constant" title="Permalink to this heading"></a></h2>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float8constantE">
+<span id="_CPPv3I0EN12kernel_float8constantE"></span><span id="_CPPv2I0EN12kernel_float8constantE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1constant"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><a class="headerlink" href="#_CPPv4I0EN12kernel_float8constantE" title="Permalink to this definition"></a><br /></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code> represents a constant value of type <code class="docutils literal notranslate"><span class="pre">T</span></code>.</p>
+<p>The object has the property that for any binary operation involving a <code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code> and a value of type <code class="docutils literal notranslate"><span class="pre">U</span></code>, the constant is automatically cast to also be of type <code class="docutils literal notranslate"><span class="pre">U</span></code>.</p>
+<p>For example: <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>float a = 5;
+constant&lt;double&gt; b = 3;
+
+auto c = a + b; // The result will be of type `float`
+</pre></div>
+</div>
+</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float8constant8constantE1T">
+<span id="_CPPv3N12kernel_float8constant8constantE1T"></span><span id="_CPPv2N12kernel_float8constant8constantE1T"></span><span id="kernel_float::constant::constant__TCE"></span><span class="target" id="structkernel__float_1_1constant_1ab678369da673a57bdb0bd66bc5b80037"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0EN12kernel_float8constantE" title="kernel_float::constant::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">value</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="p"><span class="pre">{</span></span><span class="p"><span class="pre">}</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float8constant8constantE1T" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a new constant from the given value. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0EN12kernel_float8constant8constantERK8constantI1RE">
+<span id="_CPPv3I0EN12kernel_float8constant8constantERK8constantI1RE"></span><span id="_CPPv2I0EN12kernel_float8constant8constantERK8constantI1RE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">R</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1constant_1a125d8283056fc3139be71cdfbc60d74d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">explicit</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">constant</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN12kernel_float8constant8constantERK8constantI1RE" title="kernel_float::constant::constant"><span class="n"><span class="pre">constant</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN12kernel_float8constant8constantERK8constantI1RE" title="kernel_float::constant::constant::R"><span class="n"><span class="pre">R</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">that</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN12kernel_float8constant8constantERK8constantI1RE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Create a new constant from another constant of type <code class="docutils literal notranslate"><span class="pre">R</span></code>. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float8constant3getEv">
+<span id="_CPPv3NK12kernel_float8constant3getEv"></span><span id="_CPPv2NK12kernel_float8constant3getEv"></span><span id="kernel_float::constant::getCCE"></span><span class="target" id="structkernel__float_1_1constant_1adaae3460dc7d20f955df04daeb7894c8"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0EN12kernel_float8constantE" title="kernel_float::constant::T"><span class="n"><span class="pre">T</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float8constant3getEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Return the value of the constant </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="tiling">
+<h2>tiling<a class="headerlink" href="#tiling" title="Permalink to this heading"></a></h2>
+<dl class="cpp struct">
+<dt class="sig sig-object cpp" id="_CPPv4I0000EN12kernel_float6tilingE">
+<span id="_CPPv3I0000EN12kernel_float6tilingE"></span><span id="_CPPv2I0000EN12kernel_float6tilingE"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">TileDim</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">BlockDim</span></span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">Distributions</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">distributions</span></span><span class="p"><span class="pre">&lt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">IndexType</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="kt"><span class="pre">int</span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1tiling"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tiling</span></span></span><a class="headerlink" href="#_CPPv4I0000EN12kernel_float6tilingE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Represents a tiling where the elements given by <code class="docutils literal notranslate"><span class="pre">TileDim</span></code> are distributed over the threads given by <code class="docutils literal notranslate"><span class="pre">BlockDim</span></code> according to the distributions given by <code class="docutils literal notranslate"><span class="pre">Distributions</span></code>.</p>
+<p>The template parameters should be the following:</p>
+<p><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">TileDim</span></code>: Should be an instance of <code class="docutils literal notranslate"><span class="pre">tile_size</span><span class="pre">&lt;...&gt;</span></code>. For example, <code class="docutils literal notranslate"><span class="pre">tile_size</span><span class="pre">&lt;16,</span> <span class="pre">16&gt;</span></code> represents a 2-dimensional 16x16 tile.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BlockDim</span></code>: Should be an instance of <code class="docutils literal notranslate"><span class="pre">block_dim&lt;...&gt;</span></code>. For example, <code class="docutils literal notranslate"><span class="pre">block_dim&lt;16,</span> <span class="pre">4&gt;</span></code> represents a thread block having X dimension 16 and Y-dimension 4 for a total of 64 threads per block.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">Distributions</span></code>: Should be an instance of <code class="docutils literal notranslate"><span class="pre">distributions&lt;...&gt;</span></code>. For example, <code class="docutils literal notranslate"><span class="pre">distributions&lt;</span><span class="pre">dist::cyclic</span><span class="pre">,</span> <span class="pre">dist::blocked</span><span class="pre">&gt;</span></code> will distribute elements in cyclic fashion along the X-axis and blocked fashion along the Y-axis.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">IndexType</span></code>: The type used for index values (<code class="docutils literal notranslate"><span class="pre">int</span></code> by default) </p></li>
+</ul>
+</p>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling10is_presentE6size_t">
+<span id="_CPPv3NK12kernel_float6tiling10is_presentE6size_t"></span><span id="_CPPv2NK12kernel_float6tiling10is_presentE6size_t"></span><span id="kernel_float::tiling::is_present__sC"></span><span class="target" id="structkernel__float_1_1tiling_1a3b72264cd0cae636ee315e72ac2e864b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">is_present</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">item</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling10is_presentE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Checks if a specific item is present for the current thread based on the distribution strategy. Not always is the number of items stored per thread equal to the number of items <em>owned</em> by each thread (for example, if the tile size is not divisible by the block size). In this case, <code class="docutils literal notranslate"><span class="pre">is_present</span></code> will return <code class="docutils literal notranslate"><span class="pre">false</span></code> for certain items. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling2atE6size_t">
+<span id="_CPPv3NK12kernel_float6tiling2atE6size_t"></span><span id="_CPPv2NK12kernel_float6tiling2atE6size_t"></span><span id="kernel_float::tiling::at__sC"></span><span class="target" id="structkernel__float_1_1tiling_1ae7f2a845696bda2c77c332c46e70ddf4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">at</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">item</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling2atE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the global coordinates of a specific item for the current thread. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling2atE6size_t6size_t">
+<span id="_CPPv3NK12kernel_float6tiling2atE6size_t6size_t"></span><span id="_CPPv2NK12kernel_float6tiling2atE6size_t6size_t"></span><span id="kernel_float::tiling::at__s.sC"></span><span class="target" id="structkernel__float_1_1tiling_1a310156f4ef8b453f7ff1d26802ee3e5b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">index_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">at</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">item</span></span>, <span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling2atE6size_t6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the global coordinates of a specific item along a specified axis for the current thread. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tilingixE6size_t">
+<span id="_CPPv3NK12kernel_float6tilingixE6size_t"></span><span id="_CPPv2NK12kernel_float6tilingixE6size_t"></span><span id="kernel_float::tiling::subscript-operator__sC"></span><span class="target" id="structkernel__float_1_1tiling_1a73eef10502778ce426a81101651b0454"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">[]</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">item</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tilingixE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the global coordinates of a specific item for the current thread (alias of <code class="docutils literal notranslate"><span class="pre">at</span></code>). </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling12local_pointsEv">
+<span id="_CPPv3NK12kernel_float6tiling12local_pointsEv"></span><span id="_CPPv2NK12kernel_float6tiling12local_pointsEv"></span><span id="kernel_float::tiling::local_pointsC"></span><span class="target" id="structkernel__float_1_1tiling_1a7950bfc7db8efd8609dd2e28c3b37b4b"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">num_locals</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">local_points</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling12local_pointsEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a vector of global coordinates of all items present for the current thread. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling12local_pointsE6size_t">
+<span id="_CPPv3NK12kernel_float6tiling12local_pointsE6size_t"></span><span id="_CPPv2NK12kernel_float6tiling12local_pointsE6size_t"></span><span id="kernel_float::tiling::local_points__sC"></span><span class="target" id="structkernel__float_1_1tiling_1a8e9b94bc8420f3feea574b9aa903a817"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">num_locals</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">local_points</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling12local_pointsE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a vector of coordinate values along a specified axis for all items present for the current thread. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling10local_maskEv">
+<span id="_CPPv3NK12kernel_float6tiling10local_maskEv"></span><span id="_CPPv2NK12kernel_float6tiling10local_maskEv"></span><span id="kernel_float::tiling::local_maskC"></span><span class="target" id="structkernel__float_1_1tiling_1a914e61e216724499f12472027e18067c"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">bool</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">num_locals</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">local_mask</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling10local_maskEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a vector of boolean values representing the result of <code class="docutils literal notranslate"><span class="pre">is_present</span></code> of the items for the current thread. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling12thread_indexE6size_t">
+<span id="_CPPv3NK12kernel_float6tiling12thread_indexE6size_t"></span><span id="_CPPv2NK12kernel_float6tiling12thread_indexE6size_t"></span><span id="kernel_float::tiling::thread_index__sC"></span><span class="target" id="structkernel__float_1_1tiling_1a581f64973bedf3abf99d8b570c18f29f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">index_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">thread_index</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling12thread_indexE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the thread index (position) along a specified axis for the current thread. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling11tile_offsetE6size_t">
+<span id="_CPPv3NK12kernel_float6tiling11tile_offsetE6size_t"></span><span id="_CPPv2NK12kernel_float6tiling11tile_offsetE6size_t"></span><span id="kernel_float::tiling::tile_offset__sC"></span><span class="target" id="structkernel__float_1_1tiling_1ab961ed6ac806663e93f387d3672bdae4"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">index_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tile_offset</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling11tile_offsetE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the offset of the tile along a specified axis. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling12thread_indexEv">
+<span id="_CPPv3NK12kernel_float6tiling12thread_indexEv"></span><span id="_CPPv2NK12kernel_float6tiling12thread_indexEv"></span><span id="kernel_float::tiling::thread_indexC"></span><span class="target" id="structkernel__float_1_1tiling_1aeb6a18ecd7c0ee99729dc220de7d1ad6"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">thread_index</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling12thread_indexEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a vector of thread indices for all axes. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling11tile_offsetEv">
+<span id="_CPPv3NK12kernel_float6tiling11tile_offsetEv"></span><span id="_CPPv2NK12kernel_float6tiling11tile_offsetEv"></span><span id="kernel_float::tiling::tile_offsetC"></span><span class="target" id="structkernel__float_1_1tiling_1a37779b9350a0c95ae9306e296e717068"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tile_offset</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling11tile_offsetEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the offset of the tile for all axes. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling5beginEv">
+<span id="_CPPv3NK12kernel_float6tiling5beginEv"></span><span id="_CPPv2NK12kernel_float6tiling5beginEv"></span><span id="kernel_float::tiling::beginC"></span><span class="target" id="structkernel__float_1_1tiling_1a147f7eb74bb2b3b5e328b70de5886937"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">tiling_iterator</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">begin</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling5beginEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns an iterator pointing to the beginning of the tiling. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK12kernel_float6tiling3endEv">
+<span id="_CPPv3NK12kernel_float6tiling3endEv"></span><span id="_CPPv2NK12kernel_float6tiling3endEv"></span><span id="kernel_float::tiling::endC"></span><span class="target" id="structkernel__float_1_1tiling_1aec12f94b682d8339f6172656d43c555f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">tiling_iterator</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">end</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK12kernel_float6tiling3endEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns an iterator pointing to the end of the tiling. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4I0ENK12kernel_float6tiling8for_eachEv1F">
+<span id="_CPPv3I0ENK12kernel_float6tiling8for_eachE1F"></span><span id="_CPPv2I0ENK12kernel_float6tiling8for_eachE1F"></span><span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">F</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structkernel__float_1_1tiling_1a8bf8a4235d9b7d1ced968e1e9016e61f"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">for_each</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0ENK12kernel_float6tiling8for_eachEv1F" title="kernel_float::tiling::for_each::F"><span class="n"><span class="pre">F</span></span></a><span class="w"> </span><span class="n sig-param"><span class="pre">fun</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4I0ENK12kernel_float6tiling8for_eachEv1F" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Applies a provided function to each item present in the tiling for the current thread. The function should take an index and a <code class="docutils literal notranslate"><span class="pre">vector</span></code> of global coordinates as arguments. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-static-functions">Public Static Functions</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tiling4sizeEv">
+<span id="_CPPv3N12kernel_float6tiling4sizeEv"></span><span id="_CPPv2N12kernel_float6tiling4sizeEv"></span><span id="kernel_float::tiling::sizeCE"></span><span class="target" id="structkernel__float_1_1tiling_1a1797658e9ff2f71a26b27d9b686112c6"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tiling4sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the number of items per thread in the tiling.</p>
+<p>Note that this method is <code class="docutils literal notranslate"><span class="pre">constexpr</span></code> and can be called at compile-time. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tiling11all_presentEv">
+<span id="_CPPv3N12kernel_float6tiling11all_presentEv"></span><span id="_CPPv2N12kernel_float6tiling11all_presentEv"></span><span id="kernel_float::tiling::all_presentCE"></span><span class="target" id="structkernel__float_1_1tiling_1a8e55a9f59c11b5e8e258e7423a4cf62d"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">all_present</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tiling11all_presentEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Checks if the tiling is exhaustive, meaning all items are always present for all threads. If this returns <code class="docutils literal notranslate"><span class="pre">true</span></code>, then <code class="docutils literal notranslate"><span class="pre">is_present</span></code> will always true for any given index.</p>
+<p>Note that this method is <code class="docutils literal notranslate"><span class="pre">constexpr</span></code> and can thus be called at compile-time. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tiling10block_sizeE6size_t">
+<span id="_CPPv3N12kernel_float6tiling10block_sizeE6size_t"></span><span id="_CPPv2N12kernel_float6tiling10block_sizeE6size_t"></span><span id="kernel_float::tiling::block_size__sCE"></span><span class="target" id="structkernel__float_1_1tiling_1ad2013dd52661d86c5c6857dab2ed1d0a"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">index_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">block_size</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tiling10block_sizeE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the size of the block (number of threads) along a specified axis.</p>
+<p>Note that this method is <code class="docutils literal notranslate"><span class="pre">constexpr</span></code> and can thus be called at compile-time. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tiling9tile_sizeE6size_t">
+<span id="_CPPv3N12kernel_float6tiling9tile_sizeE6size_t"></span><span id="_CPPv2N12kernel_float6tiling9tile_sizeE6size_t"></span><span id="kernel_float::tiling::tile_size__sCE"></span><span class="target" id="structkernel__float_1_1tiling_1a609faec8af473f484cac32ef2335e5d8"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">constexpr</span></span><span class="w"> </span><span class="n"><span class="pre">index_type</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tile_size</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">axis</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tiling9tile_sizeE6size_t" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns the size of the tile along a specified axis.</p>
+<p>Note that this method is <code class="docutils literal notranslate"><span class="pre">constexpr</span></code> and can thus be called at compile-time. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tiling10block_sizeEv">
+<span id="_CPPv3N12kernel_float6tiling10block_sizeEv"></span><span id="_CPPv2N12kernel_float6tiling10block_sizeEv"></span><span id="kernel_float::tiling::block_size"></span><span class="target" id="structkernel__float_1_1tiling_1a038748f0a12df74731f005c5057c3c9e"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">block_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tiling10block_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a vector of block sizes for all axes. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tiling9tile_sizeEv">
+<span id="_CPPv3N12kernel_float6tiling9tile_sizeEv"></span><span id="_CPPv2N12kernel_float6tiling9tile_sizeEv"></span><span id="kernel_float::tiling::tile_size"></span><span class="target" id="structkernel__float_1_1tiling_1a31c4df6c8ff347d7d5df2d7bb670b7de"></span><span class="k"><span class="pre">static</span></span><span class="w"> </span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">tile_size</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tiling9tile_sizeEv" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Returns a vector of tile sizes for all axes. </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-friends">Friends</p>
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tilingplERK6tilingRK6vectorI10index_type6extentI4rankEE">
+<span id="_CPPv3N12kernel_float6tilingplERK6tilingRK6vectorI10index_type6extentI4rankEE"></span><span id="_CPPv2N12kernel_float6tilingplERK6tilingRK6vectorI10index_type6extentI4rankEE"></span><span id="kernel_float::tiling::add-operator__tilingCR.vector:index_type.extent:rank::CR"></span><span class="target" id="structkernel__float_1_1tiling_1a5548de3092219d99f5981117c21d6300"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">offset</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tilingplERK6tilingRK6vectorI10index_type6extentI4rankEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Adds <code class="docutils literal notranslate"><span class="pre">offset</span></code> to all points of this tiling and returns a new tiling. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tilingplERK6vectorI10index_type6extentI4rankEERK6tiling">
+<span id="_CPPv3N12kernel_float6tilingplERK6vectorI10index_type6extentI4rankEERK6tiling"></span><span id="_CPPv2N12kernel_float6tilingplERK6vectorI10index_type6extentI4rankEERK6tiling"></span><span id="kernel_float::tiling::add-operator__vector:index_type.extent:rank::CR.tilingCR"></span><span class="target" id="structkernel__float_1_1tiling_1ac76dbd797e8eb4e5b54a30996856e4a0"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">offset</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tilingplERK6vectorI10index_type6extentI4rankEERK6tiling" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Adds <code class="docutils literal notranslate"><span class="pre">offset</span></code> to all points of this tiling and returns a new tiling. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N12kernel_float6tilingpLER6tilingRK6vectorI10index_type6extentI4rankEE">
+<span id="_CPPv3N12kernel_float6tilingpLER6tilingRK6vectorI10index_type6extentI4rankEE"></span><span id="_CPPv2N12kernel_float6tilingpLER6tilingRK6vectorI10index_type6extentI4rankEE"></span><span id="kernel_float::tiling::add-assign-operator__tilingR.vector:index_type.extent:rank::CR"></span><span class="target" id="structkernel__float_1_1tiling_1a43d248a1b69e68227fbcb8a6356c4626"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">friend</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">+=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4I0000EN12kernel_float6tilingE" title="kernel_float::tiling"><span class="n"><span class="pre">tiling</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">self</span></span>, <span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="types.html#_CPPv4I000EN12kernel_float6vectorE" title="kernel_float::vector"><span class="n"><span class="pre">vector</span></span></a><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">index_type</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">extent</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">rank</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">offset</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N12kernel_float6tilingpLER6tilingRK6vectorI10index_type6extentI4rankEE" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Adds <code class="docutils literal notranslate"><span class="pre">offset</span></code> to all points of this tiling. </p>
+</dd></dl>
+
+</div>
+</dd></dl>
+
+</section>
+<section id="kernel-float-tiling-for">
+<h2>KERNEL_FLOAT_TILING_FOR<a class="headerlink" href="#kernel-float-tiling-for" title="Permalink to this heading"></a></h2>
+<dl class="cpp macro">
+<dt class="sig sig-object cpp" id="c.KERNEL_FLOAT_TILING_FOR">
+<span class="target" id="tiling_8h_1a14c15a4ae5c72aa00f6ae4dd424a437a"></span><span class="sig-name descname"><span class="n"><span class="pre">KERNEL_FLOAT_TILING_FOR</span></span></span><span class="sig-paren">(</span><span class="p"><span class="pre">...</span></span><span class="sig-paren">)</span><a class="headerlink" href="#c.KERNEL_FLOAT_TILING_FOR" title="Permalink to this definition"></a><br /></dt>
+<dd><p>Iterate over the points in a <code class="docutils literal notranslate"><span class="pre">tiling&lt;...&gt;</span></code> using a for loop.</p>
+<p>There are two ways to use this macro. Using the 1 variable form: <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">auto</span> <span class="n">t</span> <span class="o">=</span> <span class="n">tiling</span><span class="o">&lt;</span><span class="n">tile_size</span><span class="o">&lt;</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">block_size</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+
+<span class="n">KERNEL_FLOAT_TILING_FOR</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">auto</span> <span class="n">point</span><span class="p">)</span> <span class="p">{</span>
+ <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">,</span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p>
+<p>Or using the 2 variables form: <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">auto</span> <span class="n">t</span> <span class="o">=</span> <span class="n">tiling</span><span class="o">&lt;</span><span class="n">tile_size</span><span class="o">&lt;</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="o">&gt;</span><span class="p">,</span> <span class="n">block_size</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="o">&gt;&gt;</span><span class="p">;</span>
+
+<span class="n">KERNEL_FLOAT_TILING_FOR</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">auto</span> <span class="n">index</span><span class="p">,</span> <span class="n">auto</span> <span class="n">point</span><span class="p">)</span> <span class="p">{</span>
+ <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%d</span><span class="s2">] </span><span class="si">%d</span><span class="s2">,</span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">point</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">point</span><span class="p">[</span><span class="mi">1</span><span class="p">]);</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+</p>
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="memory_read_write.html" class="btn btn-neutral float-left" title="Memory read/write" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../license.html" class="btn btn-neutral float-right" title="License" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Stijn Heldens, Ben van Werkhoven.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

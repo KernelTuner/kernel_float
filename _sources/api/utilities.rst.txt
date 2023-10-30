@@ -1,0 +1,19 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Utilities
+=========
+constant
+--------
+.. doxygenstruct:: kernel_float::constant
+
+tiling
+------
+.. doxygenstruct:: kernel_float::tiling
+
+KERNEL_FLOAT_TILING_FOR
+-----------------------
+.. doxygendefine:: KERNEL_FLOAT_TILING_FOR
+

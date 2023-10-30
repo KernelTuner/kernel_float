@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Types" href="api/types.html" />
-    <link rel="prev" title="Using kernel_float::prelude" href="guides/prelude.html" /> 
+    <link rel="prev" title="Using kernel_float::constant" href="guides/constant.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -54,8 +54,10 @@
 <li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html">Binary Operators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/reductions.html">Reductions</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html">Mathematical</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html">Fast math</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/conditional.html">Conditional</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html">Memory read/write</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utilities.html">Utilities</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
@@ -112,6 +114,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/generation.html">Generation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/generation.html#range">range</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/generation.html#id1">range</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/generation.html#range-like">range_like</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/generation.html#each-index">each_index</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/generation.html#fill">fill</a></li>
@@ -208,6 +211,15 @@
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#isnan">isnan</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="api/fast_math.html">Fast math</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-exp">fast_exp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-log">fast_log</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-cos">fast_cos</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-sin">fast_sin</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-tan">fast_tan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-div">fast_div</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="api/conditional.html">Conditional</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/conditional.html#where">where</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/conditional.html#id1">where</a></li>
@@ -227,6 +239,12 @@
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#aligned-ptr">aligned_ptr</a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="api/utilities.html">Utilities</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/utilities.html#constant">constant</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utilities.html#tiling">tiling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/utilities.html#kernel-float-tiling-for">KERNEL_FLOAT_TILING_FOR</a></li>
+</ul>
+</li>
 </ul>
 </div>
 </section>
@@ -235,7 +253,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="guides/prelude.html" class="btn btn-neutral float-left" title="Using kernel_float::prelude" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guides/constant.html" class="btn btn-neutral float-left" title="Using kernel_float::constant" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="api/types.html" class="btn btn-neutral float-right" title="Types" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

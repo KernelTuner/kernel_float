@@ -1,0 +1,31 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Fast math
+=========
+fast_exp
+--------
+.. doxygenfunction:: kernel_float::fast_exp
+
+fast_log
+--------
+.. doxygenfunction:: kernel_float::fast_log
+
+fast_cos
+--------
+.. doxygenfunction:: kernel_float::fast_cos
+
+fast_sin
+--------
+.. doxygenfunction:: kernel_float::fast_sin
+
+fast_tan
+--------
+.. doxygenfunction:: kernel_float::fast_tan
+
+fast_div
+--------
+.. doxygenfunction:: kernel_float::fast_div
+

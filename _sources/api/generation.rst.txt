@@ -7,7 +7,11 @@ Generation
 ==========
 range
 -----
-.. doxygenfunction:: kernel_float::range
+.. doxygenfunction:: kernel_float::range()
+
+range
+-----
+.. doxygenfunction:: kernel_float::range(F fun)
 
 range_like
 ----------

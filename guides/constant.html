@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Using kernel_float::constant &mdash; Kernel Float  documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="API Reference" href="../api.html" />
+    <link rel="prev" title="Using kernel_float::prelude" href="prelude.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Kernel Float
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Kernel Float</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../guides.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="promotion.html">Type Promotion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="prelude.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::prelude</span></code></a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Kernel Float</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../guides.html">Guides</a></li>
+      <li class="breadcrumb-item active">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/guides/constant.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="using-kernel-float-constant">
+<h1>Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code><a class="headerlink" href="#using-kernel-float-constant" title="Permalink to this heading"></a></h1>
+<p>When working with mixed precision types, you will find that working with constants presents a bit of a challenge.</p>
+<p>For example, a simple expression such as <code class="docutils literal notranslate"><span class="pre">3.14</span> <span class="pre">*</span> <span class="pre">x</span></code> where <code class="docutils literal notranslate"><span class="pre">x</span></code> is of type <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">2&gt;</span></code> will NOT be performed
+in <code class="docutils literal notranslate"><span class="pre">float</span></code> precision as you might expect, but instead in <code class="docutils literal notranslate"><span class="pre">double</span></code> precision.
+This happens since the left-hand side of this expression
+(a constant) is a <code class="docutils literal notranslate"><span class="pre">double</span></code> and thus <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> will also cast the right-hand side to <code class="docutils literal notranslate"><span class="pre">double</span></code>.</p>
+<p>To solve this problem, <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> offers a type called <code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code> that can be used to represent
+constants. Any binary operations between a value of type <code class="docutils literal notranslate"><span class="pre">U</span></code> and a <code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code> will result in both
+operands being cast to type <code class="docutils literal notranslate"><span class="pre">U</span></code> and the operation is performed in the precision of type <code class="docutils literal notranslate"><span class="pre">U</span></code>. This makes
+<code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code> useful for representing constants in your code.</p>
+<p>For example, consider the following code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &quot;kernel_float.h&quot;</span>
+<span class="n">namespace</span> <span class="n">kf</span> <span class="o">=</span> <span class="n">kernel_float</span><span class="p">;</span>
+
+<span class="nb">int</span> <span class="n">main</span><span class="p">()</span> <span class="p">{</span>
+  <span class="n">using</span> <span class="n">Type</span> <span class="o">=</span> <span class="nb">float</span><span class="p">;</span>
+  <span class="n">const</span> <span class="nb">int</span> <span class="n">N</span> <span class="o">=</span> <span class="mi">8</span><span class="p">;</span>
+  <span class="n">static</span> <span class="n">constexpr</span> <span class="n">auto</span> <span class="n">PI</span> <span class="o">=</span> <span class="n">kf</span><span class="p">::</span><span class="n">make_constant</span><span class="p">(</span><span class="mf">3.14</span><span class="p">);</span>
+
+  <span class="n">kf</span><span class="p">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="n">N</span><span class="o">&gt;</span> <span class="n">i</span> <span class="o">=</span> <span class="n">kf</span><span class="p">::</span><span class="nb">range</span><span class="o">&lt;</span><span class="nb">int</span><span class="p">,</span> <span class="n">N</span><span class="o">&gt;</span><span class="p">();</span>
+  <span class="n">kf</span><span class="p">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">Type</span><span class="p">,</span> <span class="n">N</span><span class="o">&gt;</span> <span class="n">x</span> <span class="o">=</span> <span class="n">kf</span><span class="p">::</span><span class="n">cast</span><span class="o">&lt;</span><span class="n">Type</span><span class="o">&gt;</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="o">*</span> <span class="n">PI</span><span class="p">;</span>
+  <span class="n">kf</span><span class="p">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">Type</span><span class="p">,</span> <span class="n">N</span><span class="o">&gt;</span> <span class="n">y</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">kf</span><span class="p">::</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+  <span class="n">Type</span> <span class="n">result</span> <span class="o">=</span> <span class="n">kf</span><span class="p">::</span><span class="nb">sum</span><span class="p">(</span><span class="n">y</span><span class="p">);</span>
+  <span class="n">printf</span><span class="p">(</span><span class="s2">&quot;result=</span><span class="si">%f</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">double</span><span class="p">(</span><span class="n">result</span><span class="p">));</span>
+
+  <span class="k">return</span> <span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>This code example uses the <code class="docutils literal notranslate"><span class="pre">make_constant</span></code> utility function to create <code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code>.</p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="prelude.html" class="btn btn-neutral float-left" title="Using kernel_float::prelude" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../api.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Stijn Heldens, Ben van Werkhoven.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

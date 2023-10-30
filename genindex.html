@@ -93,13 +93,15 @@
 </li>
       <li><a href="api/memory_read_write.html#_CPPv4NK12kernel_float11aligned_ptr3getEv">kernel_float::aligned_ptr::get (C++ function)</a>
 </li>
-      <li><a href="api/memory_read_write.html#_CPPv4I000ENK12kernel_float11aligned_ptr4loadE6vectorI1T1EERK1IRK1M">kernel_float::aligned_ptr::load (C++ function)</a>
+      <li><a href="api/memory_read_write.html#_CPPv4I_6size_tENK12kernel_float11aligned_ptr6offsetE11aligned_ptrI1TXclN6detail3gcdEmlst1T4Step9alignmentEEE6size_t">kernel_float::aligned_ptr::offset (C++ function)</a>
 </li>
-      <li><a href="api/memory_read_write.html#_CPPv4I_6size_tENK12kernel_float11aligned_ptr5loadnE6vectorI1T6extentI1NEE6size_t">kernel_float::aligned_ptr::loadn (C++ function)</a>, <a href="api/memory_read_write.html#_CPPv4I_6size_tENK12kernel_float11aligned_ptr5loadnE6vectorI1T6extentI1NEE6size_t6size_t">[1]</a>
+      <li><a href="api/memory_read_write.html#_CPPv4I000EN12kernel_float11aligned_ptr4readE6vectorI1T1EERK1IRK1M">kernel_float::aligned_ptr::read (C++ function)</a>, <a href="api/memory_read_write.html#_CPPv4I_6size_tENK12kernel_float11aligned_ptr4readE6vectorI1T6extentI1NEEv">[1]</a>
 </li>
-      <li><a href="api/memory_read_write.html#_CPPv4I0000ENK12kernel_float11aligned_ptr5storeEvRK1VRK1IRK1M">kernel_float::aligned_ptr::store (C++ function)</a>
+      <li><a href="api/memory_read_write.html#_CPPv4I_6size_t_6size_tENK12kernel_float11aligned_ptr7read_atE6vectorI1T6extentI1NEE6size_t">kernel_float::aligned_ptr::read_at (C++ function)</a>
 </li>
-      <li><a href="api/memory_read_write.html#_CPPv4I0_6size_tENK12kernel_float11aligned_ptr6storenEvRK1V6size_t">kernel_float::aligned_ptr::storen (C++ function)</a>, <a href="api/memory_read_write.html#_CPPv4I0_6size_tENK12kernel_float11aligned_ptr6storenEvRK1V6size_t6size_t">[1]</a>
+      <li><a href="api/memory_read_write.html#_CPPv4I000EN12kernel_float11aligned_ptr5writeEvRK1IRK1VRK1M">kernel_float::aligned_ptr::write (C++ function)</a>, <a href="api/memory_read_write.html#_CPPv4I0ENK12kernel_float11aligned_ptr5writeEvRK1V">[1]</a>
+</li>
+      <li><a href="api/memory_read_write.html#_CPPv4I_6size_t0ENK12kernel_float11aligned_ptr8write_atEv6size_tRK1V">kernel_float::aligned_ptr::write_at (C++ function)</a>
 </li>
       <li><a href="api/reductions.html#_CPPv4I0EN12kernel_float3allEbRK1V">kernel_float::all (C++ function)</a>
 </li>
@@ -125,13 +127,19 @@
 </li>
       <li><a href="api/primitives.html#_CPPv4I0_12RoundingMode0EN12kernel_float4castE6vectorI1R18vector_extent_typeI1VEERK1V">kernel_float::cast (C++ function)</a>
 </li>
-      <li><a href="api/memory_read_write.html#_CPPv4I00EN12kernel_float7cast_toE21AssignConversionProxyI1TN1E5valueEER6vectorI1T1EE">kernel_float::cast_to (C++ function)</a>
+      <li><a href="api/memory_read_write.html#_CPPv4I0_12RoundingModeEN12kernel_float7cast_toE21AssignConversionProxyI1T1MER1T">kernel_float::cast_to (C++ function)</a>
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float4cbrtE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::cbrt (C++ function)</a>
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float4ceilE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::ceil (C++ function)</a>
 </li>
       <li><a href="api/primitives.html#_CPPv4IDpEN12kernel_float6concatE11concat_typeIDp2VsEDpRK2Vs">kernel_float::concat (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4I0EN12kernel_float8constantE">kernel_float::constant (C++ struct)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4I0EN12kernel_float8constant8constantERK8constantI1RE">kernel_float::constant::constant (C++ function)</a>, <a href="api/utilities.html#_CPPv4N12kernel_float8constant8constantE1T">[1]</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float8constant3getEv">kernel_float::constant::get (C++ function)</a>
 </li>
       <li><a href="api/primitives.html#_CPPv4I0_6size_t_12RoundingMode0EN12kernel_float7convertE6vectorI1R6extentI1NEERK1V6extentI1NE">kernel_float::convert (C++ function)</a>
 </li>
@@ -169,6 +177,18 @@
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float4fabsE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::fabs (C++ function)</a>
 </li>
+      <li><a href="api/fast_math.html#_CPPv4I0EN12kernel_float8fast_cosE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::fast_cos (C++ function)</a>
+</li>
+      <li><a href="api/fast_math.html#_CPPv4I000EN12kernel_float8fast_divE15zip_common_typeIN3ops8fast_divI1CEE1L1RERR1LRR1R">kernel_float::fast_div (C++ function)</a>
+</li>
+      <li><a href="api/fast_math.html#_CPPv4I0EN12kernel_float8fast_expE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::fast_exp (C++ function)</a>
+</li>
+      <li><a href="api/fast_math.html#_CPPv4I0EN12kernel_float8fast_logE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::fast_log (C++ function)</a>
+</li>
+      <li><a href="api/fast_math.html#_CPPv4I0EN12kernel_float8fast_sinE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::fast_sin (C++ function)</a>
+</li>
+      <li><a href="api/fast_math.html#_CPPv4I0EN12kernel_float8fast_tanE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::fast_tan (C++ function)</a>
+</li>
       <li><a href="api/generation.html#_CPPv4I_6size_t0EN12kernel_float4fillE6vectorI1T6extentI1NEE1T6extentI1NE">kernel_float::fill (C++ function)</a>
 </li>
       <li><a href="api/generation.html#_CPPv4I000EN12kernel_float9fill_likeE6vectorI1T1EERK1V1T">kernel_float::fill_like (C++ function)</a>
@@ -197,8 +217,6 @@
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float6lgammaE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::lgamma (C++ function)</a>
 </li>
-      <li><a href="api/memory_read_write.html#_CPPv4I0000EN12kernel_float4loadE6vectorI1T1EEPK1TRK1IRK1M">kernel_float::load (C++ function)</a>, <a href="api/memory_read_write.html#_CPPv4I00EN12kernel_float4loadE6vectorI1T18vector_extent_typeI1IEEPK1TRK1I">[1]</a>
-</li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float3logE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::log (C++ function)</a>
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float5log10E6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::log10 (C++ function)</a>
@@ -209,9 +227,7 @@
 </li>
       <li><a href="api/primitives.html#_CPPv4IDpEN12kernel_float8make_vecE3vecI9promote_tIDp4ArgsEXsZ4ArgsEEDpRR4Args">kernel_float::make_vec (C++ function)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="api/primitives.html#_CPPv4I00EN12kernel_float3mapE8map_typeI1F1VE1FRK1V">kernel_float::map (C++ function)</a>
+      <li><a href="api/primitives.html#_CPPv4I0DpEN12kernel_float3mapE8map_typeI1FDp4ArgsE1FDpRK4Args">kernel_float::map (C++ function)</a>
 </li>
       <li><a href="api/binary_operators.html#_CPPv4I000EN12kernel_float3maxE15zip_common_typeIN3ops3maxI1CEE1L1RERR1LRR1R">kernel_float::max (C++ function)</a>, <a href="api/reductions.html#_CPPv4I00EN12kernel_float3maxE1TRK1V">[1]</a>
 </li>
@@ -221,6 +237,8 @@
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float9nearbyintE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::nearbyint (C++ function)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/unary_operators.html#_CPPv4I0EN12kernel_float6negateE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::negate (C++ function)</a>
 </li>
       <li><a href="api/binary_operators.html#_CPPv4I000EN12kernel_float9nextafterE15zip_common_typeIN3ops9nextafterI1CEE1L1RERR1LRR1R">kernel_float::nextafter (C++ function)</a>
@@ -237,7 +255,7 @@
 </li>
       <li><a href="api/reductions.html#_CPPv4I00EN12kernel_float7productE1TRK1V">kernel_float::product (C++ function)</a>
 </li>
-      <li><a href="api/generation.html#_CPPv4I0_6size_tEN12kernel_float5rangeE6vectorI1T6extentI1NEEv">kernel_float::range (C++ function)</a>
+      <li><a href="api/generation.html#_CPPv4I0_6size_tEN12kernel_float5rangeE6vectorI1T6extentI1NEEv">kernel_float::range (C++ function)</a>, <a href="api/generation.html#_CPPv4I_6size_t00EN12kernel_float5rangeE6vectorI1T6extentI1NEE1F">[1]</a>
 </li>
       <li><a href="api/generation.html#_CPPv4I0EN12kernel_float10range_likeE16into_vector_typeI1VERK1V">kernel_float::range_like (C++ function)</a>
 </li>
@@ -265,8 +283,6 @@
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float4sqrtE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::sqrt (C++ function)</a>
 </li>
-      <li><a href="api/memory_read_write.html#_CPPv4I00000EN12kernel_float5storeEvRK1VP1TRK1IRK1M">kernel_float::store (C++ function)</a>, <a href="api/memory_read_write.html#_CPPv4I0000EN12kernel_float5storeEvRK1VP1TRK1I">[1]</a>
-</li>
       <li><a href="api/binary_operators.html#_CPPv4I000EN12kernel_float8subtractE15zip_common_typeIN3ops8subtractI1CEE1L1RERR1LRR1R">kernel_float::subtract (C++ function)</a>
 </li>
       <li><a href="api/reductions.html#_CPPv4I00EN12kernel_float3sumE1TRK1V">kernel_float::sum (C++ function)</a>
@@ -276,6 +292,40 @@
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float4tanhE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::tanh (C++ function)</a>
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float6tgammaE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::tgamma (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4I0000EN12kernel_float6tilingE">kernel_float::tiling (C++ struct)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4N12kernel_float6tiling11all_presentEv">kernel_float::tiling::all_present (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling2atE6size_t">kernel_float::tiling::at (C++ function)</a>, <a href="api/utilities.html#_CPPv4NK12kernel_float6tiling2atE6size_t6size_t">[1]</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling5beginEv">kernel_float::tiling::begin (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4N12kernel_float6tiling10block_sizeE6size_t">kernel_float::tiling::block_size (C++ function)</a>, <a href="api/utilities.html#_CPPv4N12kernel_float6tiling10block_sizeEv">[1]</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling3endEv">kernel_float::tiling::end (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4I0ENK12kernel_float6tiling8for_eachEv1F">kernel_float::tiling::for_each (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling10is_presentE6size_t">kernel_float::tiling::is_present (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling10local_maskEv">kernel_float::tiling::local_mask (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling12local_pointsE6size_t">kernel_float::tiling::local_points (C++ function)</a>, <a href="api/utilities.html#_CPPv4NK12kernel_float6tiling12local_pointsEv">[1]</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4N12kernel_float6tilingplERK6tilingRK6vectorI10index_type6extentI4rankEE">kernel_float::tiling::operator+ (C++ function)</a>, <a href="api/utilities.html#_CPPv4N12kernel_float6tilingplERK6vectorI10index_type6extentI4rankEERK6tiling">[1]</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4N12kernel_float6tilingpLER6tilingRK6vectorI10index_type6extentI4rankEE">kernel_float::tiling::operator+= (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tilingixE6size_t">kernel_float::tiling::operator[] (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4N12kernel_float6tiling4sizeEv">kernel_float::tiling::size (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling12thread_indexE6size_t">kernel_float::tiling::thread_index (C++ function)</a>, <a href="api/utilities.html#_CPPv4NK12kernel_float6tiling12thread_indexEv">[1]</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4NK12kernel_float6tiling11tile_offsetE6size_t">kernel_float::tiling::tile_offset (C++ function)</a>, <a href="api/utilities.html#_CPPv4NK12kernel_float6tiling11tile_offsetEv">[1]</a>
+</li>
+      <li><a href="api/utilities.html#_CPPv4N12kernel_float6tiling9tile_sizeE6size_t">kernel_float::tiling::tile_size (C++ function)</a>, <a href="api/utilities.html#_CPPv4N12kernel_float6tiling9tile_sizeEv">[1]</a>
 </li>
       <li><a href="api/mathematical.html#_CPPv4I0EN12kernel_float5truncE6vectorI17vector_value_typeI1VE18vector_extent_typeI1VEERK1V">kernel_float::trunc (C++ function)</a>
 </li>
@@ -331,6 +381,8 @@
 </li>
       <li><a href="api/types.html#_CPPv4N12kernel_float6vector4sizeEv">kernel_float::vector::size (C++ function)</a>
 </li>
+      <li><a href="api/types.html#_CPPv4N12kernel_float6vector7storageEv">kernel_float::vector::storage (C++ function)</a>, <a href="api/types.html#_CPPv4NK12kernel_float6vector7storageEv">[1]</a>
+</li>
       <li><a href="api/conditional.html#_CPPv4I00000EN12kernel_float5whereE6vectorI1T1EERK1CRK1LRK1R">kernel_float::where (C++ function)</a>, <a href="api/conditional.html#_CPPv4I0000EN12kernel_float5whereE6vectorI1T1EERK1CRK1L">[1]</a>, <a href="api/conditional.html#_CPPv4I000EN12kernel_float5whereE6vectorI1T1EERK1C">[2]</a>
 </li>
       <li><a href="api/generation.html#_CPPv4I0_6size_tEN12kernel_float5zerosE6vectorI1T6extentI1NEE6extentI1NE">kernel_float::zeros (C++ function)</a>
@@ -340,6 +392,8 @@
       <li><a href="api/primitives.html#_CPPv4I000EN12kernel_float3zipE8zip_typeI1F1L1RE1FRK1LRK1R">kernel_float::zip (C++ function)</a>
 </li>
       <li><a href="api/primitives.html#_CPPv4I000EN12kernel_float10zip_commonE15zip_common_typeI1F1L1RE1FRK1LRK1R">kernel_float::zip_common (C++ function)</a>
+</li>
+      <li><a href="api/utilities.html#c.KERNEL_FLOAT_TILING_FOR">KERNEL_FLOAT_TILING_FOR (C macro)</a>
 </li>
   </ul></td>
 </tr></table>

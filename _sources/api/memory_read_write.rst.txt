@@ -19,11 +19,11 @@ load
 
 loadn
 -----
-.. doxygenfunction:: kernel_float::loadn(const T*, ptrdiff_t)
+.. doxygenfunction:: kernel_float::loadn(const T*, size_t)
 
 loadn
 -----
-.. doxygenfunction:: kernel_float::loadn(const T*, ptrdiff_t, ptrdiff_t)
+.. doxygenfunction:: kernel_float::loadn(const T*, size_t, size_t)
 
 store
 -----
@@ -35,11 +35,11 @@ store
 
 storen
 ------
-.. doxygenfunction:: kernel_float::storen(const V&, T*, ptrdiff_t)
+.. doxygenfunction:: kernel_float::storen(const V&, T*, size_t)
 
 storen
 ------
-.. doxygenfunction:: kernel_float::storen(const V&, T*, ptrdiff_t, ptrdiff_t)
+.. doxygenfunction:: kernel_float::storen(const V&, T*, size_t, size_t)
 
 aligned_ptr
 -----------
