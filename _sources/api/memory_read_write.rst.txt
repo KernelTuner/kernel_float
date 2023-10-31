@@ -9,37 +9,29 @@ cast_to
 -------
 .. doxygenfunction:: kernel_float::cast_to
 
-load
+read
 ----
-.. doxygenfunction:: kernel_float::load(const T*, const I&)
+.. doxygenfunction:: kernel_float::read(const T*, const I&, const M&)
 
-load
+write
+-----
+.. doxygenfunction:: kernel_float::write(T*, const I&, const V&, const M&)
+
+read
 ----
-.. doxygenfunction:: kernel_float::load(const T*, const I&, const M&)
+.. doxygenfunction:: kernel_float::read(const T*)
 
-loadn
+write
 -----
-.. doxygenfunction:: kernel_float::loadn(const T*, size_t)
+.. doxygenfunction:: kernel_float::write(T*, const V&)
 
-loadn
------
-.. doxygenfunction:: kernel_float::loadn(const T*, size_t, size_t)
+read_aligned
+------------
+.. doxygenfunction:: kernel_float::read_aligned(const T*)
 
-store
------
-.. doxygenfunction:: kernel_float::store(const V&, T *ptr, const I&)
-
-store
------
-.. doxygenfunction:: kernel_float::store(const V&, T *ptr, const I&, const M&)
-
-storen
-------
-.. doxygenfunction:: kernel_float::storen(const V&, T*, size_t)
-
-storen
-------
-.. doxygenfunction:: kernel_float::storen(const V&, T*, size_t, size_t)
+write_aligned
+-------------
+.. doxygenfunction:: kernel_float::write_aligned(T*, const V&)
 
 aligned_ptr
 -----------

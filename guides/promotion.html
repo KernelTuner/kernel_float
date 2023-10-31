@@ -87,19 +87,19 @@
              
   <section id="type-promotion">
 <h1>Type Promotion<a class="headerlink" href="#type-promotion" title="Permalink to this heading"></a></h1>
-<p>For operations that involve two input arguments (or more), <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> will first convert the inputs into a common type before applying the operation.
-For example, when adding <code class="docutils literal notranslate"><span class="pre">vec&lt;int,</span> <span class="pre">N&gt;</span></code> to a <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>, both arguments must first be converted into a <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>.</p>
+<p>For operations that involve two (or more) input arguments, <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> will first convert the inputs into a common type before applying the operation.
+For example, when adding <code class="docutils literal notranslate"><span class="pre">vec&lt;int,</span> <span class="pre">N&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>, both arguments must first be converted into a <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>.</p>
 <p>This procedure is called “type promotion” and is implemented as follows.
-First, all arguments are converted into a vector by calling <code class="docutils literal notranslate"><span class="pre">into_vec</span></code>.
-Next, all arguments must have length <code class="docutils literal notranslate"><span class="pre">N</span></code> or length <code class="docutils literal notranslate"><span class="pre">1</span></code> and vectors of length <code class="docutils literal notranslate"><span class="pre">1</span></code> are resized to become length <code class="docutils literal notranslate"><span class="pre">N</span></code>.
-Finally, the vector element types are promoted into a common type.</p>
+Initially, every argument is transformed into a vector using the <code class="docutils literal notranslate"><span class="pre">into_vec</span></code> function
+Next, all arguments must have length <code class="docutils literal notranslate"><span class="pre">N</span></code> or length <code class="docutils literal notranslate"><span class="pre">1</span></code>, where vectors of length <code class="docutils literal notranslate"><span class="pre">1</span></code> are repeated to become length <code class="docutils literal notranslate"><span class="pre">N</span></code>.
+Finally, the vector element types are promoted into a shared type.</p>
 <p>The rules for element type promotion in <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> are slightly different than in regular C++.
-In short, for two element types <code class="docutils literal notranslate"><span class="pre">T</span></code> and <code class="docutils literal notranslate"><span class="pre">U</span></code>, the promotion rules can be summarized as follows:</p>
+In a nutshell, for two element types, the promotion rules can be summarized as follows:</p>
 <ul class="simple">
 <li><p>If one of the types is <code class="docutils literal notranslate"><span class="pre">bool</span></code>, the result is the other type.</p></li>
-<li><p>If one type is a floating-point type and the other is a signed or unsigned integer, the result is the floating-point type.</p></li>
-<li><p>If both types are floating-point types, the result is the largest of the two types. An exception here is combining <code class="docutils literal notranslate"><span class="pre">half</span></code> and <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>, which results in <code class="docutils literal notranslate"><span class="pre">float</span></code>.</p></li>
-<li><p>If both types are integer types of the same signedness, the result is the largest of the two types.</p></li>
+<li><p>If one type is a floating-point and the other is an integer (signed or unsigned), the outcome is the floating-point type.</p></li>
+<li><p>If both are floating-point types, the largest of the two is chosen. An exception is combining <code class="docutils literal notranslate"><span class="pre">half</span></code> and <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>, which results in <code class="docutils literal notranslate"><span class="pre">float</span></code>.</p></li>
+<li><p>If both types are integer types of the same signedness, the largest of the two is chosen.</p></li>
 <li><p>Combining a signed integer and unsigned integer type is not allowed.</p></li>
 </ul>
 <section id="overview">
