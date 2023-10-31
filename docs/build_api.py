@@ -212,14 +212,15 @@ groups = {
         ],
         "Memory read/write": [
             "cast_to",
-            ("load", "load(const T*, const I&)"),
-            ("load", "load(const T*, const I&, const M&)"),
-            ("loadn", "loadn(const T*, size_t)"),
-            ("loadn", "loadn(const T*, size_t, size_t)"),
-            ("store", "store(const V&, T *ptr, const I&)"),
-            ("store", "store(const V&, T *ptr, const I&, const M&)"),
-            ("storen", "storen(const V&, T*, size_t)"),
-            ("storen", "storen(const V&, T*, size_t, size_t)"),
+            ("read", "read(const T*, const I&, const M&)"),
+            ("write", "write(T*, const I&, const V&, const M&)"),
+
+            ("read", "read(const T*)"),
+            ("write", "write(T*, const V&)"),
+
+            ("read_aligned", "read_aligned(const T*)"),
+            ("write_aligned", "write_aligned(T*, const V&)"),
+
             ("aligned_ptr", "aligned_ptr", "struct"),
         ],
         "Utilities": [
