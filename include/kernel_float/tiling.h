@@ -41,11 +41,11 @@ struct block_size {
 };
 
 template<size_t... Ns>
-struct virtual_block_size {
+struct unravel_block_size {
     static constexpr size_t rank = sizeof...(Ns);
 
     KERNEL_FLOAT_INLINE
-    virtual_block_size(dim3 thread_index) {
+    unravel_block_size(dim3 thread_index) {
         thread_index_ = thread_index.x;
     }
 
@@ -159,6 +159,75 @@ template<size_t M>
 struct block_cyclic {
     template<size_t N, size_t K>
     using type = cyclic_impl<M, N, K>;
+};
+
+template<size_t N>
+struct replicate_impl {
+    static constexpr bool is_exhaustive = true;
+    static constexpr size_t items_per_thread = N;
+
+    KERNEL_FLOAT_INLINE
+    static constexpr bool local_is_present(size_t thread_index, size_t local_index) {
+        return true;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t local_to_global(size_t thread_index, size_t local_index) {
+        return local_index;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t global_to_local(size_t global_index) {
+        return global_index;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t global_to_owner(size_t global_index) {
+        return 0;
+    }
+};
+
+struct replicate {
+    template<size_t N, size_t K>
+    using type = replicate_impl<N>;
+};
+
+template<size_t N, size_t Root, size_t K>
+struct centralize_impl {
+    static_assert(Root < K, "index of root thread cannot exceed thread block size");
+    static constexpr bool is_exhaustive = K == 1;
+    static constexpr size_t items_per_thread = N;
+
+    KERNEL_FLOAT_INLINE
+    static constexpr bool local_is_present(size_t thread_index, size_t local_index) {
+        return K == 1 || thread_index == Root;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t local_to_global(size_t thread_index, size_t local_index) {
+        return local_index;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t global_to_local(size_t global_index) {
+        return global_index;
+    }
+
+    KERNEL_FLOAT_INLINE
+    static constexpr size_t global_to_owner(size_t global_index) {
+        return Root;
+    }
+};
+
+struct at_thread0 {
+    template<size_t N, size_t K>
+    using type = centralize_impl<N, 0, K>;
+};
+
+template<size_t I>
+struct at_thread {
+    template<size_t N, size_t K>
+    using type = centralize_impl<N, I, K>;
 };
 }  // namespace dist
 
