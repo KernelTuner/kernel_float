@@ -117,7 +117,7 @@ KERNEL_FLOAT_BF16_BINARY_FUN(max, __hmax, __hmax2)
 KERNEL_FLOAT_BF16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_BF16_BINARY_FUN(equal_to, __heq, __heq2)
-KERNEL_FLOAT_BF16_BINARY_FUN(not_equal_to, __heq, __heq2)
+KERNEL_FLOAT_BF16_BINARY_FUN(not_equal_to, __hneu, __hneu2)
 KERNEL_FLOAT_BF16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
