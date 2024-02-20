@@ -14,11 +14,7 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N, int B>
-__global__ void my_kernel(
-    int length,
-    kf::aligned_ptr<const __half> input,
-    double constant,
-    kf::aligned_ptr<float> output) {
+__global__ void my_kernel(int length, const __half* input, double constant, float* output) {
     auto tiling = kf::tiling<
         kf::tile_factor<N>,
         kf::block_size<B>,
@@ -27,9 +23,9 @@ __global__ void my_kernel(
     auto points = int(blockIdx.x * tiling.tile_size(0)) + tiling.local_points(0);
     auto mask = tiling.local_mask();
 
-    auto a = input.read(points, mask);
+    auto a = kf::read(input, points, mask);
     auto b = (a * a) * constant;
-    output.write(points, b, mask);
+    kf::write(output, points, b, mask);
 }
 
 template<int items_per_thread, int block_size = 256>
@@ -57,11 +53,8 @@ void run_kernel(int n) {
     // Launch kernel!
     int items_per_block = block_size * items_per_thread;
     int grid_size = (n + items_per_block - 1) / items_per_block;
-    my_kernel<items_per_thread, block_size><<<grid_size, block_size>>>(
-        n,
-        kf::aligned_ptr(input_dev),
-        constant,
-        kf::aligned_ptr(output_dev));
+    my_kernel<items_per_thread, block_size>
+        <<<grid_size, block_size>>>(n, input_dev, constant, output_dev);
 
     // Copy results back
     cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));

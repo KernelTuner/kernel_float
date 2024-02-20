@@ -285,248 +285,168 @@ KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
         convert_storage<T, N>(values).data());
 }
 
-/**
- * Represents a pointer of type ``T*`` that is guaranteed to be aligned to ``alignment`` bytes.
- */
-template<typename T, size_t alignment = KERNEL_FLOAT_MAX_ALIGNMENT>
-struct aligned_ptr {
-    static_assert(alignment >= alignof(T), "invalid alignment");
+template<typename T, size_t N, typename U = T, size_t Align = 1>
+struct vector_ref {
+    using pointer_type = U*;
+    using value_type = decay_t<T>;
+    using vector_type = vector<value_type, extent<N>>;
 
-    KERNEL_FLOAT_INLINE
-    aligned_ptr(decltype(nullptr) = nullptr) {}
+    KERNEL_FLOAT_INLINE explicit vector_ref(pointer_type data) : data_(data) {}
 
-    KERNEL_FLOAT_INLINE
-    explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
-
-    KERNEL_FLOAT_INLINE
-    aligned_ptr(const aligned_ptr<T>& ptr) : ptr_(ptr.get()) {}
-
-    /**
-     * Return the pointer value.
-     */
-    KERNEL_FLOAT_INLINE
-    T* get() const {
-        return KERNEL_FLOAT_ASSUME_ALIGNED(T, ptr_, alignment);
+    KERNEL_FLOAT_INLINE vector_type read() const {
+        return convert<value_type, N>(read_aligned<Align, N>(data_));
     }
 
-    KERNEL_FLOAT_INLINE
-    operator T*() const {
-        return get();
-    }
-
-    template<typename I>
-    KERNEL_FLOAT_INLINE T& operator[](I&& index) const {
-        return get()[std::forward<I>(index)];
-    }
-
-    /**
-     * Returns a new pointer that is offset by ``Step * offset`` items
-     *
-     * Example
-     * =======
-     * ```
-     * aligned_ptr<int> ptr = vector.data();
-     *
-     * // Returns a pointer to element `vector[8]` with alignment of 4
-     * ptr.offset(8);
-     *
-     * // Returns a pointer to element `vector[4]` with alignment of 16
-     * ptr.offset<4>();
-     *
-     * // Returns a pointer to element `vector[8]` with alignment of 16
-     * ptr.offset<4>(2);
-     * ```
-     */
-    template<size_t Step = 1>
-    KERNEL_FLOAT_INLINE aligned_ptr<T, detail::gcd(sizeof(T) * Step, alignment)>
-    offset(size_t n = 1) const {
-        return aligned_ptr<T, detail::gcd(sizeof(T) * Step, alignment)> {get() + Step * n};
-    }
-
-    /**
-     * See ``kernel_float::read``
-     */
-    template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> read() const {
-        vector_storage<T, N> result;
-        detail::copy_aligned_impl<T, N, alignment>::load(result.data(), get());
-        return result;
-    }
-
-    /**
-     * See ``kernel_float::write``
-     */
-    template<typename V>
+    template<typename V = vector_type>
     KERNEL_FLOAT_INLINE void write(const V& values) const {
-        constexpr size_t N = vector_extent<V>;
-        return detail::copy_aligned_impl<T, N, alignment>::store(
-            get(),
-            convert_storage<T, N>(values).data());
+        U* x = data_;
+        write_aligned<Align>(x, convert<U, N>(values));
     }
 
-    /**
-     * See ``kernel_float::read``
-     */
-    template<typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
-    KERNEL_FLOAT_INLINE vector<T, E> read(const I& indices, const M& mask = true) {
-        return ::kernel_float::read(get(), indices, mask);
+    KERNEL_FLOAT_INLINE operator vector_type() const {
+        return read();
     }
 
-    /**
-     * See ``kernel_float::write``
-     */
-    template<typename V, typename I, typename M = bool>
-    KERNEL_FLOAT_INLINE void write(const I& indices, const V& values, const M& mask = true) {
-        return ::kernel_float::write(get(), indices, values, mask);
+    template<typename V>
+    KERNEL_FLOAT_INLINE vector_ref operator=(const V& values) const {
+        write(values);
+        return *this;
     }
 
-    /**
-     * Offsets the pointer by `Step * offset` items and then read the subsequent `N` items.
-     *
-     * Example
-     * =======
-     * ```
-     * aligned_ptr<int> ptr = vector.data();
-     *
-     * // Returns vector[40], vector[41], vector[42], vector[43]
-     * ptr.read_at<4>(10);
-     *
-     * // Returns vector[20], vector[21], vector[22]
-     * ptr.read_at<2, 3>(10);
-     * ```
-     */
-    template<size_t Step = 1, size_t N = Step>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> read_at(size_t offset) const {
-        return this->offset<Step>(offset).template read<N>();
-    }
-
-    /**
-     * Offsets the pointer by `Step * offset` items and then writes the subsequent `N` items.
-     *
-     * Example
-     * =======
-     * ```
-     * aligned_ptr<int> ptr = vector.data();
-     * vec<int, 4> values = {1, 2, 3, 4};
-     *
-     * // Writes to vector[40], vector[41], vector[42], vector[43]
-     * ptr.write_at<4>(10, values);
-     *
-     * // Returns vector[20], vector[21], vector[22], vector[23]
-     * ptr.write_at<2>(10, values);
-     * ```
-     */
-    template<size_t Step = 1, typename V>
-    KERNEL_FLOAT_INLINE void write_at(size_t offset, const V& values) const {
-        return this->offset<Step>(offset).template write(values);
+    KERNEL_FLOAT_INLINE pointer_type get() const {
+        return data_;
     }
 
   private:
-    T* ptr_ = nullptr;
+    pointer_type data_ = nullptr;
 };
 
-template<typename T, size_t alignment>
-struct aligned_ptr<const T, alignment> {
-    static_assert(alignment >= alignof(T), "invalid alignment");
+template<typename T, size_t N, typename U, size_t Align>
+struct vector_ref<T, N, const U, Align> {
+    using pointer_type = const U*;
+    using value_type = decay_t<T>;
+    using vector_type = vector<value_type, extent<N>>;
 
-    KERNEL_FLOAT_INLINE
-    aligned_ptr(decltype(nullptr) = nullptr) {}
+    KERNEL_FLOAT_INLINE explicit vector_ref(pointer_type data) : data_(data) {}
 
-    KERNEL_FLOAT_INLINE
-    explicit aligned_ptr(T* ptr) : ptr_(ptr) {}
-
-    KERNEL_FLOAT_INLINE
-    explicit aligned_ptr(const T* ptr) : ptr_(ptr) {}
-
-    KERNEL_FLOAT_INLINE
-    aligned_ptr(const aligned_ptr<T>& ptr) : ptr_(ptr.get()) {}
-
-    KERNEL_FLOAT_INLINE
-    aligned_ptr(const aligned_ptr<const T>& ptr) : ptr_(ptr.get()) {}
-
-    /**
-     * Return the pointer value.
-     */
-    KERNEL_FLOAT_INLINE
-    const T* get() const {
-        return KERNEL_FLOAT_ASSUME_ALIGNED(const T, ptr_, alignment);
+    KERNEL_FLOAT_INLINE vector_type read() const {
+        return convert<value_type, N>(read_aligned<Align, N>(data_));
     }
 
-    KERNEL_FLOAT_INLINE
-    operator const T*() const {
-        return get();
+    KERNEL_FLOAT_INLINE operator vector_type() const {
+        return read();
     }
 
-    template<typename I>
-    KERNEL_FLOAT_INLINE const T& operator[](I&& index) const {
-        return get()[std::forward<I>(index)];
-    }
-
-    /**
-     * Returns a new pointer that is offset by ``Step * offset`` items
-     *
-     * Example
-     * =======
-     * ```
-     * aligned_ptr<int> ptr = vector.data();
-     *
-     * // Returns a pointer to element `vector[8]` with alignment of 4
-     * ptr.offset(8);
-     *
-     * // Returns a pointer to element `vector[4]` with alignment of 16
-     * ptr.offset<4>();
-     *
-     * // Returns a pointer to element `vector[8]` with alignment of 16
-     * ptr.offset<4>(2);
-     * ```
-     */
-    template<size_t Step = 1>
-    KERNEL_FLOAT_INLINE aligned_ptr<const T, detail::gcd(sizeof(T) * Step, alignment)>
-    offset(size_t n = 1) const {
-        return aligned_ptr<const T, detail::gcd(sizeof(T) * Step, alignment)> {get() + Step * n};
-    }
-
-    /**
-     * See ``kernel_float::read``
-     */
-    template<size_t N>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> read() const {
-        vector_storage<T, N> result;
-        detail::copy_aligned_impl<T, N, alignment>::load(result.data(), get());
-        return result;
-    }
-
-    /**
-     * See ``kernel_float::write``
-     */
-    template<typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
-    KERNEL_FLOAT_INLINE vector<T, E> read(const I& indices, const M& mask = true) {
-        return ::kernel_float::read(get(), indices, mask);
-    }
-
-    /**
-     * Offsets the pointer by `Step * offset` items and then read the subsequent `N` items.
-     *
-     * Example
-     * =======
-     * ```
-     * aligned_ptr<int> ptr = vector.data();
-     *
-     * // Returns vector[40], vector[41], vector[42], vector[43]
-     * ptr.read_at<4>(10);
-     *
-     * // Returns vector[20], vector[21], vector[22]
-     * ptr.read_at<2, 3>(10);
-     * ```
-     */
-    template<size_t Step = 1, size_t N = Step>
-    KERNEL_FLOAT_INLINE vector<T, extent<N>> read_at(size_t offset) const {
-        return this->offset<Step>(offset).template read<N>();
+    KERNEL_FLOAT_INLINE pointer_type get() const {
+        return data_;
     }
 
   private:
-    const T* ptr_ = nullptr;
+    pointer_type data_ = nullptr;
 };
+
+#define KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(OP, OP_ASSIGN)                 \
+    template<typename T, size_t N, typename U, size_t Align, typename V> \
+    KERNEL_FLOAT_INLINE vector_ref<T, N> operator OP_ASSIGN(             \
+        vector_ref<T, N, U, Align> ptr,                                  \
+        const V& value) {                                                \
+        ptr.write(ptr.read() OP value);                                  \
+    }
+
+KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(+, +=)
+KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(-, -=)
+KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(*, *=)
+KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(/, /=)
+
+template<typename T, size_t Align, typename U = T>
+struct vector_ptr {
+    using pointer_type = U*;
+    using value_type = decay_t<T>;
+
+    vector_ptr() = default;
+    KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
+
+    template<typename T2>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, Align, U> p) : data_(p.get()) {}
+
+    template<size_t N = Align>
+    KERNEL_FLOAT_INLINE vector_ref<T, N, U, Align> at(size_t index) const {
+        return vector_ref<T, N, U, Align> {data_ + index * Align};
+    }
+
+    KERNEL_FLOAT_INLINE vector<value_type, extent<Align>> operator[](size_t index) const {
+        return this->template at<Align>(index).read();
+    }
+
+    template<size_t N = Align>
+    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> read(size_t index = 0) const {
+        return this->template at<N>(index).read();
+    }
+
+    template<size_t N = Align, typename V>
+    KERNEL_FLOAT_INLINE void write(size_t index, const V& values) const {
+        this->template at<N>(index).write(values);
+    }
+
+    KERNEL_FLOAT_INLINE pointer_type get() const {
+        return data_;
+    }
+
+  private:
+    pointer_type data_ = nullptr;
+};
+
+template<typename T, size_t Align, typename U>
+struct vector_ptr<T, Align, const U> {
+    using pointer_type = const U*;
+    using value_type = decay_t<T>;
+
+    vector_ptr() = default;
+    KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
+
+    template<typename T2>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, Align, U> p) : data_(p.get()) {}
+
+    template<size_t N = Align>
+    KERNEL_FLOAT_INLINE vector_ref<T, N, const U, Align> at(size_t index) const {
+        return vector_ref<T, N, const U, Align> {data_ + index * Align};
+    }
+
+    KERNEL_FLOAT_INLINE vector<value_type, extent<Align>> operator[](size_t index) const {
+        return this->template at<Align>(index).read();
+    }
+
+    template<size_t N = Align>
+    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> read(size_t index = 0) const {
+        return this->template at<N>(index).read();
+    }
+
+    KERNEL_FLOAT_INLINE pointer_type get() const {
+        return data_;
+    }
+
+  private:
+    pointer_type data_ = nullptr;
+};
+
+template<typename T, size_t N = 1, typename U = T>
+using vec_ptr = vector_ptr<T, N, U>;
+
+#if defined(__cpp_deduction_guides)
+template<typename T>
+vector_ptr(T*) -> vector_ptr<T, 1, T>;
+
+template<typename T>
+vector_ptr(const T*) -> vector_ptr<T, 1, const T>;
+
+#if __cpp_deduction_guides >= 201907L
+template<typename T>
+vec_ptr(T*) -> vec_ptr<T, 1, T>;
+
+template<typename T>
+vec_ptr(const T*) -> vec_ptr<T, 1, const T>;
+#endif
+#endif
 
 }  // namespace kernel_float
 
