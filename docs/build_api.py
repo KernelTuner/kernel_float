@@ -83,14 +83,17 @@ groups = {
             "reduce",
             "zip",
             "zip_common",
-            "cast",
-            "broadcast",
-            "convert",
             "make_vec",
             "into_vec",
             "concat",
             "select",
             "for_each",
+        ],
+        "Conversion": [
+            "convert",
+            "cast",
+            "cast_to",
+            "broadcast",
         ],
         "Generation": [
             ("range", "range()"),
@@ -211,7 +214,6 @@ groups = {
             ("where", "where(const C&)"),
         ],
         "Memory read/write": [
-            "cast_to",
             ("read", "read(const T*, const I&, const M&)"),
             ("write", "write(T*, const I&, const V&, const M&)"),
 
@@ -220,8 +222,9 @@ groups = {
 
             ("read_aligned", "read_aligned(const T*)"),
             ("write_aligned", "write_aligned(T*, const V&)"),
+            "assert_aligned",
 
-            ("aligned_ptr", "aligned_ptr", "struct"),
+            ("vector_ptr", "vector_ptr", "struct"),
         ],
         "Utilities": [
             ("constant", "constant", "struct"),
