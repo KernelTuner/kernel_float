@@ -285,34 +285,67 @@ KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
         convert_storage<T, N>(values).data());
 }
 
+/**
+ * @brief A reference wrapper that allows reading/writing a vector of type `T`and length `N` with optional data
+ * conversion.
+ *
+ * @tparam T The type of the elements as seen from the user's perspective.
+ * @tparam N The number of elements in the vector.
+ * @tparam U The underlying storage type. Defaults to the same type as T.
+ * @tparam Align  The alignment constraint for read and write operations.
+ */
 template<typename T, size_t N, typename U = T, size_t Align = 1>
 struct vector_ref {
     using pointer_type = U*;
     using value_type = decay_t<T>;
     using vector_type = vector<value_type, extent<N>>;
 
+    /**
+     * Constructs a vector_ref to manage access to a raw data pointer.
+     *
+     * @param data Pointer to the raw data this vector_ref will manage.
+     */
     KERNEL_FLOAT_INLINE explicit vector_ref(pointer_type data) : data_(data) {}
 
+    /**
+     * Reads data from the underlying raw pointer, converting it to type `T`.
+     *
+     * @return vector_type A vector of type vector_type containing the read and converted data.
+     */
     KERNEL_FLOAT_INLINE vector_type read() const {
         return convert<value_type, N>(read_aligned<Align, N>(data_));
     }
 
+    /**
+     * Writes data to the underlying raw pointer, converting it from the input vector if necessary.
+     *
+     * @tparam V The type of the input vector, defaults to `T`.
+     * @param values The values to be written.
+     */
     template<typename V = vector_type>
     KERNEL_FLOAT_INLINE void write(const V& values) const {
-        U* x = data_;
-        write_aligned<Align>(x, convert<U, N>(values));
+        write_aligned<Align>(data_, convert<U, N>(values));
     }
 
+    /**
+     * Conversion operator that is shorthand for `read()`.
+     */
     KERNEL_FLOAT_INLINE operator vector_type() const {
         return read();
     }
 
+    /**
+     * Assignment operator that is shorthand for `write(values)`.
+     */
     template<typename V>
     KERNEL_FLOAT_INLINE vector_ref operator=(const V& values) const {
         write(values);
         return *this;
     }
 
+    /**
+     * Gets the raw data pointer managed by this vector_ref
+     */
     KERNEL_FLOAT_INLINE pointer_type get() const {
         return data_;
     }
@@ -321,6 +354,9 @@ struct vector_ref {
     pointer_type data_ = nullptr;
 };
 
+/**
+ * Specialization for `vector_ref` if the backing storage is const.
+ */
 template<typename T, size_t N, typename U, size_t Align>
 struct vector_ref<T, N, const U, Align> {
     using pointer_type = const U*;
@@ -351,6 +387,7 @@ struct vector_ref<T, N, const U, Align> {
         vector_ref<T, N, U, Align> ptr,                                  \
         const V& value) {                                                \
         ptr.write(ptr.read() OP value);                                  \
+        return ptr;                                                      \
     }
 
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(+, +=)
@@ -358,36 +395,95 @@ KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(-, -=)
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(*, *=)
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(/, /=)
 
-template<typename T, size_t Align, typename U = T>
+/**
+ * A wrapper for a pointer that enables vectorized access and supports type conversions..
+ *
+ * The `vector_ptr<T, N, U>` type is designed to function as if its a `vec<T, N>*` pointer, allowing of reading and
+ * writing `vec<T, N>` elements. However, the actual type of underlying storage is a pointer of type `U*`, where
+ * automatic conversion is performed between `T` and `U` when reading/writing items.
+ *
+ * For example, a `vector_ptr<double, N, half>`  is useful where the data is stored in low precision (here 16 bit)
+ * but it should be accessed as if it was in a higher precision format (here 64 bit).
+ *
+ * @tparam T The type of the elements as viewed by the user.
+ * @tparam N The alignment of T in number of elements.
+ * @tparam U The underlying storage type, defaults to T.
+ */
+template<typename T, size_t N, typename U = T>
 struct vector_ptr {
     using pointer_type = U*;
     using value_type = decay_t<T>;
 
+    /**
+     * Default constructor sets the pointer to `NULL`.
+     */
     vector_ptr() = default;
+
+    /**
+     * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Align` elements.
+     */
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
 
-    template<typename T2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, Align, U> p) : data_(p.get()) {}
+    /**
+     * Constructs a vector_ptr from another vector_ptr with potentially different alignment and type. This constructor
+     * only allows conversion if the alignment of the source is greater than or equal to the alignment of the target.
+     */
+    template<typename T2, size_t N2>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 >= N), int> = {}) :
+        data_(p.get()) {}
 
-    template<size_t N = Align>
-    KERNEL_FLOAT_INLINE vector_ref<T, N, U, Align> at(size_t index) const {
-        return vector_ref<T, N, U, Align> {data_ + index * Align};
+    /**
+     * Accesses a reference to a vector at a specific index with optional alignment considerations.
+     *
+     * @tparam N The number of elements in the vector to access, defaults to the alignment.
+     * @param index The index at which to access the vector.
+     */
+    template<size_t K = N>
+    KERNEL_FLOAT_INLINE vector_ref<T, K, U, N> at(size_t index) const {
+        return vector_ref<T, K, U, N> {data_ + index * N};
     }
 
-    KERNEL_FLOAT_INLINE vector<value_type, extent<Align>> operator[](size_t index) const {
-        return this->template at<Align>(index).read();
+    /**
+     * Accesses a vector at a specific index.
+     *
+     * @tparam K The number of elements to read, defaults to `N`.
+     * @param index The index from which to read the data.
+     */
+    template<size_t K = N>
+    KERNEL_FLOAT_INLINE vector<value_type, extent<K>> read(size_t index) const {
+        return this->template at<K>(index).read();
     }
 
-    template<size_t N = Align>
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> read(size_t index = 0) const {
-        return this->template at<N>(index).read();
+    /**
+     * Shorthand for `read(index)`.
+     */
+    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator[](size_t index) const {
+        return read(index);
     }
 
-    template<size_t N = Align, typename V>
+    /**
+     * Shorthand for `read(0)`.
+     */
+    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator*() const {
+        return read(0);
+    }
+
+    /**
+     * @brief Writes data to a specific index.
+     *
+     * @tparam K The number of elements to write, defaults to `N`.
+     * @tparam V The type of the values being written.
+     * @param index The index at which to write the data.
+     * @param values The vector of values to write.
+     */
+    template<size_t K = N, typename V>
     KERNEL_FLOAT_INLINE void write(size_t index, const V& values) const {
-        this->template at<N>(index).write(values);
+        this->template at<K>(index).write(values);
     }
 
+    /**
+     * Gets the raw data pointer managed by this `vector_ptr`.
+     */
     KERNEL_FLOAT_INLINE pointer_type get() const {
         return data_;
     }
@@ -396,29 +492,42 @@ struct vector_ptr {
     pointer_type data_ = nullptr;
 };
 
-template<typename T, size_t Align, typename U>
-struct vector_ptr<T, Align, const U> {
+/**
+ * Specialization for `vector_ptr` if the backing storage is const.
+ */
+template<typename T, size_t N, typename U>
+struct vector_ptr<T, N, const U> {
     using pointer_type = const U*;
     using value_type = decay_t<T>;
 
     vector_ptr() = default;
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
 
-    template<typename T2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, Align, U> p) : data_(p.get()) {}
+    template<typename T2, size_t N2>
+    KERNEL_FLOAT_INLINE
+    vector_ptr(vector_ptr<T2, N2, const U> p, enable_if_t<(N2 >= N), int> = {}) :
+        data_(p.get()) {}
 
-    template<size_t N = Align>
-    KERNEL_FLOAT_INLINE vector_ref<T, N, const U, Align> at(size_t index) const {
-        return vector_ref<T, N, const U, Align> {data_ + index * Align};
+    template<typename T2, size_t N2>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 >= N), int> = {}) :
+        data_(p.get()) {}
+
+    template<size_t K = N>
+    KERNEL_FLOAT_INLINE vector_ref<T, K, const U, N> at(size_t index) const {
+        return vector_ref<T, K, const U, N> {data_ + index * N};
     }
 
-    KERNEL_FLOAT_INLINE vector<value_type, extent<Align>> operator[](size_t index) const {
-        return this->template at<Align>(index).read();
+    template<size_t K = N>
+    KERNEL_FLOAT_INLINE vector<value_type, extent<K>> read(size_t index = 0) const {
+        return this->template at<K>(index).read();
     }
 
-    template<size_t N = Align>
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> read(size_t index = 0) const {
-        return this->template at<N>(index).read();
+    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator[](size_t index) const {
+        return read(index);
+    }
+
+    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator*() const {
+        return read(0);
     }
 
     KERNEL_FLOAT_INLINE pointer_type get() const {
@@ -428,6 +537,42 @@ struct vector_ptr<T, Align, const U> {
   private:
     pointer_type data_ = nullptr;
 };
+
+template<typename T, size_t N, typename U>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U> operator+(vector_ptr<T, N, U> p, size_t i) {
+    return vector_ptr<T, N, U> {p.get() + i * N};
+}
+
+template<typename T, size_t N, typename U>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U> operator+(size_t i, vector_ptr<T, N, U> p) {
+    return p + i;
+}
+
+/**
+ * Creates a `vector_ptr<T, N>` from a raw pointer `U*` by asserting a specific alignment `N`.
+ *
+ * @tparam T The type of the elements as viewed by the user. This type may differ from `U`.
+ * @tparam N The alignment constraint for the vector_ptr. Defaults to KERNEL_FLOAT_MAX_ALIGNMENT.
+ * @tparam U The type of the elements pointed to by the raw pointer.
+ */
+template<typename T, size_t N = KERNEL_FLOAT_MAX_ALIGNMENT, typename U>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U> assert_aligned(U* ptr) {
+    return vector_ptr<T, N, U> {ptr};
+}
+
+// Doxygen cannot deal with the `assert_aligned` being defined twice, we ignore the second definition.
+/// @cond IGNORE
+/**
+ * Creates a `vector_ptr<T, N>` from a raw pointer `T*` by asserting a specific alignment `N`.
+ *
+ * @tparam N The alignment constraint for the vector_ptr. Defaults to KERNEL_FLOAT_MAX_ALIGNMENT.
+ * @tparam T The type of the elements pointed to by the raw pointer.
+ */
+template<size_t N = KERNEL_FLOAT_MAX_ALIGNMENT, typename T>
+KERNEL_FLOAT_INLINE vector_ptr<T, N> assert_aligned(T* ptr) {
+    return vector_ptr<T, N> {ptr};
+}
+/// @endcond
 
 template<typename T, size_t N = 1, typename U = T>
 using vec_ptr = vector_ptr<T, N, U>;

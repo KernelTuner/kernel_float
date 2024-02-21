@@ -15,9 +15,9 @@ void cuda_check(cudaError_t code) {
 template<int N>
 __global__ void my_kernel(
     int length,
-    kf::vec_ptr<const __half, N> input,
+    kf::vec_ptr<const half, N> input,
     double constant,
-    kf::vec_ptr<float, N> output) {
+    kf::vec_ptr<half, N, float> output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
@@ -53,9 +53,9 @@ void run_kernel(int n) {
     int grid_size = (n + items_per_block - 1) / items_per_block;
     my_kernel<items_per_thread><<<grid_size, block_size>>>(
         n,
-        kf::vector_ptr<const half, items_per_thread>(input_dev),
+        kf::assert_aligned(input_dev),
         constant,
-        kf::vector_ptr<float, items_per_thread>(output_dev));
+        kf::assert_aligned(output_dev));
 
     // Copy results back
     cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));
