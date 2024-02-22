@@ -429,7 +429,7 @@ struct vector_ptr {
      * only allows conversion if the alignment of the source is greater than or equal to the alignment of the target.
      */
     template<typename T2, size_t N2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 >= N), int> = {}) :
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 % N == 0), int> = {}) :
         data_(p.get()) {}
 
     /**
@@ -514,11 +514,11 @@ struct vector_ptr<T, N, const U> {
 
     template<typename T2, size_t N2>
     KERNEL_FLOAT_INLINE
-    vector_ptr(vector_ptr<T2, N2, const U> p, enable_if_t<(N2 >= N), int> = {}) :
+    vector_ptr(vector_ptr<T2, N2, const U> p, enable_if_t<(N2 % N == 0), int> = {}) :
         data_(p.get()) {}
 
     template<typename T2, size_t N2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 >= N), int> = {}) :
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 % N == 0), int> = {}) :
         data_(p.get()) {}
 
     template<size_t K = N>

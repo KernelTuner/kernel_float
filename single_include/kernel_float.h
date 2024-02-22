@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-02-22 10:17:59.488348
-// git hash: c81e76a8c623162ef1970192f239b70d54c85123
+// date: 2024-02-22 10:29:30.717359
+// git hash: c4fae9db85e61372cfefc53d4755b418beb2d93e
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2751,7 +2751,7 @@ struct vector_ptr {
      * only allows conversion if the alignment of the source is greater than or equal to the alignment of the target.
      */
     template<typename T2, size_t N2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 >= N), int> = {}) :
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 % N == 0), int> = {}) :
         data_(p.get()) {}
 
     /**
@@ -2836,11 +2836,11 @@ struct vector_ptr<T, N, const U> {
 
     template<typename T2, size_t N2>
     KERNEL_FLOAT_INLINE
-    vector_ptr(vector_ptr<T2, N2, const U> p, enable_if_t<(N2 >= N), int> = {}) :
+    vector_ptr(vector_ptr<T2, N2, const U> p, enable_if_t<(N2 % N == 0), int> = {}) :
         data_(p.get()) {}
 
     template<typename T2, size_t N2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 >= N), int> = {}) :
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 % N == 0), int> = {}) :
         data_(p.get()) {}
 
     template<size_t K = N>
