@@ -457,14 +457,14 @@ struct vector_ptr {
     /**
      * Shorthand for `read(index)`.
      */
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator[](size_t index) const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator[](size_t index) const {
         return read(index);
     }
 
     /**
      * Shorthand for `read(0)`.
      */
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator*() const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator*() const {
         return read(0);
     }
 
@@ -522,11 +522,11 @@ struct vector_ptr<T, N, const U> {
         return this->template at<K>(index).read();
     }
 
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator[](size_t index) const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator[](size_t index) const {
         return read(index);
     }
 
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator*() const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator*() const {
         return read(0);
     }
 
