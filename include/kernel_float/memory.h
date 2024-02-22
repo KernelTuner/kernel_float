@@ -482,6 +482,15 @@ struct vector_ptr {
     }
 
     /**
+     * Shorthand for `at(index)`. Returns a vector reference to can be used
+     * to assign to this pointer, contrary to `operator[]` that does not
+     * allow assignment.
+     */
+    KERNEL_FLOAT_INLINE vector_ref<T, N, U, N> operator()(size_t index) const {
+        return at(index);
+    }
+
+    /**
      * Gets the raw data pointer managed by this `vector_ptr`.
      */
     KERNEL_FLOAT_INLINE pointer_type get() const {

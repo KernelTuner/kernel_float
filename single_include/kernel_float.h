@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-02-21 16:31:28.518919
-// git hash: 4b0835655b5c2493054d8cbcba8b9ee4edc724d4
+// date: 2024-02-22 10:17:59.488348
+// git hash: c81e76a8c623162ef1970192f239b70d54c85123
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2779,14 +2779,14 @@ struct vector_ptr {
     /**
      * Shorthand for `read(index)`.
      */
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator[](size_t index) const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator[](size_t index) const {
         return read(index);
     }
 
     /**
      * Shorthand for `read(0)`.
      */
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator*() const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator*() const {
         return read(0);
     }
 
@@ -2801,6 +2801,15 @@ struct vector_ptr {
     template<size_t K = N, typename V>
     KERNEL_FLOAT_INLINE void write(size_t index, const V& values) const {
         this->template at<K>(index).write(values);
+    }
+
+    /**
+     * Shorthand for `at(index)`. Returns a vector reference to can be used
+     * to assign to this pointer, contrary to `operator[]` that does not
+     * allow assignment.
+     */
+    KERNEL_FLOAT_INLINE vector_ref<T, N, U, N> operator()(size_t index) const {
+        return at(index);
     }
 
     /**
@@ -2844,11 +2853,11 @@ struct vector_ptr<T, N, const U> {
         return this->template at<K>(index).read();
     }
 
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator[](size_t index) const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator[](size_t index) const {
         return read(index);
     }
 
-    KERNEL_FLOAT_INLINE vector<value_type, extent<N>> operator*() const {
+    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator*() const {
         return read(0);
     }
 
