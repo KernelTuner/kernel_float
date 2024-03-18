@@ -225,7 +225,7 @@ struct concat_impl<V, Vs...> {
 template<>
 struct concat_impl<> {
     using value_type = void;
-    static constexpr size_t size = 1;
+    static constexpr size_t size = 0;
 
     template<typename U>
     KERNEL_FLOAT_INLINE static void call(U* output) {}
