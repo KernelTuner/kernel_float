@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-02-22 10:29:30.717359
-// git hash: c4fae9db85e61372cfefc53d4755b418beb2d93e
+// date: 2024-03-18 16:06:55.100306
+// git hash: 06e08f55399e148d96070afd0ac36dd414045f04
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2229,7 +2229,7 @@ struct concat_impl<V, Vs...> {
 template<>
 struct concat_impl<> {
     using value_type = void;
-    static constexpr size_t size = 1;
+    static constexpr size_t size = 0;
 
     template<typename U>
     KERNEL_FLOAT_INLINE static void call(U* output) {}

@@ -383,7 +383,7 @@ struct vector_ref<T, N, const U, Align> {
 
 #define KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(OP, OP_ASSIGN)                 \
     template<typename T, size_t N, typename U, size_t Align, typename V> \
-    KERNEL_FLOAT_INLINE vector_ref<T, N> operator OP_ASSIGN(             \
+    KERNEL_FLOAT_INLINE vector_ref<T, N, U, Align> operator OP_ASSIGN(   \
         vector_ref<T, N, U, Align> ptr,                                  \
         const V& value) {                                                \
         ptr.write(ptr.read() OP value);                                  \
