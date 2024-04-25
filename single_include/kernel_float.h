@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-03-18 16:06:55.100306
-// git hash: 06e08f55399e148d96070afd0ac36dd414045f04
+// date: 2024-04-22 13:28:09.684538
+// git hash: fd4eadfbb0c8597276a6c12f972038cd1baff985
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2705,7 +2705,7 @@ struct vector_ref<T, N, const U, Align> {
 
 #define KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(OP, OP_ASSIGN)                 \
     template<typename T, size_t N, typename U, size_t Align, typename V> \
-    KERNEL_FLOAT_INLINE vector_ref<T, N> operator OP_ASSIGN(             \
+    KERNEL_FLOAT_INLINE vector_ref<T, N, U, Align> operator OP_ASSIGN(   \
         vector_ref<T, N, U, Align> ptr,                                  \
         const V& value) {                                                \
         ptr.write(ptr.read() OP value);                                  \
@@ -3379,6 +3379,7 @@ namespace kernel_float {
  */
 template<typename T, typename E, class S>
 struct vector: public S {
+    using self_type = vector<T, E, S>;
     using value_type = T;
     using extent_type = E;
     using storage_type = S;
@@ -3577,8 +3578,8 @@ struct vector: public S {
      * vec<float, 4> vec2 = select(input, indices); // [0, 40, 40, 20]
      * ```
      */
-    template<typename V, typename... Is>
-    KERNEL_FLOAT_INLINE select_type<V, Is...> select(const Is&... indices) {
+    template<typename... Is>
+    KERNEL_FLOAT_INLINE select_type<self_type, Is...> select(const Is&... indices) {
         return kernel_float::select(*this, indices...);
     }
 
@@ -4255,6 +4256,7 @@ struct allow_float_fallback<__nv_fp8_e5m2> {
     static constexpr bool value = true;
 };
 }  // namespace detail
+}  // namespace kernel_float
 
 #define KERNEL_FLOAT_FP8_CAST(T)                                  \
     namespace ops {                                               \
@@ -4287,6 +4289,29 @@ struct allow_float_fallback<__nv_fp8_e5m2> {
     };                                                            \
     }
 
+#define KERNEL_FLOAT_FP8_CAST2(T, FP8_TY, FP8_INTERP)                                            \
+    namespace detail {                                                                           \
+    template<>                                                                                   \
+    struct apply_impl<ops::cast<T, FP8_TY>, 2, FP8_TY, T> {                                      \
+        KERNEL_FLOAT_INLINE static void call(ops::cast<T, FP8_TY>, FP8_TY* result, const T* v) { \
+            __half2_raw x;                                                                       \
+            memcpy(&x, v, 2 * sizeof(T));                                                        \
+            __nv_fp8x2_storage_t y = __nv_cvt_halfraw2_to_fp8x2(x, __NV_NOSAT, FP8_INTERP);      \
+            memcpy(result, &y, 2 * sizeof(FP8_TY));                                              \
+        }                                                                                        \
+    };                                                                                           \
+    template<>                                                                                   \
+    struct apply_impl<ops::cast<FP8_TY, T>, 2, T, FP8_TY> {                                      \
+        KERNEL_FLOAT_INLINE static void call(ops::cast<FP8_TY, T>, T* result, const FP8_TY* v) { \
+            __nv_fp8x2_storage_t x;                                                              \
+            memcpy(&x, v, 2 * sizeof(FP8_TY));                                                   \
+            __half2_raw y = __nv_cvt_fp8x2_to_halfraw2(x, FP8_INTERP);                           \
+            memcpy(result, &y, 2 * sizeof(T));                                                   \
+        }                                                                                        \
+    };                                                                                           \
+    }
+
+namespace kernel_float {
 KERNEL_FLOAT_FP8_CAST(double)
 }  // namespace kernel_float
 
@@ -4297,6 +4322,10 @@ namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e5m2)
 KERNEL_FLOAT_FP8_CAST(__half)
+
+KERNEL_FLOAT_FP8_CAST2(__half, __nv_fp8_e4m3, __NV_E4M3)
+KERNEL_FLOAT_FP8_CAST2(__half, __nv_fp8_e5m2, __NV_E5M2)
+
 }  // namespace kernel_float
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
 
@@ -4307,6 +4336,9 @@ namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e5m2)
 KERNEL_FLOAT_FP8_CAST(__nv_bfloat16)
+
+KERNEL_FLOAT_FP8_CAST2(__nv_bfloat16, __nv_fp8_e4m3, __NV_E4M3)
+KERNEL_FLOAT_FP8_CAST2(__nv_bfloat16, __nv_fp8_e5m2, __NV_E5M2)
 }  // namespace kernel_float
 #endif  // KERNEL_FLOAT_BF16_AVAILABLE
 
