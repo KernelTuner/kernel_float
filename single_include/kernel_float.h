@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2023-10-24 14:14:37.228322
-// git hash: 28f811af866d73bef37acd541bac6a95df9a94c3
+// date: 2024-04-26 09:45:38.335903
+// git hash: 91f4860ae4ece05ec4d8e198d62d9486efa761db
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -73,10 +73,12 @@
 
 // TOOD: check if this way is support across all compilers
 #if defined(__has_builtin)
-    #if __has_builtin(__builtin_assume_aligned) && 0
-        #define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) \
-        static_cast<TYPE*>(__builtin_assume_aligned(static_cast<TYPE*>(PTR), (ALIGNMENT)))
-    #endif
+#if __has_builtin(__builtin_assume_aligned)
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) \
+    static_cast<TYPE*>(__builtin_assume_aligned(static_cast<TYPE*>(PTR), (ALIGNMENT)))
+#else
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
+#endif
 #else
 #define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
 #endif
