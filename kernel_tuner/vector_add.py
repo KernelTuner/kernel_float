@@ -34,6 +34,7 @@ def tune():
     tune_params = dict()
     tune_params["block_size_x"] = [64, 128, 256, 512]
     tune_params["float_type"] = ["half", "float", "double"]
+    tune_params["elements_per_thread"] = [1, 2, 4, 8]
 
     # Observers will measure the error using either RMSE or MRE as error metric
     observers = [
