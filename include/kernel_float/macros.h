@@ -50,10 +50,13 @@
 #define KERNEL_FLOAT_CALL(F, ...)      F(__VA_ARGS__)
 
 // TOOD: check if this way is support across all compilers
-//#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
-#if 0
-#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) \
-    static_cast<TYPE*>(__builtin_assume_aligned(static_cast<TYPE*>(PTR), (ALIGNMENT)))
+#if defined(__has_builtin) && 0  // Seems that `__builtin_assume_aligned` leads to segfaults
+#if __has_builtin(__builtin_assume_aligned)
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) static_cast <TYPE*>(
+        __builtin_assume_aligned(static_cast <TYPE*>(PTR), (ALIGNMENT)))
+#else
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
+#endif
 #else
 #define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
 #endif

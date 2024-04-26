@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-04-22 13:28:09.684538
-// git hash: fd4eadfbb0c8597276a6c12f972038cd1baff985
+// date: 2024-04-26 10:06:43.573011
+// git hash: a9c7d752a7329ae5187e3e9362a2b47c9f38371a
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -72,10 +72,13 @@
 #define KERNEL_FLOAT_CALL(F, ...)      F(__VA_ARGS__)
 
 // TOOD: check if this way is support across all compilers
-//#if defined(__has_builtin) && __has_builtin(__builtin_assume_aligned)
-#if 0
-#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) \
-    static_cast<TYPE*>(__builtin_assume_aligned(static_cast<TYPE*>(PTR), (ALIGNMENT)))
+#if defined(__has_builtin) && 0  // Seems that `__builtin_assume_aligned` leads to segfaults
+#if __has_builtin(__builtin_assume_aligned)
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) static_cast <TYPE*>(
+        __builtin_assume_aligned(static_cast <TYPE*>(PTR), (ALIGNMENT)))
+#else
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
+#endif
 #else
 #define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
 #endif
@@ -4321,8 +4324,8 @@ KERNEL_FLOAT_FP8_CAST(double)
 namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__half, __nv_fp8_e5m2)
-KERNEL_FLOAT_FP8_CAST(__half)
 
+KERNEL_FLOAT_FP8_CAST(__half)
 KERNEL_FLOAT_FP8_CAST2(__half, __nv_fp8_e4m3, __NV_E4M3)
 KERNEL_FLOAT_FP8_CAST2(__half, __nv_fp8_e5m2, __NV_E5M2)
 
@@ -4335,8 +4338,8 @@ KERNEL_FLOAT_FP8_CAST2(__half, __nv_fp8_e5m2, __NV_E5M2)
 namespace kernel_float {
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e4m3)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(__nv_bfloat16, __nv_fp8_e5m2)
-KERNEL_FLOAT_FP8_CAST(__nv_bfloat16)
 
+KERNEL_FLOAT_FP8_CAST(__nv_bfloat16)
 KERNEL_FLOAT_FP8_CAST2(__nv_bfloat16, __nv_fp8_e4m3, __NV_E4M3)
 KERNEL_FLOAT_FP8_CAST2(__nv_bfloat16, __nv_fp8_e5m2, __NV_E5M2)
 }  // namespace kernel_float
