@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-04-26 09:45:38.335903
-// git hash: 91f4860ae4ece05ec4d8e198d62d9486efa761db
+// date: 2024-04-26 10:04:14.741793
+// git hash: 1a8d6ea7dbbe205260c8731e19ed3a0daa2411a6
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -72,7 +72,7 @@
 #define KERNEL_FLOAT_CALL(F, ...)      F(__VA_ARGS__)
 
 // TOOD: check if this way is support across all compilers
-#if defined(__has_builtin)
+#if defined(__has_builtin) && 0  // Seems that `__builtin_assume_aligned` leads to segfaults
 #if __has_builtin(__builtin_assume_aligned)
 #define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) \
     static_cast<TYPE*>(__builtin_assume_aligned(static_cast<TYPE*>(PTR), (ALIGNMENT)))
