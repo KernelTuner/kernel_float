@@ -175,13 +175,14 @@ template<typename F, typename... Args>
 KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using Output = result_t<F, vector_value_type<Args>...>;
     using E = broadcast_vector_extent_type<Args...>;
-    vector_storage<Output, E::value> result;
+    vector_storage<Output, extent_size<E>> result;
 
     // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
 #if KERNEL_FLOAT_FAST_MATH
-    using apply_impl = detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>;
+    using apply_impl =
+        detail::apply_fastmath_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
 #else
-    using apply_impl = detail::apply_impl<F, E::value, Output, vector_value_type<Args>...>;
+    using apply_impl = detail::apply_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
 #endif
 
     apply_impl::call(
@@ -202,9 +203,9 @@ template<typename F, typename... Args>
 KERNEL_FLOAT_INLINE map_type<F, Args...> fast_map(F fun, const Args&... args) {
     using Output = result_t<F, vector_value_type<Args>...>;
     using E = broadcast_vector_extent_type<Args...>;
-    vector_storage<Output, E::value> result;
+    vector_storage<Output, extent_size<E>> result;
 
-    detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>::call(
+    detail::apply_fastmath_impl<F, extent_size<E>, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(

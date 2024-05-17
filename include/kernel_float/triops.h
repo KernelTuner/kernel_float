@@ -39,9 +39,9 @@ template<
     typename E = broadcast_vector_extent_type<C, L, R>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, E::value, T, bool, T, T>::call(
+    detail::apply_impl<F, extent_size<E>, T, bool, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
@@ -124,9 +124,9 @@ template<
     typename E = broadcast_vector_extent_type<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, E::value, T, T, T, T>::call(
+    detail::apply_impl<F, extent_size<E>, T, T, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(

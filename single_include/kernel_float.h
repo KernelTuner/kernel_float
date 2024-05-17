@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-05-17 11:44:08.292272
-// git hash: c0c7d100e3ee5bc187211e3d76b1fccc73c2fa5e
+// date: 2024-05-17 12:31:58.621011
+// git hash: cc083808180f25c4addd969a3387e3c9fd14fa35
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -464,9 +464,11 @@ struct extent;
 
 template<size_t N>
 struct extent<N> {
-    static constexpr size_t value = N;
-    static constexpr size_t size = N;
+    static constexpr size_t number_of_elements = N;
 };
+
+template<typename E>
+static constexpr size_t extent_size = E::number_of_elements;
 
 namespace detail {
 // Indicates that elements of type `T` offer less precision than floats, thus operations
@@ -594,7 +596,7 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulon
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
-template<typename T, typename E, typename S = vector_storage<T, E::size>>
+template<typename T, typename E, typename S = vector_storage<T, E::number_of_elements>>
 struct vector;
 
 template<typename T, typename E, typename S>
@@ -603,7 +605,7 @@ struct into_vector_impl<vector<T, E, S>> {
     using extent_type = E;
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E::value> call(const vector<T, E, S>& input) {
+    static vector_storage<T, extent_size<E>> call(const vector<T, E, S>& input) {
         return input.storage();
     }
 };
@@ -626,13 +628,13 @@ template<typename V>
 using vector_extent_type = typename into_vector_impl<V>::extent_type;
 
 template<typename V>
-static constexpr size_t vector_extent = vector_extent_type<V>::value;
+static constexpr size_t vector_size = extent_size<vector_extent_type<V>>;
 
 template<typename V>
 using into_vector_type = vector<vector_value_type<V>, vector_extent_type<V>>;
 
 template<typename V>
-using vector_storage_type = vector_storage<vector_value_type<V>, vector_extent<V>>;
+using vector_storage_type = vector_storage<vector_value_type<V>, vector_size<V>>;
 
 template<typename... Vs>
 using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
@@ -822,13 +824,14 @@ template<typename F, typename... Args>
 KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using Output = result_t<F, vector_value_type<Args>...>;
     using E = broadcast_vector_extent_type<Args...>;
-    vector_storage<Output, E::value> result;
+    vector_storage<Output, extent_size<E>> result;
 
     // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
 #if KERNEL_FLOAT_FAST_MATH
-    using apply_impl = detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>;
+    using apply_impl =
+        detail::apply_fastmath_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
 #else
-    using apply_impl = detail::apply_impl<F, E::value, Output, vector_value_type<Args>...>;
+    using apply_impl = detail::apply_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
 #endif
 
     apply_impl::call(
@@ -849,9 +852,9 @@ template<typename F, typename... Args>
 KERNEL_FLOAT_INLINE map_type<F, Args...> fast_map(F fun, const Args&... args) {
     using Output = result_t<F, vector_value_type<Args>...>;
     using E = broadcast_vector_extent_type<Args...>;
-    vector_storage<Output, E::value> result;
+    vector_storage<Output, extent_size<E>> result;
 
-    detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>::call(
+    detail::apply_fastmath_impl<F, extent_size<E>, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
@@ -1384,10 +1387,10 @@ namespace detail {
 template<typename T, typename E, typename T2, typename E2, RoundingMode M = RoundingMode::ANY>
 struct convert_impl {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T2, E2::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T2, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
-        vector_storage<T2, E::value> intermediate;
-        detail::apply_impl<F, E::value, T2, T>::call(F {}, intermediate.data(), input.data());
+        vector_storage<T2, extent_size<E>> intermediate;
+        detail::apply_impl<F, extent_size<E>, T2, T>::call(F {}, intermediate.data(), input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -1396,7 +1399,7 @@ struct convert_impl {
 template<typename T, typename E, RoundingMode M>
 struct convert_impl<T, E, T, E, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T, extent_size<E>> call(vector_storage<T, extent_size<E>> input) {
         return input;
     }
 };
@@ -1405,7 +1408,7 @@ struct convert_impl<T, E, T, E, M> {
 template<typename T, typename E, typename E2, RoundingMode M>
 struct convert_impl<T, E, T, E2, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E2::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         return detail::broadcast_impl<T, E, E2>::call(input);
     }
 };
@@ -1414,11 +1417,11 @@ struct convert_impl<T, E, T, E2, M> {
 template<typename T, typename E, typename T2, RoundingMode M>
 struct convert_impl<T, E, T2, E, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T2, E::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T2, extent_size<E>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
 
-        vector_storage<T2, E::value> result;
-        detail::apply_impl<F, E::value, T2, T>::call(F {}, result.data(), input.data());
+        vector_storage<T2, extent_size<E>> result;
+        detail::apply_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
         return result;
     }
 };
@@ -1637,13 +1640,13 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     using O = result_t<F, T, T>;
     using E = broadcast_vector_extent_type<L, R>;
 
-    vector_storage<O, E::value> result;
+    vector_storage<O, extent_size<E>> result;
 
 // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
 #if KERNEL_FLOAT_FAST_MATH
-    using apply_impl = detail::apply_fastmath_impl<F, E::value, O, T, T>;
+    using apply_impl = detail::apply_fastmath_impl<F, extent_size<E>, O, T, T>;
 #else
-    using apply_impl = detail::apply_impl<F, E::value, O, T, T>;
+    using apply_impl = detail::apply_impl<F, extent_size<E>, O, T, T>;
 #endif
 
     apply_impl::call(
@@ -1914,9 +1917,9 @@ template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE zip_common_type<ops::divide<T>, T, T>
 fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_fastmath_impl<ops::divide<T>, E::value, T, T, T>::call(
+    detail::apply_fastmath_impl<ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -2134,7 +2137,7 @@ KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
     auto storage = into_vector_storage(input);
 
 #pragma unroll
-    for (size_t i = 0; i < vector_extent<V>; i++) {
+    for (size_t i = 0; i < vector_size<V>; i++) {
         fun(storage.data()[i]);
     }
 }
@@ -2198,7 +2201,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
-    return range<vector_value_type<V>, vector_extent<V>>();
+    return range<vector_value_type<V>, vector_size<V>>();
 }
 
 /**
@@ -2223,11 +2226,11 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  */
 template<typename T = size_t, typename V>
 KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> each_index(const V& = {}) {
-    return range<T, vector_extent<V>>();
+    return range<T, vector_size<V>>();
 }
 
 namespace detail {
-template<typename V, typename T = vector_value_type<V>, size_t N = vector_extent<V>>
+template<typename V, typename T = vector_value_type<V>, size_t N = vector_size<V>>
 struct flatten_impl {
     using value_type = typename flatten_impl<T>::value_type;
     static constexpr size_t size = N * flatten_impl<T>::size;
@@ -2289,7 +2292,7 @@ KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
 namespace detail {
 template<typename U, typename V = U, typename T = vector_value_type<V>>
 struct concat_base_impl {
-    static constexpr size_t size = vector_extent<V>;
+    static constexpr size_t size = vector_size<V>;
 
     KERNEL_FLOAT_INLINE static void call(U* output, const V& input) {
         vector_storage<T, size> storage = into_vector_storage(input);
@@ -2406,7 +2409,7 @@ using select_type = vector<vector_value_type<V>, extent<concat_size<Is...>>>;
 template<typename V, typename... Is>
 KERNEL_FLOAT_INLINE select_type<V, Is...> select(const V& input, const Is&... indices) {
     using T = vector_value_type<V>;
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     static constexpr size_t M = concat_size<Is...>;
 
     vector_storage<size_t, M> index_set;
@@ -2468,7 +2471,7 @@ struct copy_impl<T, N, index_sequence<Is...>> {
  */
 template<typename T, typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
 KERNEL_FLOAT_INLINE vector<T, E> read(const T* ptr, const I& indices, const M& mask = true) {
-    return detail::copy_impl<T, E::value>::load(
+    return detail::copy_impl<T, extent_size<E>>::load(
         ptr,
         convert_storage<size_t>(indices, E()).data(),
         convert_storage<bool>(mask, E()).data());
@@ -2495,7 +2498,7 @@ template<
     typename M = bool,
     typename E = broadcast_vector_extent_type<V, I, M>>
 KERNEL_FLOAT_INLINE void write(T* ptr, const I& indices, const V& values, const M& mask = true) {
-    return detail::copy_impl<T, E::value>::store(
+    return detail::copy_impl<T, extent_size<E>>::store(
         ptr,
         convert_storage<T>(values, E()).data(),
         convert_storage<size_t>(indices, E()).data(),
@@ -2532,7 +2535,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read(const T* ptr) {
  */
 template<typename V, typename T>
 KERNEL_FLOAT_INLINE void write(T* ptr, const V& values) {
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     write(ptr, range<size_t, N>(), values);
 }
 
@@ -2707,7 +2710,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
  */
 template<size_t Align, typename V, typename T>
 KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
 
     return detail::copy_aligned_impl<T, N, alignment>::store(
@@ -3110,7 +3113,7 @@ struct reduce_recur_impl<2> {
  */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_impl<F, vector_extent<V>, vector_value_type<V>>::call(
+    return detail::reduce_impl<F, vector_size<V>, vector_value_type<V>>::call(
         fun,
         into_vector_storage(input).data());
 }
@@ -3240,7 +3243,7 @@ struct dot_impl {
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    return detail::dot_impl<T, E::value>::call(
+    return detail::dot_impl<T, extent_size<E>>::call(
         convert_storage<T>(left, E {}).data(),
         convert_storage<T>(right, E {}).data());
 }
@@ -3310,7 +3313,7 @@ struct magnitude_impl<double, 3> {
  */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T mag(const V& input) {
-    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input).data());
+    return detail::magnitude_impl<T, vector_size<V>>::call(into_vector_storage(input).data());
 }
 }  // namespace kernel_float
 
@@ -3356,9 +3359,9 @@ template<
     typename E = broadcast_vector_extent_type<C, L, R>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, E::value, T, bool, T, T>::call(
+    detail::apply_impl<F, extent_size<E>, T, bool, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
@@ -3441,9 +3444,9 @@ template<
     typename E = broadcast_vector_extent_type<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, E::value, T, T, T, T>::call(
+    detail::apply_impl<F, extent_size<E>, T, T, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
@@ -3518,7 +3521,7 @@ struct vector: public S {
         typename A,
         typename B,
         typename... Rest,
-        typename = enable_if_t<sizeof...(Rest) + 2 == E::size>>
+        typename = enable_if_t<sizeof...(Rest) + 2 == extent_size<E>>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
         storage_type {T(a), T(b), T(rest)...} {}
 
@@ -3527,7 +3530,7 @@ struct vector: public S {
      */
     KERNEL_FLOAT_INLINE
     static constexpr size_t size() {
-        return E::size;
+        return extent_size<E>;
     }
 
     /**

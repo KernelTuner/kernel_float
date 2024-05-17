@@ -54,7 +54,7 @@ struct vector: public S {
         typename A,
         typename B,
         typename... Rest,
-        typename = enable_if_t<sizeof...(Rest) + 2 == E::size>>
+        typename = enable_if_t<sizeof...(Rest) + 2 == extent_size<E>>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
         storage_type {T(a), T(b), T(rest)...} {}
 
@@ -63,7 +63,7 @@ struct vector: public S {
      */
     KERNEL_FLOAT_INLINE
     static constexpr size_t size() {
-        return E::size;
+        return extent_size<E>;
     }
 
     /**

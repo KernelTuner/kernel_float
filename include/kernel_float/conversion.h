@@ -14,10 +14,10 @@ namespace detail {
 template<typename T, typename E, typename T2, typename E2, RoundingMode M = RoundingMode::ANY>
 struct convert_impl {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T2, E2::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T2, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
-        vector_storage<T2, E::value> intermediate;
-        detail::apply_impl<F, E::value, T2, T>::call(F {}, intermediate.data(), input.data());
+        vector_storage<T2, extent_size<E>> intermediate;
+        detail::apply_impl<F, extent_size<E>, T2, T>::call(F {}, intermediate.data(), input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -26,7 +26,7 @@ struct convert_impl {
 template<typename T, typename E, RoundingMode M>
 struct convert_impl<T, E, T, E, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T, extent_size<E>> call(vector_storage<T, extent_size<E>> input) {
         return input;
     }
 };
@@ -35,7 +35,7 @@ struct convert_impl<T, E, T, E, M> {
 template<typename T, typename E, typename E2, RoundingMode M>
 struct convert_impl<T, E, T, E2, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E2::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         return detail::broadcast_impl<T, E, E2>::call(input);
     }
 };
@@ -44,11 +44,11 @@ struct convert_impl<T, E, T, E2, M> {
 template<typename T, typename E, typename T2, RoundingMode M>
 struct convert_impl<T, E, T2, E, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T2, E::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T2, extent_size<E>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
 
-        vector_storage<T2, E::value> result;
-        detail::apply_impl<F, E::value, T2, T>::call(F {}, result.data(), input.data());
+        vector_storage<T2, extent_size<E>> result;
+        detail::apply_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
         return result;
     }
 };

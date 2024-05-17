@@ -38,7 +38,7 @@ struct copy_impl<T, N, index_sequence<Is...>> {
  */
 template<typename T, typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
 KERNEL_FLOAT_INLINE vector<T, E> read(const T* ptr, const I& indices, const M& mask = true) {
-    return detail::copy_impl<T, E::value>::load(
+    return detail::copy_impl<T, extent_size<E>>::load(
         ptr,
         convert_storage<size_t>(indices, E()).data(),
         convert_storage<bool>(mask, E()).data());
@@ -65,7 +65,7 @@ template<
     typename M = bool,
     typename E = broadcast_vector_extent_type<V, I, M>>
 KERNEL_FLOAT_INLINE void write(T* ptr, const I& indices, const V& values, const M& mask = true) {
-    return detail::copy_impl<T, E::value>::store(
+    return detail::copy_impl<T, extent_size<E>>::store(
         ptr,
         convert_storage<T>(values, E()).data(),
         convert_storage<size_t>(indices, E()).data(),
@@ -102,7 +102,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read(const T* ptr) {
  */
 template<typename V, typename T>
 KERNEL_FLOAT_INLINE void write(T* ptr, const V& values) {
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     write(ptr, range<size_t, N>(), values);
 }
 
@@ -277,7 +277,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
  */
 template<size_t Align, typename V, typename T>
 KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
 
     return detail::copy_aligned_impl<T, N, alignment>::store(

@@ -50,13 +50,13 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     using O = result_t<F, T, T>;
     using E = broadcast_vector_extent_type<L, R>;
 
-    vector_storage<O, E::value> result;
+    vector_storage<O, extent_size<E>> result;
 
 // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
 #if KERNEL_FLOAT_FAST_MATH
-    using apply_impl = detail::apply_fastmath_impl<F, E::value, O, T, T>;
+    using apply_impl = detail::apply_fastmath_impl<F, extent_size<E>, O, T, T>;
 #else
-    using apply_impl = detail::apply_impl<F, E::value, O, T, T>;
+    using apply_impl = detail::apply_impl<F, extent_size<E>, O, T, T>;
 #endif
 
     apply_impl::call(
@@ -327,9 +327,9 @@ template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE zip_common_type<ops::divide<T>, T, T>
 fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_fastmath_impl<ops::divide<T>, E::value, T, T, T>::call(
+    detail::apply_fastmath_impl<ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(

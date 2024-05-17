@@ -73,7 +73,7 @@ struct reduce_recur_impl<2> {
  */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_impl<F, vector_extent<V>, vector_value_type<V>>::call(
+    return detail::reduce_impl<F, vector_size<V>, vector_value_type<V>>::call(
         fun,
         into_vector_storage(input).data());
 }
@@ -203,7 +203,7 @@ struct dot_impl {
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    return detail::dot_impl<T, E::value>::call(
+    return detail::dot_impl<T, extent_size<E>>::call(
         convert_storage<T>(left, E {}).data(),
         convert_storage<T>(right, E {}).data());
 }
@@ -273,7 +273,7 @@ struct magnitude_impl<double, 3> {
  */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T mag(const V& input) {
-    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input).data());
+    return detail::magnitude_impl<T, vector_size<V>>::call(into_vector_storage(input).data());
 }
 }  // namespace kernel_float
 
