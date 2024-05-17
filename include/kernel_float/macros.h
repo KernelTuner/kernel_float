@@ -52,8 +52,8 @@
 // TOOD: check if this way is support across all compilers
 #if defined(__has_builtin) && 0  // Seems that `__builtin_assume_aligned` leads to segfaults
 #if __has_builtin(__builtin_assume_aligned)
-#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) \
-    static_cast<TYPE*>(__builtin_assume_aligned(static_cast<TYPE*>(PTR), (ALIGNMENT)))
+#define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) static_cast <TYPE*>(
+        __builtin_assume_aligned(static_cast <TYPE*>(PTR), (ALIGNMENT)))
 #else
 #define KERNEL_FLOAT_ASSUME_ALIGNED(TYPE, PTR, ALIGNMENT) (PTR)
 #endif
@@ -62,5 +62,9 @@
 #endif
 
 #define KERNEL_FLOAT_MAX_ALIGNMENT (32)
+
+#ifndef KERNEL_FLOAT_FAST_MATH
+#define KERNEL_FLOAT_FAST_MATH (0)
+#endif
 
 #endif  //KERNEL_FLOAT_MACROS_H

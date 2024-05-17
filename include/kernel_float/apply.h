@@ -152,6 +152,9 @@ struct apply_recur_impl<1> {
         result[0] = fun(inputs[0]...);
     }
 };
+
+template<typename F, size_t N, typename Output, typename... Args>
+struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
 }  // namespace detail
 
 template<typename F, typename... Args>
@@ -174,7 +177,34 @@ KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using E = broadcast_vector_extent_type<Args...>;
     vector_storage<Output, E::value> result;
 
-    detail::apply_impl<F, E::value, Output, vector_value_type<Args>...>::call(
+    // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
+#if KERNEL_FLOAT_FAST_MATH
+    using apply_impl = detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>;
+#else
+    using apply_impl = detail::apply_impl<F, E::value, Output, vector_value_type<Args>...>;
+#endif
+
+    apply_impl::call(
+        fun,
+        result.data(),
+        (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
+             into_vector_storage(args))
+             .data())...);
+
+    return result;
+}
+
+/**
+ * Apply the function `F` to each element from the vector `input` and return the results as a new vector. This
+ * uses fast-math if available for the given function `F`, otherwise this function behaves like `map`.
+ */
+template<typename F, typename... Args>
+KERNEL_FLOAT_INLINE map_type<F, Args...> fast_map(F fun, const Args&... args) {
+    using Output = result_t<F, vector_value_type<Args>...>;
+    using E = broadcast_vector_extent_type<Args...>;
+    vector_storage<Output, E::value> result;
+
+    detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(

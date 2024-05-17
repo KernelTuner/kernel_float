@@ -122,7 +122,7 @@ REGISTER_TEST_CASE(
     __half,
     __nv_bfloat16)
 
-struct aligned_ptr_test {
+struct aligned_access_test {
     template<typename T, size_t... I, size_t N = sizeof...(I)>
     __host__ __device__ void operator()(generator<T>, std::index_sequence<I...>) {
         struct alignas(32) storage_type {
@@ -139,4 +139,78 @@ struct aligned_ptr_test {
     }
 };
 
-REGISTER_TEST_CASE("aligned pointer", aligned_ptr_test, int, float, double, __half, __nv_bfloat16)
+REGISTER_TEST_CASE("aligned access", aligned_access_test, int, float, double, __half, __nv_bfloat16)
+
+struct vector_ptr_test {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T>, std::index_sequence<I...>) {
+        using U = double;
+        struct alignas(32) storage_type {
+            U data[3 * N];
+        };
+
+        storage_type storage = {
+            U(I)...,
+            U(N + I)...,
+            U(2 * N + I)...,
+        };
+
+        {
+            auto ptr = kf::vector_ptr<T, N, const U> {&storage.data[0]};
+            ASSERT_EQ(ptr.get(), static_cast<const U*>(storage.data));
+
+            T expected[N] = {T(double(N + I))...};
+
+            auto a = ptr.read(1);
+            ASSERT_EQ_ALL(a[I], expected[I]);
+
+            auto b = ptr[1];
+            ASSERT_EQ_ALL(b[I], expected[I]);
+
+            kf::vec<T, N> c = ptr.at(1);
+            ASSERT_EQ_ALL(c[I], expected[I]);
+
+            ASSERT_EQ(ptr.at(1).get(), static_cast<const U*>(&storage.data[N]));
+        }
+
+        {
+            auto ptr = kf::vector_ptr<T, N, U> {&storage.data[0]};
+            ASSERT_EQ(ptr.get(), static_cast<U*>(storage.data));
+
+            T expected[N] = {T(double(N + I))...};
+
+            auto a = ptr.read(1);
+            ASSERT_EQ_ALL(a[I], expected[I]);
+
+            auto b = ptr[1];
+            ASSERT_EQ_ALL(b[I], expected[I]);
+
+            kf::vec<T, N> c = ptr.at(1);
+            ASSERT_EQ_ALL(c[I], expected[I]);
+
+            kf::vec<T, N> overwrite = {T(double(100 + I))...};
+            ptr.at(1) = overwrite;
+
+            auto e = ptr[1];
+            ASSERT_EQ_ALL(e[I], overwrite[I]);
+
+            ptr.write(1, T(1337.0));
+            auto f = ptr[1];
+            ASSERT_EQ_ALL(f[I], T(1337.0));
+
+            ptr.at(1) += T(1.0);
+            auto g = ptr[1];
+            ASSERT_EQ_ALL(g[I], T(1338.0));
+        }
+    }
+};
+
+REGISTER_TEST_CASE_CPU("vectorized pointer", vector_ptr_test, int, float, double)
+REGISTER_TEST_CASE_GPU(
+    "vectorized pointer",
+    vector_ptr_test,
+    int,
+    float,
+    double,
+    __half,
+    __nv_bfloat16)

@@ -78,7 +78,7 @@ KERNEL_FLOAT_INLINE vector_storage<R, N> convert_storage(const V& input, extent<
  */
 template<typename R, size_t N, RoundingMode M = RoundingMode::ANY, typename V>
 KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_size = {}) {
-    return convert_storage(input);
+    return convert_storage<R, N, M, V>(input, new_size);
 }
 
 template<typename T, RoundingMode M = RoundingMode::ANY>

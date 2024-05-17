@@ -68,11 +68,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
 KERNEL_FLOAT_FP16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)
 KERNEL_FLOAT_FP16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
-
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_exp, ::hexp, ::h2exp)
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_log, ::hlog, ::h2log)
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
+KERNEL_FLOAT_FP16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                              \
@@ -104,10 +100,9 @@ KERNEL_FLOAT_FP16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_FP16_BINARY_FUN(divide, __hdiv, __h2div)
 KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
-KERNEL_FLOAT_FP16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_FP16_BINARY_FUN(equal_to, __heq, __heq2)
-KERNEL_FLOAT_FP16_BINARY_FUN(not_equal_to, __heq, __heq2)
+KERNEL_FLOAT_FP16_BINARY_FUN(not_equal_to, __hneu, __hneu2)
 KERNEL_FLOAT_FP16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater, __hgt, __hgt2)

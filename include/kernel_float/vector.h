@@ -23,6 +23,7 @@ namespace kernel_float {
  */
 template<typename T, typename E, class S>
 struct vector: public S {
+    using self_type = vector<T, E, S>;
     using value_type = T;
     using extent_type = E;
     using storage_type = S;
@@ -221,8 +222,8 @@ struct vector: public S {
      * vec<float, 4> vec2 = select(input, indices); // [0, 40, 40, 20]
      * ```
      */
-    template<typename V, typename... Is>
-    KERNEL_FLOAT_INLINE select_type<V, Is...> select(const Is&... indices) {
+    template<typename... Is>
+    KERNEL_FLOAT_INLINE select_type<self_type, Is...> select(const Is&... indices) {
         return kernel_float::select(*this, indices...);
     }
 

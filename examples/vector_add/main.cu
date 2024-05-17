@@ -13,13 +13,15 @@ void cuda_check(cudaError_t code) {
 }
 
 template<int N>
-__global__ void my_kernel(int length, const __half* input, double constant, float* output) {
+__global__ void my_kernel(
+    int length,
+    kf::vec_ptr<const half, N> input,
+    double constant,
+    kf::vec_ptr<half, N, float> output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        auto a = kf::read_aligned<N>(input + i * N);
-        auto b = kf::fma(a, a, kf::cast<__half>(constant));
-        kf::write_aligned<N>(output + i * N, b);
+        output(i) = kf::fma(input[i], input[i], kf::cast<__half>(constant));
     }
 }
 
@@ -51,9 +53,9 @@ void run_kernel(int n) {
     int grid_size = (n + items_per_block - 1) / items_per_block;
     my_kernel<items_per_thread><<<grid_size, block_size>>>(
         n,
-        kf::aligned_ptr(input_dev),
+        kf::assert_aligned(input_dev),
         constant,
-        kf::aligned_ptr(output_dev));
+        kf::assert_aligned(output_dev));
 
     // Copy results back
     cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));
@@ -80,7 +82,7 @@ int main() {
 
     run_kernel<1>(n);
     run_kernel<2>(n);
-    run_kernel<3>(n);
+    //    run_kernel<3>(n);
     run_kernel<4>(n);
     run_kernel<8>(n);
 
