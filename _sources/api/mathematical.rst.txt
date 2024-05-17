@@ -137,6 +137,10 @@ sqrt
 ----
 .. doxygenfunction:: kernel_float::sqrt(const V&)
 
+rsqrt
+-----
+.. doxygenfunction:: kernel_float::rsqrt
+
 tan
 ---
 .. doxygenfunction:: kernel_float::tan
@@ -149,21 +153,21 @@ tgamma
 ------
 .. doxygenfunction:: kernel_float::tgamma
 
-trunc
------
-.. doxygenfunction:: kernel_float::trunc
+rcp
+---
+.. doxygenfunction:: kernel_float::rcp
 
 rint
 ----
 .. doxygenfunction:: kernel_float::rint
 
-rsqrt
------
-.. doxygenfunction:: kernel_float::rsqrt
-
 round
 -----
 .. doxygenfunction:: kernel_float::round
+
+trunc
+-----
+.. doxygenfunction:: kernel_float::trunc
 
 signbit
 -------

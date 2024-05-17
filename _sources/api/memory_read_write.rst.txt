@@ -5,10 +5,6 @@
 
 Memory read/write
 =================
-cast_to
--------
-.. doxygenfunction:: kernel_float::cast_to
-
 read
 ----
 .. doxygenfunction:: kernel_float::read(const T*, const I&, const M&)
@@ -33,7 +29,11 @@ write_aligned
 -------------
 .. doxygenfunction:: kernel_float::write_aligned(T*, const V&)
 
-aligned_ptr
------------
-.. doxygenstruct:: kernel_float::aligned_ptr
+assert_aligned
+--------------
+.. doxygenfunction:: kernel_float::assert_aligned
+
+vector_ptr
+----------
+.. doxygenstruct:: kernel_float::vector_ptr
 

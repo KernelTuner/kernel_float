@@ -1,0 +1,23 @@
+..
+  ============================================================
+  This file has been auto-generated. DO NOT MODIFY ITS CONTENT
+  ============================================================
+
+Conversion
+==========
+convert
+-------
+.. doxygenfunction:: kernel_float::convert
+
+cast
+----
+.. doxygenfunction:: kernel_float::cast
+
+cast_to
+-------
+.. doxygenfunction:: kernel_float::cast_to
+
+broadcast
+---------
+.. doxygenfunction:: kernel_float::broadcast
+

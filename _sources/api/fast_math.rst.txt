@@ -25,6 +25,18 @@ fast_tan
 --------
 .. doxygenfunction:: kernel_float::fast_tan
 
+fast_rcp
+--------
+.. doxygenfunction:: kernel_float::fast_rcp
+
+fast_sqrt
+---------
+.. doxygenfunction:: kernel_float::fast_sqrt
+
+fast_rsqrt
+----------
+.. doxygenfunction:: kernel_float::fast_rsqrt
+
 fast_div
 --------
 .. doxygenfunction:: kernel_float::fast_div

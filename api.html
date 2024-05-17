@@ -51,6 +51,7 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="api/types.html">Types</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html">Primitives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/conversion.html">Conversion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/generation.html">Generation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/unary_operators.html">Unary Operators</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/binary_operators.html">Binary Operators</a></li>
@@ -104,14 +105,18 @@
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#reduce">reduce</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#zip">zip</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#zip-common">zip_common</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#cast">cast</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#broadcast">broadcast</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/primitives.html#convert">convert</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#make-vec">make_vec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#into-vec">into_vec</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#concat">concat</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#select">select</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/primitives.html#for-each">for_each</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api/conversion.html">Conversion</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api/conversion.html#convert">convert</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/conversion.html#cast">cast</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/conversion.html#cast-to">cast_to</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/conversion.html#broadcast">broadcast</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/generation.html">Generation</a><ul>
@@ -201,13 +206,14 @@
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#sin">sin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#sinh">sinh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#sqrt">sqrt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#rsqrt">rsqrt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#tan">tan</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#tanh">tanh</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#tgamma">tgamma</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#trunc">trunc</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#rcp">rcp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#rint">rint</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#rsqrt">rsqrt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#round">round</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#trunc">trunc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#signbit">signbit</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#isinf">isinf</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/mathematical.html#isnan">isnan</a></li>
@@ -219,6 +225,9 @@
 <li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-cos">fast_cos</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-sin">fast_sin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-tan">fast_tan</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-rcp">fast_rcp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-sqrt">fast_sqrt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-rsqrt">fast_rsqrt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/fast_math.html#fast-div">fast_div</a></li>
 </ul>
 </li>
@@ -229,14 +238,14 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/memory_read_write.html">Memory read/write</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#cast-to">cast_to</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#read">read</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#write">write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#id1">read</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#id2">write</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#read-aligned">read_aligned</a></li>
 <li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#write-aligned">write_aligned</a></li>
-<li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#aligned-ptr">aligned_ptr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#assert-aligned">assert_aligned</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/memory_read_write.html#vector-ptr">vector_ptr</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="api/utilities.html">Utilities</a><ul>

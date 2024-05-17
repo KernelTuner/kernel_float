@@ -21,18 +21,6 @@ zip_common
 ----------
 .. doxygenfunction:: kernel_float::zip_common
 
-cast
-----
-.. doxygenfunction:: kernel_float::cast
-
-broadcast
----------
-.. doxygenfunction:: kernel_float::broadcast
-
-convert
--------
-.. doxygenfunction:: kernel_float::convert
-
 make_vec
 --------
 .. doxygenfunction:: kernel_float::make_vec
