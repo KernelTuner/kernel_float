@@ -30,7 +30,7 @@ struct constant {
     constexpr constant(T value = {}) : value_(value) {}
 
     KERNEL_FLOAT_INLINE
-    constexpr constant(const constant<T>& that) : value_(that.value) {}
+    constexpr constant(const constant<T>& that) : value_(that.value_) {}
 
     /**
      * Create a new constant from another constant of type `R`.
@@ -129,7 +129,9 @@ struct cast<constant<T>, R, m> {
     KERNEL_FLOAT_INLINE constant<T> operator OP(                                               \
         const constant<L>& left,                                                               \
         const constant<R>& right) {                                                            \
-        return constant<T>(left.get()) OP constant<T>(right.get());                            \
+        auto fl = ops::cast<L, T>();                                                           \
+        auto fr = ops::cast<R, T>();                                                           \
+        return fl(left.get()) OP fr(right.get());                                              \
     }
 
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)

@@ -7,9 +7,7 @@
 namespace kernel_float {
 
 template<typename F, typename L, typename R>
-using zip_type = vector<
-    result_t<F, vector_value_type<L>, vector_value_type<R>>,
-    broadcast_vector_extent_type<L, R>>;
+using zip_type = map_type<F, L, R>;
 
 /**
  * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
@@ -25,20 +23,7 @@ using zip_type = vector<
  */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
-    using A = vector_value_type<L>;
-    using B = vector_value_type<R>;
-    using O = result_t<F, A, B>;
-    using E = broadcast_vector_extent_type<L, R>;
-    vector_storage<O, E::value> result;
-
-    detail::apply_impl<F, E::value, O, A, B>::call(
-        fun,
-        result.data(),
-        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)).data(),
-        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right))
-            .data());
-
-    return result;
+    return ::kernel_float::map(fun, left, right);
 }
 
 template<typename F, typename L, typename R>
@@ -67,7 +52,14 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, E::value> result;
 
-    detail::apply_impl<F, E::value, O, T, T>::call(
+// Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
+#if KERNEL_FLOAT_FAST_MATH
+    using apply_impl = detail::apply_fastmath_impl<F, E::value, O, T, T>;
+#else
+    using apply_impl = detail::apply_impl<F, E::value, O, T, T>;
+#endif
+
+    apply_impl::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -277,35 +269,16 @@ KERNEL_FLOAT_DEFINE_BINARY(
 #if KERNEL_FLOAT_IS_DEVICE
 KERNEL_FLOAT_DEFINE_BINARY(
     rhypot,
-    (T(1) / ops::hypot<T>()(left, right)),
+    (ops::rcp<T>(ops::hypot<T>()(left, right))),
     ::rhypot(left, right),
     ::rhypotf(left, right))
 #else
 KERNEL_FLOAT_DEFINE_BINARY(
     rhypot,
-    (T(1) / ops::hypot<T>()(left, right)),
+    (ops::rcp<T>(ops::hypot<T>()(left, right))),
     (double(1) / ::hypot(left, right)),
     (float(1) / ::hypotf(left, right)))
 #endif
-
-#if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_BINARY(                                       \
-        FUN_NAME,                                                     \
-        ops::OP_NAME<T> {}(left, right),                              \
-        ops::OP_NAME<double> {}(left, right),                         \
-        ops::OP_NAME<float> {}(left, right))
-#else
-#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_BINARY(                                       \
-        FUN_NAME,                                                     \
-        ops::OP_NAME<T> {}(left, right),                              \
-        ops::OP_NAME<double> {}(left, right),                         \
-        ops::OP_NAME<float> {}(left, right))
-#endif
-
-KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_div, divide, __fdividef)
-KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_pow, pow, __powf)
 
 namespace ops {
 template<>
@@ -322,6 +295,52 @@ struct multiply<bool> {
     }
 };
 };  // namespace ops
+
+namespace detail {
+template<typename T, size_t N>
+struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
+    KERNEL_FLOAT_INLINE static void
+    call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
+        T rhs_rcp[N];
+
+        // Fast way to perform division is to multiply by the reciprocal
+        apply_fastmath_impl<ops::rcp<T>, N, T, T, T>::call({}, rhs_rcp, rhs);
+        apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
+    }
+};
+
+#if KERNEL_FLOAT_IS_DEVICE
+template<size_t N>
+struct apply_fastmath_impl<ops::divide<float>, N, float, float, float> {
+    KERNEL_FLOAT_INLINE static void
+    call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            result[i] = __fdividef(lhs[i], rhs[i]);
+        }
+    }
+};
+#endif
+}  // namespace detail
+
+template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
+KERNEL_FLOAT_INLINE zip_common_type<ops::divide<T>, T, T>
+fast_divide(const L& left, const R& right) {
+    using E = broadcast_vector_extent_type<L, R>;
+    vector_storage<T, E::value> result;
+
+    detail::apply_fastmath_impl<ops::divide<T>, E::value, T, T, T>::call(
+        ops::divide<T> {},
+        result.data(),
+        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(left))
+            .data(),
+        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(right))
+            .data());
+
+    return result;
+}
 
 namespace detail {
 template<typename T>

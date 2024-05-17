@@ -89,6 +89,20 @@ struct extent<N> {
     static constexpr size_t size = N;
 };
 
+namespace detail {
+// Indicates that elements of type `T` offer less precision than floats, thus operations
+// on elements of type `T` can be performed by upcasting them to ` float`.
+template<typename T>
+struct allow_float_fallback {
+    static constexpr bool value = false;
+};
+
+template<>
+struct allow_float_fallback<float> {
+    static constexpr bool value = true;
+};
+}  // namespace detail
+
 template<typename T>
 struct into_vector_impl {
     using value_type = T;

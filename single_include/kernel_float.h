@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-04-26 10:06:43.573011
-// git hash: a9c7d752a7329ae5187e3e9362a2b47c9f38371a
+// date: 2024-05-17 10:55:41.948281
+// git hash: 41246ab6db9fcc24639342c439e606ba143ee346
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -84,6 +84,10 @@
 #endif
 
 #define KERNEL_FLOAT_MAX_ALIGNMENT (32)
+
+#ifndef KERNEL_FLOAT_FAST_MATH
+#define KERNEL_FLOAT_FAST_MATH (0)
+#endif
 
 #endif  //KERNEL_FLOAT_MACROS_H
 #ifndef KERNEL_FLOAT_CORE_H
@@ -358,6 +362,9 @@ struct enable_if_impl<true, T> {
 template<bool C, typename T = void>
 using enable_if_t = typename detail::enable_if_impl<C, T>::type;
 
+template<typename T, typename...>
+using identity_t = T;
+
 KERNEL_FLOAT_INLINE
 constexpr size_t round_up_to_power_of_two(size_t n) {
     size_t result = 1;
@@ -460,6 +467,20 @@ struct extent<N> {
     static constexpr size_t value = N;
     static constexpr size_t size = N;
 };
+
+namespace detail {
+// Indicates that elements of type `T` offer less precision than floats, thus operations
+// on elements of type `T` can be performed by upcasting them to ` float`.
+template<typename T>
+struct allow_float_fallback {
+    static constexpr bool value = false;
+};
+
+template<>
+struct allow_float_fallback<float> {
+    static constexpr bool value = true;
+};
+}  // namespace detail
 
 template<typename T>
 struct into_vector_impl {
@@ -778,6 +799,9 @@ struct apply_recur_impl<1> {
         result[0] = fun(inputs[0]...);
     }
 };
+
+template<typename F, size_t N, typename Output, typename... Args>
+struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
 }  // namespace detail
 
 template<typename F, typename... Args>
@@ -800,7 +824,34 @@ KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using E = broadcast_vector_extent_type<Args...>;
     vector_storage<Output, E::value> result;
 
-    detail::apply_impl<F, E::value, Output, vector_value_type<Args>...>::call(
+    // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
+#if KERNEL_FLOAT_FAST_MATH
+    using apply_impl = detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>;
+#else
+    using apply_impl = detail::apply_impl<F, E::value, Output, vector_value_type<Args>...>;
+#endif
+
+    apply_impl::call(
+        fun,
+        result.data(),
+        (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
+             into_vector_storage(args))
+             .data())...);
+
+    return result;
+}
+
+/**
+ * Apply the function `F` to each element from the vector `input` and return the results as a new vector. This
+ * uses fast-math if available for the given function `F`, otherwise this function behaves like `map`.
+ */
+template<typename F, typename... Args>
+KERNEL_FLOAT_INLINE map_type<F, Args...> fast_map(F fun, const Args&... args) {
+    using Output = result_t<F, vector_value_type<Args>...>;
+    using E = broadcast_vector_extent_type<Args...>;
+    vector_storage<Output, E::value> result;
+
+    detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
@@ -1068,19 +1119,6 @@ struct promote_type<L, complex_type<R>> {
 
 
 namespace kernel_float {
-namespace detail {
-// Indicates that elements of type `T` offer less precision than floats, thus operations
-// on elements of type `T` can be performed by upcasting them to ` float`.
-template<typename T>
-struct allow_float_fallback {
-    static constexpr bool value = false;
-};
-
-template<>
-struct allow_float_fallback<float> {
-    static constexpr bool value = true;
-};
-}  // namespace detail
 
 enum struct RoundingMode { ANY, DOWN, UP, NEAREST, TOWARD_ZERO };
 
@@ -1106,13 +1144,6 @@ struct cast<T, T, RoundingMode::ANY> {
 template<typename T, typename R, typename = void>
 struct cast_float_fallback;
 
-template<typename T, typename R>
-struct cast<T, R, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return cast_float_fallback<T, R> {}(input);
-    }
-};
-
 template<typename T, typename R, typename>
 struct cast_float_fallback {
     KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
@@ -1136,6 +1167,13 @@ struct cast_float_fallback<
     }
 };
 // clang-format on
+
+template<typename T, typename R>
+struct cast<T, R, RoundingMode::ANY> {
+    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
+        return cast_float_fallback<T, R> {}(input);
+    }
+};
 
 }  // namespace ops
 
@@ -1192,26 +1230,29 @@ KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
 KERNEL_FLOAT_DEFINE_UNARY_OP(bit_not, ~, ~input)
 KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T, bool> {}(input))))
 
-#define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME)                              \
+#define KERNEL_FLOAT_DEFINE_UNARY_STRUCT(NAME, EXPR_F64, EXPR_F32)        \
     namespace ops {                                                       \
     template<typename T, typename = void>                                 \
     struct NAME;                                                          \
                                                                           \
     template<typename T>                                                  \
     struct NAME<T, enable_if_t<detail::allow_float_fallback<T>::value>> { \
-        KERNEL_FLOAT_INLINE T operator()(T input) {                       \
-            return T(::NAME(float(input)));                               \
+        KERNEL_FLOAT_INLINE T operator()(T input_arg) {                   \
+            float input = float(input_arg);                               \
+            return T(EXPR_F32);                                           \
         }                                                                 \
     };                                                                    \
                                                                           \
     template<>                                                            \
     struct NAME<double> {                                                 \
         KERNEL_FLOAT_INLINE double operator()(double input) {             \
-            return double(::NAME(input));                                 \
+            return double(EXPR_F64);                                      \
         }                                                                 \
     };                                                                    \
-    }                                                                     \
-                                                                          \
+    }
+
+#define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME)                             \
+    KERNEL_FLOAT_DEFINE_UNARY_STRUCT(NAME, ::NAME(input), ::NAME(input)) \
     KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)
 
 KERNEL_FLOAT_DEFINE_UNARY_MATH(acos)
@@ -1225,7 +1266,6 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(cbrt)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(ceil)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(cos)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(cosh)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(cospi)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(erf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(erfc)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(erfcinv)
@@ -1259,27 +1299,71 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(signbit)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(isinf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(isnan)
 
+// CUDA offers special reciprocal functions (rcp), but only on the device.
 #if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))   \
-    namespace ops {                                                  \
-    template<>                                                       \
-    struct OP_NAME<float> {                                          \
-        KERNEL_FLOAT_INLINE float operator()(float input) {          \
-            return FLOAT_FUN(input);                                 \
-        }                                                            \
-    };                                                               \
-    }
+KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, __drcp_rn(input), __frcp_rn(input))
 #else
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_UNARY(FUN_NAME, ops::OP_NAME<T> {}(input))
+KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, 1.0 / input, 1.0f / input)
 #endif
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_exp, exp, __expf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_log, log, __logf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_cos, cos, __cosf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_sin, sin, __sinf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST(fast_tan, tan, __tanf)
+KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
+
+#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                         \
+    template<typename V>                                                                 \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME( \
+        const V& input) {                                                                \
+        using F = ops::NAME<vector_value_type<V>>;                                       \
+        return fast_map(F {}, input);                                                    \
+    }
+
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sqrt)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rcp)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sin)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(cos)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
+
+#if KERNEL_FLOAT_IS_DEVICE
+
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, FAST_FUN)                       \
+    namespace detail {                                                                \
+    template<size_t N>                                                                \
+    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                  \
+        KERNEL_FLOAT_INLINE static void call(ops::F<T>, T* result, const T* inputs) { \
+            for (size_t i = 0; i < N; i++) {                                          \
+                result[i] = FAST_FUN(inputs[i]);                                      \
+            }                                                                         \
+        }                                                                             \
+    };                                                                                \
+    }
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp, __expf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf)
+
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR)                              \
+    namespace detail {                                                                    \
+    template<size_t N>                                                                    \
+    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                      \
+        KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
+            for (size_t i = 0; i < N; i++) {                                              \
+                asm(INSTR, : "=f"(result[i]) : "f"(inputs[i]));                           \
+            }                                                                             \
+        }                                                                                 \
+    };                                                                                    \
+    }
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1")
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1")
+
+#endif
 
 }  // namespace kernel_float
 
@@ -1510,9 +1594,7 @@ KERNEL_FLOAT_INLINE vector<T, E> ones_like(const V& = {}) {
 namespace kernel_float {
 
 template<typename F, typename L, typename R>
-using zip_type = vector<
-    result_t<F, vector_value_type<L>, vector_value_type<R>>,
-    broadcast_vector_extent_type<L, R>>;
+using zip_type = map_type<F, L, R>;
 
 /**
  * Combines the elements from the two inputs (`left` and `right`)  element-wise, applying a provided binary
@@ -1528,20 +1610,7 @@ using zip_type = vector<
  */
 template<typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_type<F, L, R> zip(F fun, const L& left, const R& right) {
-    using A = vector_value_type<L>;
-    using B = vector_value_type<R>;
-    using O = result_t<F, A, B>;
-    using E = broadcast_vector_extent_type<L, R>;
-    vector_storage<O, E::value> result;
-
-    detail::apply_impl<F, E::value, O, A, B>::call(
-        fun,
-        result.data(),
-        detail::broadcast_impl<A, vector_extent_type<L>, E>::call(into_vector_storage(left)).data(),
-        detail::broadcast_impl<B, vector_extent_type<R>, E>::call(into_vector_storage(right))
-            .data());
-
-    return result;
+    return ::kernel_float::map(fun, left, right);
 }
 
 template<typename F, typename L, typename R>
@@ -1570,7 +1639,14 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, E::value> result;
 
-    detail::apply_impl<F, E::value, O, T, T>::call(
+// Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
+#if KERNEL_FLOAT_FAST_MATH
+    using apply_impl = detail::apply_fastmath_impl<F, E::value, O, T, T>;
+#else
+    using apply_impl = detail::apply_impl<F, E::value, O, T, T>;
+#endif
+
+    apply_impl::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -1780,35 +1856,16 @@ KERNEL_FLOAT_DEFINE_BINARY(
 #if KERNEL_FLOAT_IS_DEVICE
 KERNEL_FLOAT_DEFINE_BINARY(
     rhypot,
-    (T(1) / ops::hypot<T>()(left, right)),
+    (ops::rcp<T>(ops::hypot<T>()(left, right))),
     ::rhypot(left, right),
     ::rhypotf(left, right))
 #else
 KERNEL_FLOAT_DEFINE_BINARY(
     rhypot,
-    (T(1) / ops::hypot<T>()(left, right)),
+    (ops::rcp<T>(ops::hypot<T>()(left, right))),
     (double(1) / ::hypot(left, right)),
     (float(1) / ::hypotf(left, right)))
 #endif
-
-#if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_BINARY(                                       \
-        FUN_NAME,                                                     \
-        ops::OP_NAME<T> {}(left, right),                              \
-        ops::OP_NAME<double> {}(left, right),                         \
-        ops::OP_NAME<float> {}(left, right))
-#else
-#define KERNEL_FLOAT_DEFINE_BINARY_FAST(FUN_NAME, OP_NAME, FLOAT_FUN) \
-    KERNEL_FLOAT_DEFINE_BINARY(                                       \
-        FUN_NAME,                                                     \
-        ops::OP_NAME<T> {}(left, right),                              \
-        ops::OP_NAME<double> {}(left, right),                         \
-        ops::OP_NAME<float> {}(left, right))
-#endif
-
-KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_div, divide, __fdividef)
-KERNEL_FLOAT_DEFINE_BINARY_FAST(fast_pow, pow, __powf)
 
 namespace ops {
 template<>
@@ -1825,6 +1882,51 @@ struct multiply<bool> {
     }
 };
 };  // namespace ops
+
+namespace detail {
+template<typename T, size_t N>
+struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
+    KERNEL_FLOAT_INLINE static void
+    call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
+        T rhs_rcp[N];
+
+        apply_fastmath_impl<ops::rcp<T>, N, T, T, T>::call({}, rhs_rcp, rhs);
+        apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
+    }
+};
+
+#if KERNEL_FLOAT_IS_DEVICE
+template<size_t N>
+struct apply_fastmath_impl<ops::divide<float>, N, float, float, float> {
+    KERNEL_FLOAT_INLINE static void
+    call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            result[i] = __fdividef(lhs[i], rhs[i]);
+        }
+    }
+};
+#endif
+}  // namespace detail
+
+template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
+KERNEL_FLOAT_INLINE zip_common_type<ops::divide<T>, T, T>
+fast_divide(const L& left, const R& right) {
+    using E = broadcast_vector_extent_type<L, R>;
+    vector_storage<T, E::value> result;
+
+    detail::apply_fastmath_impl<ops::divide<T>, E::value, T, T, T>::call(
+        ops::divide<T> {},
+        result.data(),
+        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(left))
+            .data(),
+        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(right))
+            .data());
+
+    return result;
+}
 
 namespace detail {
 template<typename T>
@@ -1894,7 +1996,7 @@ struct constant {
     constexpr constant(T value = {}) : value_(value) {}
 
     KERNEL_FLOAT_INLINE
-    constexpr constant(const constant<T>& that) : value_(that.value) {}
+    constexpr constant(const constant<T>& that) : value_(that.value_) {}
 
     /**
      * Create a new constant from another constant of type `R`.
@@ -1993,7 +2095,9 @@ struct cast<constant<T>, R, m> {
     KERNEL_FLOAT_INLINE constant<T> operator OP(                                               \
         const constant<L>& left,                                                               \
         const constant<R>& right) {                                                            \
-        return constant<T>(left.get()) OP constant<T>(right.get());                            \
+        auto fl = ops::cast<L, T>();                                                           \
+        auto fr = ops::cast<R, T>();                                                           \
+        return fl(left.get()) OP fr(right.get());                                              \
     }
 
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(+)
@@ -3771,11 +3875,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
 KERNEL_FLOAT_FP16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)
 KERNEL_FLOAT_FP16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
-
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_exp, ::hexp, ::h2exp)
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_log, ::hlog, ::h2log)
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
-KERNEL_FLOAT_FP16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
+KERNEL_FLOAT_FP16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                              \
@@ -3807,7 +3907,6 @@ KERNEL_FLOAT_FP16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_FP16_BINARY_FUN(divide, __hdiv, __h2div)
 KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
-KERNEL_FLOAT_FP16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_FP16_BINARY_FUN(equal_to, __heq, __heq2)
 KERNEL_FLOAT_FP16_BINARY_FUN(not_equal_to, __hneu, __hneu2)
@@ -4004,11 +4103,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
 KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_BF16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)
 KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
-
-KERNEL_FLOAT_BF16_UNARY_FUN(fast_exp, ::hexp, ::h2exp)
-KERNEL_FLOAT_BF16_UNARY_FUN(fast_log, ::hlog, ::h2log)
-KERNEL_FLOAT_BF16_UNARY_FUN(fast_cos, ::hcos, ::h2cos)
-KERNEL_FLOAT_BF16_UNARY_FUN(fast_sin, ::hsin, ::h2sin)
+KERNEL_FLOAT_BF16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
 #endif
 
 #if KERNEL_FLOAT_CUDA_ARCH >= 800
@@ -4045,8 +4140,6 @@ KERNEL_FLOAT_BF16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_BF16_BINARY_FUN(divide, __hdiv, __h2div)
 KERNEL_FLOAT_BF16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_BF16_BINARY_FUN(max, __hmax, __hmax2)
-
-KERNEL_FLOAT_BF16_BINARY_FUN(fast_div, __hdiv, __h2div)
 
 KERNEL_FLOAT_BF16_BINARY_FUN(equal_to, __heq, __heq2)
 KERNEL_FLOAT_BF16_BINARY_FUN(not_equal_to, __hneu, __hneu2)
