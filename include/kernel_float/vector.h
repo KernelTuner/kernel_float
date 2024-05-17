@@ -276,6 +276,21 @@ struct vector: public S {
     KERNEL_FLOAT_INLINE void for_each(F fun) const {
         return kernel_float::for_each(*this, std::move(fun));
     }
+
+    /**
+     * Returns the result of `*this + lhs * rhs`.
+     *
+     * The operation is performed using a single `kernel_float::fma` call, which may be faster then perform
+     * the addition and multiplication separately.
+     */
+    template<
+        typename L,
+        typename R,
+        typename T2 = promote_t<T, vector_value_type<L>, vector_value_type<R>>,
+        typename E2 = broadcast_extent<E, vector_extent_type<L>, vector_extent_type<R>>>
+    KERNEL_FLOAT_INLINE vector<T2, E2> fma(const L& lhs, const R& rhs) const {
+        return ::kernel_float::fma(lhs, rhs, *this);
+    }
 };
 
 /**

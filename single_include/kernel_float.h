@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-05-17 10:55:41.948281
-// git hash: 41246ab6db9fcc24639342c439e606ba143ee346
+// date: 2024-05-17 11:44:08.292272
+// git hash: c0c7d100e3ee5bc187211e3d76b1fccc73c2fa5e
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1890,6 +1890,7 @@ struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
     call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
         T rhs_rcp[N];
 
+        // Fast way to perform division is to multiply by the reciprocal
         apply_fastmath_impl<ops::rcp<T>, N, T, T, T>::call({}, rhs_rcp, rhs);
         apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
@@ -3430,7 +3431,7 @@ struct fma<double> {
 }  // namespace ops
 
 /**
- * Computes the result of `a * b + c`. This is done in a single operation if possible.
+ * Computes the result of `a * b + c`. This is done in a single operation if possible for the given vector type.
  */
 template<
     typename A,
@@ -3738,6 +3739,21 @@ struct vector: public S {
     template<typename F>
     KERNEL_FLOAT_INLINE void for_each(F fun) const {
         return kernel_float::for_each(*this, std::move(fun));
+    }
+
+    /**
+     * Returns the result of `*this + lhs * rhs`.
+     *
+     * The operation is performed using a single `kernel_float::fma` call, which may be faster then perform
+     * the addition and multiplication separately.
+     */
+    template<
+        typename L,
+        typename R,
+        typename T2 = promote_t<T, vector_value_type<L>, vector_value_type<R>>,
+        typename E2 = broadcast_extent<E, vector_extent_type<L>, vector_extent_type<R>>>
+    KERNEL_FLOAT_INLINE vector<T2, E2> fma(const L& lhs, const R& rhs) const {
+        return ::kernel_float::fma(lhs, rhs, *this);
     }
 };
 

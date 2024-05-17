@@ -114,7 +114,7 @@ struct fma<double> {
 }  // namespace ops
 
 /**
- * Computes the result of `a * b + c`. This is done in a single operation if possible.
+ * Computes the result of `a * b + c`. This is done in a single operation if possible for the given vector type.
  */
 template<
     typename A,
