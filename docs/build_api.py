@@ -154,6 +154,7 @@ groups = {
             "all",
             "any",
             "count",
+            "dot",
         ],
         "Mathematical": [
             ("abs", "abs(const V&)"),
