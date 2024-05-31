@@ -227,26 +227,26 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp, __expf)
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR)                              \
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
     template<size_t N>                                                                    \
     struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                      \
         KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
             for (size_t i = 0; i < N; i++) {                                              \
-                asm(INSTR, : "=f"(result[i]) : "f"(inputs[i]));                           \
+                asm(INSTR : "=" REG(result[i]) : REG(inputs[i]));                         \
             }                                                                             \
         }                                                                                 \
     };                                                                                    \
     }
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1;", "d")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1;", "d")
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1;", "f")
 
 #endif
 
