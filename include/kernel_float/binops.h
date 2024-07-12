@@ -54,12 +54,12 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
 // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
 #if KERNEL_FLOAT_FAST_MATH
-    using apply_impl = detail::apply_fastmath_impl<F, extent_size<E>, O, T, T>;
+    using map_impl = detail::fast_map_impl<F, extent_size<E>, O, T, T>;
 #else
-    using apply_impl = detail::apply_impl<F, extent_size<E>, O, T, T>;
+    using map_impl = detail::map_impl<F, extent_size<E>, O, T, T>;
 #endif
 
-    apply_impl::call(
+    map_impl::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -310,14 +310,11 @@ struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
 };
 
 #if KERNEL_FLOAT_IS_DEVICE
-template<size_t N>
-struct apply_fastmath_impl<ops::divide<float>, N, float, float, float> {
+template<>
+struct apply_fastmath_impl<ops::divide<float>, 1, float, float, float> {
     KERNEL_FLOAT_INLINE static void
     call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
-#pragma unroll
-        for (size_t i = 0; i < N; i++) {
-            result[i] = __fdividef(lhs[i], rhs[i]);
-        }
+        *result = __fdividef(*lhs, *rhs);
     }
 };
 #endif
@@ -329,7 +326,7 @@ fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::apply_fastmath_impl<ops::divide<T>, extent_size<E>, T, T, T>::call(
+    detail::fast_map_impl<ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(

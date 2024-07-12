@@ -11,6 +11,12 @@
 #include "vector.h"
 
 namespace kernel_float {
+
+template<>
+struct preferred_vector_size<__nv_bfloat16> {
+    static constexpr size_t value = 2;
+};
+
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_bfloat16)

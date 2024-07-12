@@ -23,7 +23,7 @@ struct reduce_recur_impl {
     template<typename F, typename T>
     KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
         vector_storage<T, K> temp;
-        apply_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
+        map_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
 
         if constexpr (N < 2 * K) {
 #pragma unroll
@@ -178,7 +178,7 @@ struct dot_impl {
     KERNEL_FLOAT_INLINE
     static T call(const T* left, const T* right) {
         vector_storage<T, N> intermediate;
-        detail::apply_impl<ops::multiply<T>, N, T, T, T>::call(
+        detail::map_impl<ops::multiply<T>, N, T, T, T>::call(
             ops::multiply<T>(),
             intermediate.data(),
             left,

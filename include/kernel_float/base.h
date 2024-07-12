@@ -231,6 +231,11 @@ struct into_vector_impl<vector<T, E, S>> {
     }
 };
 
+template<typename T>
+struct preferred_vector_size {
+    static constexpr size_t value = 1;
+};
+
 template<typename V>
 struct vector_traits;
 

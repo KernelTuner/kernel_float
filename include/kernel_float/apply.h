@@ -118,43 +118,63 @@ broadcast_like(const V& input, const R& other) {
 
 namespace detail {
 
-template<size_t N>
-struct apply_recur_impl;
-
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_impl {
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
-        apply_recur_impl<N>::call(fun, result, inputs...);
-    }
-};
-
-template<size_t N>
-struct apply_recur_impl {
-    static constexpr size_t K = round_up_to_power_of_two(N) / 2;
-
-    template<typename F, typename Output, typename... Args>
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
-        apply_impl<F, K, Output, Args...>::call(fun, result, inputs...);
-        apply_impl<F, N - K, Output, Args...>::call(fun, result + K, (inputs + K)...);
-    }
-};
-
-template<>
-struct apply_recur_impl<0> {
-    template<typename F, typename Output, typename... Args>
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {}
-};
-
-template<>
-struct apply_recur_impl<1> {
-    template<typename F, typename Output, typename... Args>
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
-        result[0] = fun(inputs[0]...);
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            output[i] = fun(args[i]...);
+        }
     }
 };
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
+
+template<typename F, size_t N, typename Output, typename... Args>
+struct map_impl {
+    static constexpr size_t packet_size = preferred_vector_size<Output>::value;
+
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
+        if constexpr (N / packet_size > 0) {
+#pragma unroll
+            for (size_t i = 0; i < N - N % packet_size; i += packet_size) {
+                apply_impl<F, packet_size, Output, Args...>::call(fun, output + i, (args + i)...);
+            }
+        }
+
+        if constexpr (N % packet_size > 0) {
+#pragma unroll
+            for (size_t i = N - N % packet_size; i < N; i++) {
+                apply_impl<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
+            }
+        }
+    }
+};
+
+template<typename F, size_t N, typename Output, typename... Args>
+struct fast_map_impl {
+    static constexpr size_t packet_size = preferred_vector_size<Output>::value;
+
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
+        if constexpr (N / packet_size > 0) {
+#pragma unroll
+            for (size_t i = 0; i < N - N % packet_size; i += packet_size) {
+                apply_fastmath_impl<F, packet_size, Output, Args...>::call(
+                    fun,
+                    output + i,
+                    (args + i)...);
+            }
+        }
+
+        if constexpr (N % packet_size > 0) {
+#pragma unroll
+            for (size_t i = N - N % packet_size; i < N; i++) {
+                apply_fastmath_impl<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
+            }
+        }
+    }
+};
 }  // namespace detail
 
 template<typename F, typename... Args>
@@ -180,12 +200,12 @@ KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
 #if KERNEL_FLOAT_FAST_MATH
     using apply_impl =
-        detail::apply_fastmath_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
+        detail::fast_math_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
 #else
-    using apply_impl = detail::apply_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
+    using map_impl = detail::map_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
 #endif
 
-    apply_impl::call(
+    map_impl::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
@@ -205,7 +225,7 @@ KERNEL_FLOAT_INLINE map_type<F, Args...> fast_map(F fun, const Args&... args) {
     using E = broadcast_vector_extent_type<Args...>;
     vector_storage<Output, extent_size<E>> result;
 
-    detail::apply_fastmath_impl<F, extent_size<E>, Output, vector_value_type<Args>...>::call(
+    detail::fast_map_impl<F, extent_size<E>, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(

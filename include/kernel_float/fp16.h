@@ -9,6 +9,12 @@
 #include "vector.h"
 
 namespace kernel_float {
+
+template<>
+struct preferred_vector_size<__half> {
+    static constexpr size_t value = 2;
+};
+
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)

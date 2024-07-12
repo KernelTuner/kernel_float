@@ -41,7 +41,7 @@ KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, cons
     using F = ops::conditional<T>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, extent_size<E>, T, bool, T, T>::call(
+    detail::map_impl<F, extent_size<E>, T, bool, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
@@ -126,7 +126,7 @@ KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, extent_size<E>, T, T, T, T>::call(
+    detail::map_impl<F, extent_size<E>, T, T, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(

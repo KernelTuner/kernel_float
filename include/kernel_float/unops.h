@@ -214,12 +214,10 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, FAST_FUN)                       \
     namespace detail {                                                                \
-    template<size_t N>                                                                \
-    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                  \
+    template<>                                                                        \
+    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                  \
         KERNEL_FLOAT_INLINE static void call(ops::F<T>, T* result, const T* inputs) { \
-            for (size_t i = 0; i < N; i++) {                                          \
-                result[i] = FAST_FUN(inputs[i]);                                      \
-            }                                                                         \
+            *result = FAST_FUN(*inputs);                                              \
         }                                                                             \
     };                                                                                \
     }
@@ -229,12 +227,10 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf)
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
-    template<size_t N>                                                                    \
-    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                      \
+    template<>                                                                            \
+    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                      \
         KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
-            for (size_t i = 0; i < N; i++) {                                              \
-                asm(INSTR : "=" REG(result[i]) : REG(inputs[i]));                         \
-            }                                                                             \
+            asm(INSTR : "=" REG(*result) : REG(*inputs));                                 \
         }                                                                                 \
     };                                                                                    \
     }
