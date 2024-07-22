@@ -2,6 +2,7 @@
 #define KERNEL_FLOAT_REDUCE_H
 
 #include "binops.h"
+#include "triops.h"
 
 namespace kernel_float {
 namespace detail {
@@ -177,14 +178,38 @@ template<typename T, size_t N>
 struct dot_impl {
     KERNEL_FLOAT_INLINE
     static T call(const T* left, const T* right) {
-        vector_storage<T, N> intermediate;
-        detail::map_impl<ops::multiply<T>, N, T, T, T>::call(
-            ops::multiply<T>(),
-            intermediate.data(),
-            left,
-            right);
+        static constexpr size_t K = preferred_vector_size<T>::value;
+        T result = {};
 
-        return detail::reduce_impl<ops::add<T>, N, T>::call(ops::add<T>(), intermediate.data());
+        if constexpr (N / K > 0) {
+            T accum[K] = {T {}};
+            apply_impl<ops::multiply<T>, K, T, T, T>::call({}, accum, left, right);
+
+#pragma unroll
+            for (size_t i = 1; i < N / K; i++) {
+                apply_impl<ops::fma<T>, K, T, T, T, T>::call(
+                    ops::fma<T> {},
+                    accum,
+                    left + i * K,
+                    right + i * K,
+                    accum);
+            }
+
+            result = reduce_impl<ops::add<T>, K, T>::call({}, accum);
+        }
+
+        if constexpr (N % K > 0) {
+            for (size_t i = N - N % K; i < N; i++) {
+                apply_impl<ops::fma<T>, 1, T, T, T, T>::call(
+                    {},
+                    &result,
+                    left + i,
+                    right + i,
+                    &result);
+            }
+        }
+
+        return result;
     }
 };
 }  // namespace detail

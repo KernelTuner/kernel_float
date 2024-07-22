@@ -92,11 +92,25 @@ namespace ops {
 template<typename T>
 struct fma {
     KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
-        return a * b + c;
+        return ops::add<T> {}(ops::multiply<T> {}(a, b), c);
     }
 };
+}  // namespace ops
+
+namespace detail {
+template<typename T, size_t N>
+struct apply_impl<ops::fma<T>, N, T, T, T, T> {
+    KERNEL_FLOAT_INLINE
+    static void call(ops::fma<T>, T* output, const T* a, const T* b, const T* c) {
+        T temp[N];
+        apply_impl<ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
+        apply_impl<ops::add<T>, N, T, T, T>::call({}, output, temp, c);
+    }
+};
+}  // namespace detail
 
 #if KERNEL_FLOAT_IS_DEVICE
+namespace ops {
 template<>
 struct fma<float> {
     KERNEL_FLOAT_INLINE float operator()(float a, float b, float c) {
@@ -110,8 +124,8 @@ struct fma<double> {
         return __fma_rn(a, b, c);
     }
 };
-#endif
 }  // namespace ops
+#endif
 
 /**
  * Computes the result of `a * b + c`. This is done in a single operation if possible for the given vector type.

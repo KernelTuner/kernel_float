@@ -174,55 +174,6 @@ using half = __half;
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __half)
 
-#if KERNEL_FLOAT_IS_DEVICE
-namespace detail {
-template<>
-struct dot_impl<__half, 0> {
-    KERNEL_FLOAT_INLINE
-    static __half call(const __half* left, const __half* right) {
-        return __half(0);
-    }
-};
-
-template<>
-struct dot_impl<__half, 1> {
-    KERNEL_FLOAT_INLINE
-    static __half call(const __half* left, const __half* right) {
-        return __hmul(left[0], right[0]);
-    }
-};
-
-template<size_t N>
-struct dot_impl<__half, N> {
-    static_assert(N >= 2, "internal error");
-
-    KERNEL_FLOAT_INLINE
-    static __half call(const __half* left, const __half* right) {
-        __half2 first_a = {left[0], left[1]};
-        __half2 first_b = {right[0], right[1]};
-        __half2 accum = __hmul2(first_a, first_b);
-
-#pragma unroll
-        for (size_t i = 2; i + 2 <= N; i += 2) {
-            __half2 a = {left[i], left[i + 1]};
-            __half2 b = {right[i], right[i + 1]};
-            accum = __hfma2(a, b, accum);
-        }
-
-        __half result = __hadd(accum.x, accum.y);
-
-        if (N % 2 != 0) {
-            __half a = left[N - 1];
-            __half b = right[N - 1];
-            result = __hfma(a, b, result);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
-#endif
-
 }  // namespace kernel_float
 
 #endif

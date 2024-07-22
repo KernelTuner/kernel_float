@@ -226,55 +226,6 @@ using bfloat16 = __nv_bfloat16;
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
 
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
-namespace detail {
-template<>
-struct dot_impl<__nv_bfloat16, 0> {
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
-        return __nv_bfloat16(0);
-    }
-};
-
-template<>
-struct dot_impl<__nv_bfloat16, 1> {
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
-        return __hmul(left[0], right[0]);
-    }
-};
-
-template<size_t N>
-struct dot_impl<__nv_bfloat16, N> {
-    static_assert(N >= 2, "internal error");
-
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
-        __nv_bfloat162 first_a = {left[0], left[1]};
-        __nv_bfloat162 first_b = {right[0], right[1]};
-        __nv_bfloat162 accum = __hmul2(first_a, first_b);
-
-#pragma unroll
-        for (size_t i = 2; i + 1 < N; i += 2) {
-            __nv_bfloat162 a = {left[i], left[i + 1]};
-            __nv_bfloat162 b = {right[i], right[i + 1]};
-            accum = __hfma2(a, b, accum);
-        }
-
-        __nv_bfloat16 result = __hadd(accum.x, accum.y);
-
-        if (N % 2 != 0) {
-            __nv_bfloat16 a = left[N - 1];
-            __nv_bfloat16 b = right[N - 1];
-            result = __hfma(a, b, result);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
-#endif
-
 }  // namespace kernel_float
 
 #if KERNEL_FLOAT_FP16_AVAILABLE
