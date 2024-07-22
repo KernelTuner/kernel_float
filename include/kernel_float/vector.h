@@ -323,6 +323,21 @@ template<typename T> using vec7 = vec<T, 7>;
 template<typename T> using vec8 = vec<T, 8>;
 // clang-format on
 
+#define KERNEL_FLOAT_VECTOR_ALIAS(NAME, T) \
+    template<size_t N>                     \
+    using NAME##1 = vec<T, 1>;             \
+    using NAME##2 = vec<T, 2>;             \
+    using NAME##3 = vec<T, 3>;             \
+    using NAME##4 = vec<T, 4>;             \
+    using NAME##5 = vec<T, 5>;             \
+    using NAME##6 = vec<T, 6>;             \
+    using NAME##7 = vec<T, 7>;             \
+    using NAME##8 = vec<T, 8>;
+
+KERNEL_FLOAT_VECTOR_ALIAS(int, int)
+KERNEL_FLOAT_VECTOR_ALIAS(float, float)
+KERNEL_FLOAT_VECTOR_ALIAS(double, double)
+
 /**
  * Create a vector from a variable number of input values.
  *

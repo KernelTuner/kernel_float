@@ -171,6 +171,7 @@ KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__ha
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
 
 using half = __half;
+KERNEL_FLOAT_VECTOR_ALIAS(half, __half)
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __half)
 

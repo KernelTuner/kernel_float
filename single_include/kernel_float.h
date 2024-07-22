@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-07-22 11:19:46.100972
-// git hash: 3b349be35a239a302f4b3fd9a366f74e48976cf5
+// date: 2024-07-22 11:31:53.132636
+// git hash: 4278106f2a14629445668d7e3684dbc8faf8b94d
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -3853,6 +3853,21 @@ template<typename T> using vec7 = vec<T, 7>;
 template<typename T> using vec8 = vec<T, 8>;
 // clang-format on
 
+#define KERNEL_FLOAT_VECTOR_ALIAS(NAME, T) \
+    template<size_t N>                     \
+    using NAME##1 = vec<T, 1>;             \
+    using NAME##2 = vec<T, 2>;             \
+    using NAME##3 = vec<T, 3>;             \
+    using NAME##4 = vec<T, 4>;             \
+    using NAME##5 = vec<T, 5>;             \
+    using NAME##6 = vec<T, 6>;             \
+    using NAME##7 = vec<T, 7>;             \
+    using NAME##8 = vec<T, 8>;
+
+KERNEL_FLOAT_VECTOR_ALIAS(int, int)
+KERNEL_FLOAT_VECTOR_ALIAS(float, float)
+KERNEL_FLOAT_VECTOR_ALIAS(double, double)
+
 /**
  * Create a vector from a variable number of input values.
  *
@@ -4060,6 +4075,7 @@ KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__ha
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
 
 using half = __half;
+KERNEL_FLOAT_VECTOR_ALIAS(half, __half)
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __half)
 
@@ -4293,6 +4309,7 @@ KERNEL_FLOAT_BF16_CAST(
 #endif
 
 using bfloat16 = __nv_bfloat16;
+KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
 

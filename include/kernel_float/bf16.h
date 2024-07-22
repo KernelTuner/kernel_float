@@ -223,6 +223,7 @@ KERNEL_FLOAT_BF16_CAST(
 #endif
 
 using bfloat16 = __nv_bfloat16;
+KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
 
