@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-07-12 11:49:30.611348
-// git hash: b59ee5fc149bc5fe8abd8e184fff95e6f97b94de
+// date: 2024-07-22 10:46:26.101286
+// git hash: 06c10e3079c546eb357c596e5eb10a97bececba5
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1309,7 +1309,7 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(ilogb)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(lgamma)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(log)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(log10)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(logb)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(log2)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(nearbyint)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(normcdf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(rcbrt)
@@ -1352,6 +1352,8 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sin)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(cos)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp2)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log2)
 
 #if KERNEL_FLOAT_IS_DEVICE
 
@@ -1386,6 +1388,10 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1;", "f
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1;", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1;", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1;", "f")
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32 %0, %1;", "f")
 
 #endif
 
