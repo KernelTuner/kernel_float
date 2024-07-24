@@ -85,10 +85,10 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)                                                        \
-    template<typename V>                                                                           \
+    template<typename Accuracy = default_policy, typename V>                                       \
     KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
         using F = ops::NAME<vector_value_type<V>>;                                                 \
-        return map(F {}, input);                                                                   \
+        return ::kernel_float::map<Accuracy>(F {}, input);                                         \
     }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)       \
@@ -193,12 +193,11 @@ KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, 1.0 / input, 1.0f / input)
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                         \
-    template<typename V>                                                                 \
-    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME( \
-        const V& input) {                                                                \
-        using F = ops::NAME<vector_value_type<V>>;                                       \
-        return fast_map(F {}, input);                                                    \
+#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                            \
+    template<typename V>                                                                    \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME(    \
+        const V& input) {                                                                   \
+        return ::kernel_float::map<fast_policy>(ops::NAME<vector_value_type<V>> {}, input); \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)

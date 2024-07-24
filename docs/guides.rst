@@ -5,4 +5,5 @@ Guides
 
    guides/introduction.rst
    guides/promotion.rst
+   guides/accuracy.rst
    guides/constant.rst

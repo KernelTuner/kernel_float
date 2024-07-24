@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-07-22 11:31:53.132636
-// git hash: 4278106f2a14629445668d7e3684dbc8faf8b94d
+// date: 2024-07-24 15:35:29.178410
+// git hash: 986ca557aa59f869d68fe1e7184c2228517ea52d
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -86,7 +86,7 @@
 #define KERNEL_FLOAT_MAX_ALIGNMENT (32)
 
 #ifndef KERNEL_FLOAT_FAST_MATH
-#define KERNEL_FLOAT_FAST_MATH (0)
+#define KERNEL_FLOAT_POLICY ::kernel_float::fast_policy;
 #endif
 
 #endif  //KERNEL_FLOAT_MACROS_H
@@ -784,51 +784,50 @@ struct apply_impl {
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
+}  // namespace detail
 
-template<typename F, size_t N, typename Output, typename... Args>
-struct map_impl {
+struct accurate_policy {
+    template<typename F, size_t N, typename Output, typename... Args>
+    using type = detail::apply_impl<F, N, Output, Args...>;
+};
+
+struct fast_policy {
+    template<typename F, size_t N, typename Output, typename... Args>
+    using type = detail::apply_fastmath_impl<F, N, Output, Args...>;
+};
+
+#ifdef KERNEL_FLOAT_POLICY
+using default_policy = KERNEL_FLOAT_POLICY;
+#else
+using default_policy = accurate_policy;
+#endif
+
+namespace detail {
+
+template<typename Policy, typename F, size_t N, typename Output, typename... Args>
+struct map_policy_impl {
     static constexpr size_t packet_size = preferred_vector_size<Output>::value;
 
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
         if constexpr (N / packet_size > 0) {
 #pragma unroll
             for (size_t i = 0; i < N - N % packet_size; i += packet_size) {
-                apply_impl<F, packet_size, Output, Args...>::call(fun, output + i, (args + i)...);
+                Policy::template type<F, N, Output, Args...>::call(fun, output + i, (args + i)...);
             }
         }
 
         if constexpr (N % packet_size > 0) {
 #pragma unroll
             for (size_t i = N - N % packet_size; i < N; i++) {
-                apply_impl<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
+                Policy::template type<F, N, Output, Args...>::call(fun, output + i, (args + i)...);
             }
         }
     }
 };
 
 template<typename F, size_t N, typename Output, typename... Args>
-struct fast_map_impl {
-    static constexpr size_t packet_size = preferred_vector_size<Output>::value;
+using map_impl = map_policy_impl<default_policy, F, N, Output, Args...>;
 
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
-        if constexpr (N / packet_size > 0) {
-#pragma unroll
-            for (size_t i = 0; i < N - N % packet_size; i += packet_size) {
-                apply_fastmath_impl<F, packet_size, Output, Args...>::call(
-                    fun,
-                    output + i,
-                    (args + i)...);
-            }
-        }
-
-        if constexpr (N % packet_size > 0) {
-#pragma unroll
-            for (size_t i = N - N % packet_size; i < N; i++) {
-                apply_fastmath_impl<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
-            }
-        }
-    }
-};
 }  // namespace detail
 
 template<typename F, typename... Args>
@@ -845,41 +844,13 @@ using map_type =
  * vec<float, 4> squared = map([](auto x) { return x * x; }, input); // [1.0f, 4.0f, 9.0f, 16.0f]
  * ```
  */
-template<typename F, typename... Args>
+template<typename Accuracy = default_policy, typename F, typename... Args>
 KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using Output = result_t<F, vector_value_type<Args>...>;
     using E = broadcast_vector_extent_type<Args...>;
     vector_storage<Output, extent_size<E>> result;
 
-    // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
-#if KERNEL_FLOAT_FAST_MATH
-    using apply_impl =
-        detail::fast_math_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
-#else
-    using map_impl = detail::map_impl<F, extent_size<E>, Output, vector_value_type<Args>...>;
-#endif
-
-    map_impl::call(
-        fun,
-        result.data(),
-        (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
-             into_vector_storage(args))
-             .data())...);
-
-    return result;
-}
-
-/**
- * Apply the function `F` to each element from the vector `input` and return the results as a new vector. This
- * uses fast-math if available for the given function `F`, otherwise this function behaves like `map`.
- */
-template<typename F, typename... Args>
-KERNEL_FLOAT_INLINE map_type<F, Args...> fast_map(F fun, const Args&... args) {
-    using Output = result_t<F, vector_value_type<Args>...>;
-    using E = broadcast_vector_extent_type<Args...>;
-    vector_storage<Output, extent_size<E>> result;
-
-    detail::fast_map_impl<F, extent_size<E>, Output, vector_value_type<Args>...>::call(
+    detail::map_policy_impl<Accuracy, F, extent_size<E>, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
@@ -1228,10 +1199,10 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)                                                        \
-    template<typename V>                                                                           \
+    template<typename Accuracy = default_policy, typename V>                                       \
     KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
         using F = ops::NAME<vector_value_type<V>>;                                                 \
-        return map(F {}, input);                                                                   \
+        return ::kernel_float::map<Accuracy>(F {}, input);                                         \
     }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)       \
@@ -1336,12 +1307,11 @@ KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, 1.0 / input, 1.0f / input)
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                         \
-    template<typename V>                                                                 \
-    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME( \
-        const V& input) {                                                                \
-        using F = ops::NAME<vector_value_type<V>>;                                       \
-        return fast_map(F {}, input);                                                    \
+#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                            \
+    template<typename V>                                                                    \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME(    \
+        const V& input) {                                                                   \
+        return ::kernel_float::map<fast_policy>(ops::NAME<vector_value_type<V>> {}, input); \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)
@@ -1669,14 +1639,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, extent_size<E>> result;
 
-// Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
-#if KERNEL_FLOAT_FAST_MATH
-    using map_impl = detail::fast_map_impl<F, extent_size<E>, O, T, T>;
-#else
-    using map_impl = detail::map_impl<F, extent_size<E>, O, T, T>;
-#endif
-
-    map_impl::call(
+    detail::map_impl<F, extent_size<E>, O, T, T>::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -1921,7 +1884,7 @@ struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
         T rhs_rcp[N];
 
         // Fast way to perform division is to multiply by the reciprocal
-        apply_fastmath_impl<ops::rcp<T>, N, T, T, T>::call({}, rhs_rcp, rhs);
+        apply_fastmath_impl<ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
         apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
 };
@@ -1943,7 +1906,7 @@ fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::fast_map_impl<ops::divide<T>, extent_size<E>, T, T, T>::call(
+    detail::map_policy_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(

@@ -52,14 +52,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, extent_size<E>> result;
 
-// Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
-#if KERNEL_FLOAT_FAST_MATH
-    using map_impl = detail::fast_map_impl<F, extent_size<E>, O, T, T>;
-#else
-    using map_impl = detail::map_impl<F, extent_size<E>, O, T, T>;
-#endif
-
-    map_impl::call(
+    detail::map_impl<F, extent_size<E>, O, T, T>::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -304,7 +297,7 @@ struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
         T rhs_rcp[N];
 
         // Fast way to perform division is to multiply by the reciprocal
-        apply_fastmath_impl<ops::rcp<T>, N, T, T, T>::call({}, rhs_rcp, rhs);
+        apply_fastmath_impl<ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
         apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
 };
@@ -326,7 +319,7 @@ fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::fast_map_impl<ops::divide<T>, extent_size<E>, T, T, T>::call(
+    detail::map_policy_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
