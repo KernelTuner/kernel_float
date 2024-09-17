@@ -69,7 +69,7 @@ Here is how the same kernel would like without Kernel Float.
 __global__ void kernel(const __half* input, float constant, float* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     __half in0 = input[2 * i + 0];
-    __half in1 = input[2 * 1 + 1];
+    __half in1 = input[2 * i + 1];
     __half2 a = __halves2half2(in0, int1);
     float b = float(constant);
     __half c = __float2half(b);
