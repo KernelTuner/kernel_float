@@ -63,7 +63,7 @@
 
 #define KERNEL_FLOAT_MAX_ALIGNMENT (32)
 
-#ifndef KERNEL_FLOAT_FAST_MATH
+#if KERNEL_FLOAT_FAST_MATH
 #define KERNEL_FLOAT_POLICY ::kernel_float::fast_policy;
 #endif
 
