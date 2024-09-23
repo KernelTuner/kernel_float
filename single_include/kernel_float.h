@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-07-24 15:35:29.178410
-// git hash: 986ca557aa59f869d68fe1e7184c2228517ea52d
+// date: 2024-09-23 14:12:25.024358
+// git hash: 3a88b56a57cce5e1f3365aa6e8efb76a14f7f865
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -85,7 +85,7 @@
 
 #define KERNEL_FLOAT_MAX_ALIGNMENT (32)
 
-#ifndef KERNEL_FLOAT_FAST_MATH
+#if KERNEL_FLOAT_FAST_MATH
 #define KERNEL_FLOAT_POLICY ::kernel_float::fast_policy;
 #endif
 
@@ -424,7 +424,6 @@ struct alignas(Alignment) aligned_array<T, 1, Alignment> {
 };
 
 template<typename T, size_t Alignment>
-
 struct aligned_array<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
     T* data() {
@@ -807,19 +806,23 @@ namespace detail {
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct map_policy_impl {
     static constexpr size_t packet_size = preferred_vector_size<Output>::value;
+    static constexpr size_t remainder = N % packet_size;
 
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
         if constexpr (N / packet_size > 0) {
 #pragma unroll
-            for (size_t i = 0; i < N - N % packet_size; i += packet_size) {
-                Policy::template type<F, N, Output, Args...>::call(fun, output + i, (args + i)...);
+            for (size_t i = 0; i < N - remainder; i += packet_size) {
+                Policy::template type<F, packet_size, Output, Args...>::call(
+                    fun,
+                    output + i,
+                    (args + i)...);
             }
         }
 
-        if constexpr (N % packet_size > 0) {
+        if constexpr (remainder > 0) {
 #pragma unroll
-            for (size_t i = N - N % packet_size; i < N; i++) {
-                Policy::template type<F, N, Output, Args...>::call(fun, output + i, (args + i)...);
+            for (size_t i = N - remainder; i < N; i++) {
+                Policy::template type<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
             }
         }
     }

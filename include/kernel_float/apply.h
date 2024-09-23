@@ -153,19 +153,23 @@ namespace detail {
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct map_policy_impl {
     static constexpr size_t packet_size = preferred_vector_size<Output>::value;
+    static constexpr size_t remainder = N % packet_size;
 
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
         if constexpr (N / packet_size > 0) {
 #pragma unroll
-            for (size_t i = 0; i < N - N % packet_size; i += packet_size) {
-                Policy::template type<F, N, Output, Args...>::call(fun, output + i, (args + i)...);
+            for (size_t i = 0; i < N - remainder; i += packet_size) {
+                Policy::template type<F, packet_size, Output, Args...>::call(
+                    fun,
+                    output + i,
+                    (args + i)...);
             }
         }
 
-        if constexpr (N % packet_size > 0) {
+        if constexpr (remainder > 0) {
 #pragma unroll
-            for (size_t i = N - N % packet_size; i < N; i++) {
-                Policy::template type<F, N, Output, Args...>::call(fun, output + i, (args + i)...);
+            for (size_t i = N - remainder; i < N; i++) {
+                Policy::template type<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
             }
         }
     }
