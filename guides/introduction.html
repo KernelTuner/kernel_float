@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Type Promotion" href="promotion.html" />
+    <link rel="next" title="Casting and Type Promotion" href="promotion.html" />
     <link rel="prev" title="Guides" href="../guides.html" /> 
 </head>
 
@@ -50,12 +50,17 @@
 <li class="toctree-l1 current"><a class="reference internal" href="../guides.html">Guides</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Getting started</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#installation">Installation</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#example-c-code">Example C++ code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vector-types">Vector types</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#accessing-elements">Accessing elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#operator-overloading">Operator overloading</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mathematical-functions">Mathematical functions</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="promotion.html">Type Promotion</a></li>
-<li class="toctree-l2"><a class="reference internal" href="prelude.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::prelude</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="promotion.html">Casting and Type Promotion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="accuracy.html">Accuracy Level</a></li>
 <li class="toctree-l2"><a class="reference internal" href="constant.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="example.html">Full CUDA example</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
@@ -90,47 +95,171 @@
              
   <section id="getting-started">
 <h1>Getting started<a class="headerlink" href="#getting-started" title="Permalink to this heading"></a></h1>
-<p>Kernel Float is a header-only library that makes it easy to work with vector types and low-precision floating-point types, mainly focusing on CUDA kernel code.</p>
+<p><strong>Kernel Float</strong> is a header-only library that makes it easy to work with vector types and low-precision floating-point types, mainly focusing on CUDA kernel code.</p>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading"></a></h2>
-<p>The easiest way to use the library is get the single header file from github:</p>
+<p>The easiest way to use the library is to get the single header file from GitHub:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wget<span class="w"> </span>https://raw.githubusercontent.com/KernelTuner/kernel_float/main/single_include/kernel_float.h
 </pre></div>
 </div>
-<p>Next, include this file into your program.
-It is conventient to define a namespace alias <code class="docutils literal notranslate"><span class="pre">kf</span></code> to shorten the full name <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code>.</p>
-<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;kernel_float.h&quot;</span>
+<p>Next, include this file in your program. It is convenient to define a namespace alias <code class="docutils literal notranslate"><span class="pre">kf</span></code> to shorten the full name <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;kernel_float.h&quot;</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">kf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">kernel_float</span><span class="p">;</span>
 </pre></div>
 </div>
 </section>
-<section id="example-c-code">
-<h2>Example C++ code<a class="headerlink" href="#example-c-code" title="Permalink to this heading"></a></h2>
-<p>Kernel Float essentially offers a single data-type <code class="docutils literal notranslate"><span class="pre">kernel_float::vec&lt;T,</span> <span class="pre">N&gt;</span></code> that stores <code class="docutils literal notranslate"><span class="pre">N</span></code> elements of type <code class="docutils literal notranslate"><span class="pre">T</span></code>.
-This type can be initialized normally using list-initialization (e.g., <code class="docutils literal notranslate"><span class="pre">{a,</span> <span class="pre">b,</span> <span class="pre">c}</span></code>) and elements can be accessed using the <code class="docutils literal notranslate"><span class="pre">[]</span></code> operator.
-Operation overload is available to perform binary operations (such as <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, and <code class="docutils literal notranslate"><span class="pre">&amp;</span></code>), where the optimal intrinsic for the available types is selected automatically.</p>
-<p>Many mathetical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>, <code class="docutils literal notranslate"><span class="pre">cos</span></code>) are also available, see the <a class="reference internal" href="../api.html"><span class="doc std std-doc">API reference</span></a> for the full list of functions.
-In some cases, certain operations might not be natively supported by the platform for the some floating-point type.
-In these cases, Kernel Float falls back to performing the operations in 32 bit precision.</p>
-<p>The code below shows a very simple example of how to use Kernel Float:</p>
-<div class="highlight-C++ notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;kernel_float.h&quot;</span>
-<span class="k">namespace</span><span class="w"> </span><span class="nn">kf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">kernel_float</span><span class="p">;</span>
+<section id="vector-types">
+<h2>Vector types<a class="headerlink" href="#vector-types" title="Permalink to this heading"></a></h2>
+<p>Kernel Float essentially offers a single data type <code class="docutils literal notranslate"><span class="pre">kernel_float::vec&lt;T,</span> <span class="pre">N&gt;</span></code> that stores <code class="docutils literal notranslate"><span class="pre">N</span></code> elements of type <code class="docutils literal notranslate"><span class="pre">T</span></code>. The simplest way to initialize a vector is using list-initialization:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">my_vector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">};</span>
+</pre></div>
+</div>
+<p>It is also possible to automatically derive the type using <code class="docutils literal notranslate"><span class="pre">make_vec</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// The type will be vec&lt;double, 3&gt;</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">make_vec</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">);</span>
 
-<span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="k">using</span><span class="w"> </span><span class="n">Type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">float</span><span class="p">;</span>
-<span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">N</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">8</span><span class="p">;</span>
+<span class="c1">// The type will be vec&lt;int, 2&gt;</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">make_vec</span><span class="p">(</span><span class="mi">7</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">);</span>
 
-<span class="w">  </span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">range</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">&gt;</span><span class="p">();</span>
-<span class="w">  </span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">Type</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cast</span><span class="o">&lt;</span><span class="n">Type</span><span class="o">&gt;</span><span class="p">(</span><span class="n">i</span><span class="p">);</span>
-<span class="w">  </span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">Type</span><span class="p">,</span><span class="w"> </span><span class="n">N</span><span class="o">&gt;</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
-<span class="w">  </span><span class="n">Type</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">sum</span><span class="p">(</span><span class="n">y</span><span class="p">);</span>
-<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;result=%f&quot;</span><span class="p">,</span><span class="w"> </span><span class="kt">double</span><span class="p">(</span><span class="n">result</span><span class="p">));</span>
+<span class="c1">// The type will be vec&lt;bool, 4&gt;</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">make_vec</span><span class="p">(</span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">,</span><span class="w"> </span><span class="nb">false</span><span class="p">,</span><span class="w"> </span><span class="nb">true</span><span class="p">);</span>
 
-<span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="c1">// This does not compile!</span>
+<span class="k">auto</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">make_vec</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>There are also many helper methods available to generate vectors; see the <a class="reference internal" href="../api.html"><span class="doc std std-doc">API reference</span></a>. Some examples are <code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">fill</span></code>, <code class="docutils literal notranslate"><span class="pre">ones</span></code>, and <code class="docutils literal notranslate"><span class="pre">zeros</span></code>.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generates [0, 1, 2, 3]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">range</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// Generates [42.0, 42.0, 42.0, 42.0]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">fill</span><span class="o">&lt;</span><span class="mi">4</span><span class="o">&gt;</span><span class="p">(</span><span class="mf">42.0</span><span class="p">);</span>
+
+<span class="c1">// Generates [0, 0, 0, 0]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">zeros</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// Generates [true, true, true, true]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">ones</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="p">();</span>
+</pre></div>
+</div>
+<p>You can also use the <code class="docutils literal notranslate"><span class="pre">*_like</span></code> functions to generate a vector based on another vector:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generates [1.0, 2.0, 3.0, 4.0]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">};</span>
+
+<span class="c1">// Generates [0.0, 0.0, 0.0, 0.0]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+
+<span class="c1">// Generates [1.0, 1.0, 1.0, 1.0]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">ones_like</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="accessing-elements">
+<h2>Accessing elements<a class="headerlink" href="#accessing-elements" title="Permalink to this heading"></a></h2>
+<p>Accessing elements can be done using the regular <code class="docutils literal notranslate"><span class="pre">[]</span></code> operator.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generate [0.0, 1.0, 2.0, 3.0, 4.0, 5.0]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">range</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// Returns 2.0</span>
+<span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+
+<span class="c1">// Set element at 2 to 42.0</span>
+<span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">42.0</span><span class="p">;</span>
+
+<span class="c1">// Returns 42.0</span>
+<span class="kt">float</span><span class="w"> </span><span class="n">y</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">];</span>
+</pre></div>
+</div>
+<p>You can get a pointer to the vector buffer by calling <code class="docutils literal notranslate"><span class="pre">data</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generate vector</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">};</span>
+
+<span class="kt">float</span><span class="o">*</span><span class="w"> </span><span class="n">address</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">v</span><span class="p">.</span><span class="n">data</span><span class="p">();</span>
+
+<span class="c1">// Set element at 0 to element at 1</span>
+<span class="n">address</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">address</span><span class="p">[</span><span class="mi">1</span><span class="p">];</span>
+</pre></div>
+</div>
+<p>Iteration can be done by using a regular for-loop:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">vector</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">};</span>
+
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">float</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="n">vector</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;x=%f</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">x</span><span class="p">);</span>
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Notice how easy it would be to change the floating-point type <code class="docutils literal notranslate"><span class="pre">Type</span></code> or the vector length <code class="docutils literal notranslate"><span class="pre">N</span></code> without affecting the rest of the code.</p>
+</section>
+<section id="operator-overloading">
+<h2>Operator overloading<a class="headerlink" href="#operator-overloading" title="Permalink to this heading"></a></h2>
+<p>The <strong>arithmetic</strong> operators <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">-</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">/</span></code>, and <code class="docutils literal notranslate"><span class="pre">%</span></code> are overloaded to perform element-wise operations.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generate [1.0f, 2.0f, 3.0f]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">};</span>
+
+<span class="c1">// Generate [1.0f, 1.0f, 1.0f]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">ones</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// Add them together to create [2.0f, 3.0f, 4.0f]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>The <strong>comparison</strong> operators <code class="docutils literal notranslate"><span class="pre">&lt;</span></code>, <code class="docutils literal notranslate"><span class="pre">&gt;</span></code>, <code class="docutils literal notranslate"><span class="pre">==</span></code>, <code class="docutils literal notranslate"><span class="pre">!=</span></code>, <code class="docutils literal notranslate"><span class="pre">&lt;=</span></code>, <code class="docutils literal notranslate"><span class="pre">&gt;=</span></code> are overloaded to perform element-wise operations. Note that the returned value is a vector containing 0s (<code class="docutils literal notranslate"><span class="pre">false</span></code>) and 1s (<code class="docutils literal notranslate"><span class="pre">true</span></code>). The element type and vector length will match the inputs.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generate doubles</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">4.0</span><span class="p">,</span><span class="w"> </span><span class="mf">-100.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">-3.0</span><span class="p">};</span>
+
+<span class="c1">// Generate zeros</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">zeros</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+
+<span class="c1">// Generates [false, true, false, false, true]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">zeros</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>The <strong>logical</strong> operators <code class="docutils literal notranslate"><span class="pre">&amp;&amp;</span></code> and <code class="docutils literal notranslate"><span class="pre">||</span></code> are NOT overloaded. This is because there is no method to simulate the short-circuiting behavior. Instead, the operators <code class="docutils literal notranslate"><span class="pre">!</span></code> (not), <code class="docutils literal notranslate"><span class="pre">&amp;</span></code> (and), <code class="docutils literal notranslate"><span class="pre">|</span></code> (or), and <code class="docutils literal notranslate"><span class="pre">^</span></code> (xor) are overloaded to behave as logical operators.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generate doubles</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">4.0</span><span class="p">,</span><span class="w"> </span><span class="mf">-100.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">-3.0</span><span class="p">};</span>
+
+<span class="c1">// Generate zeros and ones</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">zeros</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ones</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">ones_like</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+
+<span class="c1">// Generates [false, false, true, true, false]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">zeros</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">ones</span><span class="p">);</span>
+
+<span class="c1">// Using `&amp;&amp;` instead of `&amp;` results in a compilation error!</span>
+<span class="c1">// kf::vec&lt;bool, 5&gt; fail = (a &gt;= zeros) &amp;&amp; (a &lt;= ones);</span>
+</pre></div>
+</div>
+<p>If the two inputs of a binary operator do not match (either element type and/or vector length), Kernel Float will automatically perform <strong>type promotion</strong> (described on the page <a class="reference internal" href="promotion.html"><span class="doc std std-doc">Type Promotion</span></a>). This allows our example to be simplified to just:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Generate doubles</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">4.0</span><span class="p">,</span><span class="w"> </span><span class="mf">-100.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.0</span><span class="p">,</span><span class="w"> </span><span class="mf">0.5</span><span class="p">,</span><span class="w"> </span><span class="mf">-3.0</span><span class="p">};</span>
+
+<span class="c1">// Generates [false, false, true, true, false]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mf">1.0</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="mathematical-functions">
+<h2>Mathematical functions<a class="headerlink" href="#mathematical-functions" title="Permalink to this heading"></a></h2>
+<p>Many mathematical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>, <code class="docutils literal notranslate"><span class="pre">cos</span></code>) are also available; see the <a class="reference internal" href="../api.html"><span class="doc std std-doc">API reference</span></a> for the full list of functions. These always work element-wise:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Input vector</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">0.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">};</span>
+
+<span class="c1">// Gives [0.0, 0.84147098, 0.9092974, 0.14112001]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">sin</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Gives [1.0, 0.54030231, -0.41614684, -0.9899925]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Gives [0.0, 1.0, 1.4142135, 1.7320508]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Gives [1.0, 2.7182818, 7.3890561, 20.085537]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">exp</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Gives [0, 0, 0, 0]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>In some cases, certain operations might not be natively supported by the platform for some floating-point types. In these cases, Kernel Float falls back to performing the operations in 32-bit precision.</p>
 </section>
 </section>
 
@@ -139,7 +268,7 @@ In these cases, Kernel Float falls back to performing the operations in 32 bit p
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="../guides.html" class="btn btn-neutral float-left" title="Guides" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="promotion.html" class="btn btn-neutral float-right" title="Type Promotion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="promotion.html" class="btn btn-neutral float-right" title="Casting and Type Promotion" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

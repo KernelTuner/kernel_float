@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Type Promotion &mdash; Kernel Float  documentation</title>
+  <title>Casting and Type Promotion &mdash; Kernel Float  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
 
@@ -21,7 +21,7 @@
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Using kernel_float::prelude" href="prelude.html" />
+    <link rel="next" title="Memory Operations" href="memory.html" />
     <link rel="prev" title="Getting started" href="introduction.html" /> 
 </head>
 
@@ -49,12 +49,20 @@
 <li class="toctree-l1"><a class="reference internal" href="../index.html">Kernel Float</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="../guides.html">Guides</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">Type Promotion</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#overview">Overview</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Casting and Type Promotion</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#type-casting">Type Casting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#type-promotion">Type Promotion</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#how-type-promotion-works">How Type Promotion Works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#promotion-rules">Promotion Rules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#overview">Overview</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="prelude.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::prelude</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="accuracy.html">Accuracy Level</a></li>
 <li class="toctree-l2"><a class="reference internal" href="constant.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="example.html">Full CUDA example</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
@@ -77,9 +85,9 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../guides.html">Guides</a></li>
-      <li class="breadcrumb-item active">Type Promotion</li>
+      <li class="breadcrumb-item active">Casting and Type Promotion</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/guides/promotion.rst.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/guides/promotion.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -87,27 +95,103 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="type-promotion">
-<h1>Type Promotion<a class="headerlink" href="#type-promotion" title="Permalink to this heading"></a></h1>
-<p>For operations that involve two (or more) input arguments, <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> will first convert the inputs into a common type before applying the operation.
-For example, when adding <code class="docutils literal notranslate"><span class="pre">vec&lt;int,</span> <span class="pre">N&gt;</span></code> to <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>, both arguments must first be converted into a <code class="docutils literal notranslate"><span class="pre">vec&lt;float,</span> <span class="pre">N&gt;</span></code>.</p>
-<p>This procedure is called “type promotion” and is implemented as follows.
-Initially, every argument is transformed into a vector using the <code class="docutils literal notranslate"><span class="pre">into_vec</span></code> function
-Next, all arguments must have length <code class="docutils literal notranslate"><span class="pre">N</span></code> or length <code class="docutils literal notranslate"><span class="pre">1</span></code>, where vectors of length <code class="docutils literal notranslate"><span class="pre">1</span></code> are repeated to become length <code class="docutils literal notranslate"><span class="pre">N</span></code>.
-Finally, the vector element types are promoted into a shared type.</p>
-<p>The rules for element type promotion in <code class="docutils literal notranslate"><span class="pre">kernel_float</span></code> are slightly different than in regular C++.
-In a nutshell, for two element types, the promotion rules can be summarized as follows:</p>
+  <section id="casting-and-type-promotion">
+<h1>Casting and Type Promotion<a class="headerlink" href="#casting-and-type-promotion" title="Permalink to this heading"></a></h1>
+<p>This section is on data type casting and implicit type promotion.</p>
+<section id="type-casting">
+<h2>Type Casting<a class="headerlink" href="#type-casting" title="Permalink to this heading"></a></h2>
+<p>You can use the function <code class="docutils literal notranslate"><span class="pre">cast</span></code> to explicitly change the element type of a vector:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// a = [0, 1, 2, 3]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">range</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// b = [0, 1, 2, 3]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">short</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cast</span><span class="o">&lt;</span><span class="kt">short</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+
+<span class="c1">// c = [0.0f, 1.0f, 2.0f, 3.0f]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cast</span><span class="o">&lt;</span><span class="kt">float</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+
+<span class="c1">// d = [false, true, true, true]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cast</span><span class="o">&lt;</span><span class="kt">bool</span><span class="o">&gt;</span><span class="p">(</span><span class="n">a</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Kernel Float allows <strong>implicit</strong> type conversions between vector types <strong>only</strong> for <strong>widening</strong> casts (i.e., converting a smaller type into a larger type).</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// a = [0, 1, 2, 3]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">range</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// This is allowed: int -&gt; long</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">long</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+
+<span class="c1">// This is also allowed: int -&gt; float</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Kernel Float does <strong>not</strong> perform implicit conversion for narrowing casts; this requires an explicit cast:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// a = [0, 1, 2, 3]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">range</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// This is NOT allowed, use `kf::cast&lt;float&gt;(a)`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">;</span><span class="w"> </span><span class="c1">// ERROR</span>
+
+<span class="c1">// This is NOT allowed, use `kf::cast&lt;int&gt;(a)`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">int</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">;</span><span class="w"> </span><span class="c1">// ERROR</span>
+
+<span class="c1">// This is NOT allowed, use `kf::cast&lt;bool&gt;(a)`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">bool</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">;</span><span class="w"> </span><span class="c1">// ERROR</span>
+</pre></div>
+</div>
+<p>Alternatively, it is possible to use <code class="docutils literal notranslate"><span class="pre">kf::cast_to</span></code> on the left side of the assignment to perform a cast:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// a = [0, 1, 2, 3]</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">range</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="p">();</span>
+
+<span class="c1">// Define b</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+
+<span class="c1">// This is equivalent to `b = kf::cast&lt;float&gt;(a)`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">cast_to</span><span class="p">(</span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">;</span>
+</pre></div>
+</div>
+</section>
+<section id="type-promotion">
+<h2>Type Promotion<a class="headerlink" href="#type-promotion" title="Permalink to this heading"></a></h2>
+<p>When performing operations between vectors of different types or sizes, Kernel Float automatically promotes types to ensure compatibility. This process is known as <strong>type promotion</strong>.</p>
+<p>Consider the following example. What should the type of <code class="docutils literal notranslate"><span class="pre">c</span></code> be in this case?</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">};</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">10.0</span><span class="p">,</span><span class="w"> </span><span class="mf">20.0</span><span class="p">,</span><span class="w"> </span><span class="mf">30.0</span><span class="p">,</span><span class="w"> </span><span class="mf">40.0</span><span class="p">};</span>
+
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;???</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Another example is the following snippet. Again, what should the type of <code class="docutils literal notranslate"><span class="pre">c</span></code> be?</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">};</span>
+<span class="kt">int</span><span class="w"> </span><span class="n">factor</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;???</span><span class="p">,</span><span class="w"> </span><span class="o">???&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">factor</span><span class="p">;</span>
+</pre></div>
+</div>
+<section id="how-type-promotion-works">
+<h3>How Type Promotion Works<a class="headerlink" href="#how-type-promotion-works" title="Permalink to this heading"></a></h3>
+<p>Type promotion in Kernel Float unifies arguments for binary (and ternary) operations through the following steps:</p>
 <ul class="simple">
-<li><p>If one of the types is <code class="docutils literal notranslate"><span class="pre">bool</span></code>, the result is the other type.</p></li>
-<li><p>If one type is a floating-point and the other is an integer (signed or unsigned), the outcome is the floating-point type.</p></li>
-<li><p>If both are floating-point types, the largest of the two is chosen. An exception is combining <code class="docutils literal notranslate"><span class="pre">half</span></code> and <code class="docutils literal notranslate"><span class="pre">bfloat16</span></code>, which results in <code class="docutils literal notranslate"><span class="pre">float</span></code>.</p></li>
-<li><p>If both types are integer types of the same signedness, the largest of the two is chosen.</p></li>
-<li><p>Combining a signed integer and unsigned integer type is not allowed.</p></li>
+<li><p><strong>Vectorization</strong>: Each non-vector argument is converted into a vector using the <code class="docutils literal notranslate"><span class="pre">into_vec</span></code> function.</p></li>
+<li><p><strong>Length Unification</strong>: All arguments must have the same length N or length 1. Vectors of length 1 are broadcasted to match length N.</p></li>
+<li><p><strong>Type Unification</strong>: The element types are promoted to a common type based on the following promotion rules.</p></li>
 </ul>
+</section>
+<section id="promotion-rules">
+<h3>Promotion Rules<a class="headerlink" href="#promotion-rules" title="Permalink to this heading"></a></h3>
+<p>The rules for element type promotion in Kernel Float are slightly different from standard C++. Here’s a summary:</p>
+<ul class="simple">
+<li><p><strong>Boolean Types</strong>: If one of the types is bool, the result type is the other type.</p></li>
+<li><p><strong>Floating-Point and Integer</strong>: If one type is floating-point and the other is an integer (signed or unsigned), the result is the floating-point type.</p></li>
+<li><p><strong>Floating-Point Types</strong>: If both are floating-point types, the larger (wider) type is chosen.
+Exception: Combining half and bfloat16 results in float.</p></li>
+<li><p><strong>Integer Types</strong>: If both are integers of the same signedness (both signed or both unsigned), the larger type is chosen.
+Combining a signed integer and an unsigned integer is not allowed.</p></li>
+</ul>
+</section>
 <section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h2>
-<p>The type promotion rules are shown in the table below.
-The labels are as follows:</p>
+<h3>Overview<a class="headerlink" href="#overview" title="Permalink to this heading"></a></h3>
+<p>The following table summarizes the type promotion rules. The labels used are:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">b</span></code>: boolean</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">iN</span></code>: signed integer of <code class="docutils literal notranslate"><span class="pre">N</span></code> bits (e.g., <code class="docutils literal notranslate"><span class="pre">int</span></code>, <code class="docutils literal notranslate"><span class="pre">long</span></code>)</p></li>
@@ -360,6 +444,9 @@ The labels are as follows:</p>
 </tr>
 </tbody>
 </table>
+<p>.. csv-table:: Type Promotion Rules.
+:file: promotion_table.csv</p>
+</section>
 </section>
 </section>
 
@@ -368,7 +455,7 @@ The labels are as follows:</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="introduction.html" class="btn btn-neutral float-left" title="Getting started" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="prelude.html" class="btn btn-neutral float-right" title="Using kernel_float::prelude" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="memory.html" class="btn btn-neutral float-right" title="Memory Operations" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Accuracy Level &mdash; Kernel Float  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+        <script src="../_static/doctools.js?v=888ff710"></script>
+        <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Using kernel_float::constant" href="constant.html" />
+    <link rel="prev" title="Memory Operations" href="memory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Kernel Float
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Kernel Float</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../guides.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="promotion.html">Casting and Type Promotion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Accuracy Level</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fast-math">Fast Math</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#approximate-math">Approximate Math</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tuning-accuracy-level">Tuning Accuracy Level</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#setting-default-policy">Setting <code class="docutils literal notranslate"><span class="pre">default_policy</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="constant.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="example.html">Full CUDA example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Kernel Float</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../guides.html">Guides</a></li>
+      <li class="breadcrumb-item active">Accuracy Level</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/guides/accuracy.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="accuracy-level">
+<h1>Accuracy Level<a class="headerlink" href="#accuracy-level" title="Permalink to this heading"></a></h1>
+<p>For certain operations, there might be alternative versions available that provide better performance at the cost of lower accuracy.
+In other words, they are faster but also have a small error.</p>
+<section id="fast-math">
+<h2>Fast Math<a class="headerlink" href="#fast-math" title="Permalink to this heading"></a></h2>
+<p>For several operations in single precision (float32), there are “fast math” versions. These functions are faster since they are hardware accelerated, but are not IEEE compliant for all inputs.</p>
+<p>To use this functionality, use the <code class="docutils literal notranslate"><span class="pre">fast_*</span></code> functions from Kernel Float.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0f</span><span class="p">};</span>
+
+<span class="c1">// Sine</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">fast_sin</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Square root</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">fast_sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Reciprocal `1/x`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">fast_rcp</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Division `a/b`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">fast_div</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>These functions are only functional for 32-bit and 16-bit floats.
+For other input types, the operation falls back to the regular version.</p>
+</section>
+<section id="approximate-math">
+<h2>Approximate Math<a class="headerlink" href="#approximate-math" title="Permalink to this heading"></a></h2>
+<p>For 16-bit floats, several approximate functions are provided.
+These use approximations (typically low-degree polynomials) to calculate rough estimates of the functions.
+This can be very fast but also less accurate.</p>
+<p>To use this functionality, use the <code class="docutils literal notranslate"><span class="pre">approx_*</span></code> functions from Kernel Float. For other input types, the operation falls back to the <code class="docutils literal notranslate"><span class="pre">fast_*</span></code> variant.</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0</span><span class="p">};</span>
+
+<span class="c1">// Sine</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">approx_sin</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Square root</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">approx_sqrt</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Reciprocal `1/x`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">approx_rcp</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Division `a/b`</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">approx_div</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>You can adjust the degree of approximation by supplying an integer template parameter:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Sine approximation with polynomial of degree 1</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">approx_sin</span><span class="o">&lt;</span><span class="mi">1</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Polynomial of degree 2</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">approx_sin</span><span class="o">&lt;</span><span class="mi">2</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+
+<span class="c1">// Polynomial of degree 3</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">approx_sin</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;</span><span class="p">(</span><span class="n">x</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="tuning-accuracy-level">
+<h2>Tuning Accuracy Level<a class="headerlink" href="#tuning-accuracy-level" title="Permalink to this heading"></a></h2>
+<p>Many functions in Kernel Float accept an additional Accuracy option as a template parameter.
+This allows you to tune the accuracy level without changing the function name.</p>
+<p>There are four possible values for this parameter:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">kf::accurate_policy</span></code>: Use the most accurate version of the function available.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kf::fast_policy</span></code>: Use the “fast math” version.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kf::approx_policy&lt;N&gt;</span></code>: Use the approximate version with degree <code class="docutils literal notranslate"><span class="pre">N</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">kf::default_policy</span></code>: Use a global default policy (see the next section).</p></li>
+</ul>
+<p>For example, consider this code:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">input</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">};</span>
+
+<span class="c1">// Use the default policy</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cos</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
+
+<span class="c1">// Use the default policy</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cos</span><span class="o">&lt;</span><span class="n">kf</span><span class="o">::</span><span class="n">default_policy</span><span class="o">&gt;</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
+
+<span class="c1">// Use the most accurate policy</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cos</span><span class="o">&lt;</span><span class="n">kf</span><span class="o">::</span><span class="n">accurate_policy</span><span class="o">&gt;</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
+
+<span class="c1">// Use the fastest policy</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cos</span><span class="o">&lt;</span><span class="n">kf</span><span class="o">::</span><span class="n">fast_policy</span><span class="o">&gt;</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
+
+<span class="c1">// Use the approximate policy</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">e</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cos</span><span class="o">&lt;</span><span class="n">kf</span><span class="o">::</span><span class="n">approx_policy</span><span class="o">&lt;</span><span class="mi">3</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
+
+<span class="c1">// You can use aliases to define your own policy</span>
+<span class="k">using</span><span class="w"> </span><span class="n">my_own_policy</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">fast_policy</span><span class="p">;</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cos</span><span class="o">&lt;</span><span class="n">my_own_policy</span><span class="o">&gt;</span><span class="p">(</span><span class="n">input</span><span class="p">);</span>
+</pre></div>
+</div>
+</section>
+<section id="setting-default-policy">
+<h2>Setting <code class="docutils literal notranslate"><span class="pre">default_policy</span></code><a class="headerlink" href="#setting-default-policy" title="Permalink to this heading"></a></h2>
+<p>By default, <code class="docutils literal notranslate"><span class="pre">kf::default_policy</span></code> is set to <code class="docutils literal notranslate"><span class="pre">kf::accurate_policy</span></code>.</p>
+<p>Set the preprocessor option <code class="docutils literal notranslate"><span class="pre">KERNEL_FLOAT_FAST_MATH=1</span></code> to change the default policy to <code class="docutils literal notranslate"><span class="pre">kf::fast_policy</span></code>.
+This will use fast math for all functions and data types that support it.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="memory.html" class="btn btn-neutral float-left" title="Memory Operations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="constant.html" class="btn btn-neutral float-right" title="Using kernel_float::constant" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Stijn Heldens, Ben van Werkhoven.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

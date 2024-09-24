@@ -33,3 +33,7 @@ count
 -----
 .. doxygenfunction:: kernel_float::count
 
+dot
+---
+.. doxygenfunction:: kernel_float::dot
+
