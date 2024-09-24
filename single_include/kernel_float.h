@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-05-17 10:55:41.948281
-// git hash: 41246ab6db9fcc24639342c439e606ba143ee346
+// date: 2024-09-23 14:12:25.024358
+// git hash: 3a88b56a57cce5e1f3365aa6e8efb76a14f7f865
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -85,8 +85,8 @@
 
 #define KERNEL_FLOAT_MAX_ALIGNMENT (32)
 
-#ifndef KERNEL_FLOAT_FAST_MATH
-#define KERNEL_FLOAT_FAST_MATH (0)
+#if KERNEL_FLOAT_FAST_MATH
+#define KERNEL_FLOAT_POLICY ::kernel_float::fast_policy;
 #endif
 
 #endif  //KERNEL_FLOAT_MACROS_H
@@ -424,7 +424,6 @@ struct alignas(Alignment) aligned_array<T, 1, Alignment> {
 };
 
 template<typename T, size_t Alignment>
-
 struct aligned_array<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
     T* data() {
@@ -464,9 +463,11 @@ struct extent;
 
 template<size_t N>
 struct extent<N> {
-    static constexpr size_t value = N;
-    static constexpr size_t size = N;
+    static constexpr size_t number_of_elements = N;
 };
+
+template<typename E>
+static constexpr size_t extent_size = E::number_of_elements;
 
 namespace detail {
 // Indicates that elements of type `T` offer less precision than floats, thus operations
@@ -594,7 +595,7 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulon
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
-template<typename T, typename E, typename S = vector_storage<T, E::size>>
+template<typename T, typename E, typename S = vector_storage<T, E::number_of_elements>>
 struct vector;
 
 template<typename T, typename E, typename S>
@@ -603,9 +604,14 @@ struct into_vector_impl<vector<T, E, S>> {
     using extent_type = E;
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E::value> call(const vector<T, E, S>& input) {
+    static vector_storage<T, extent_size<E>> call(const vector<T, E, S>& input) {
         return input.storage();
     }
+};
+
+template<typename T>
+struct preferred_vector_size {
+    static constexpr size_t value = 1;
 };
 
 template<typename V>
@@ -626,13 +632,13 @@ template<typename V>
 using vector_extent_type = typename into_vector_impl<V>::extent_type;
 
 template<typename V>
-static constexpr size_t vector_extent = vector_extent_type<V>::value;
+static constexpr size_t vector_size = extent_size<vector_extent_type<V>>;
 
 template<typename V>
 using into_vector_type = vector<vector_value_type<V>, vector_extent_type<V>>;
 
 template<typename V>
-using vector_storage_type = vector_storage<vector_value_type<V>, vector_extent<V>>;
+using vector_storage_type = vector_storage<vector_value_type<V>, vector_size<V>>;
 
 template<typename... Vs>
 using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
@@ -765,43 +771,66 @@ broadcast_like(const V& input, const R& other) {
 
 namespace detail {
 
-template<size_t N>
-struct apply_recur_impl;
-
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_impl {
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
-        apply_recur_impl<N>::call(fun, result, inputs...);
-    }
-};
-
-template<size_t N>
-struct apply_recur_impl {
-    static constexpr size_t K = round_up_to_power_of_two(N) / 2;
-
-    template<typename F, typename Output, typename... Args>
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
-        apply_impl<F, K, Output, Args...>::call(fun, result, inputs...);
-        apply_impl<F, N - K, Output, Args...>::call(fun, result + K, (inputs + K)...);
-    }
-};
-
-template<>
-struct apply_recur_impl<0> {
-    template<typename F, typename Output, typename... Args>
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {}
-};
-
-template<>
-struct apply_recur_impl<1> {
-    template<typename F, typename Output, typename... Args>
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* result, const Args*... inputs) {
-        result[0] = fun(inputs[0]...);
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            output[i] = fun(args[i]...);
+        }
     }
 };
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
+}  // namespace detail
+
+struct accurate_policy {
+    template<typename F, size_t N, typename Output, typename... Args>
+    using type = detail::apply_impl<F, N, Output, Args...>;
+};
+
+struct fast_policy {
+    template<typename F, size_t N, typename Output, typename... Args>
+    using type = detail::apply_fastmath_impl<F, N, Output, Args...>;
+};
+
+#ifdef KERNEL_FLOAT_POLICY
+using default_policy = KERNEL_FLOAT_POLICY;
+#else
+using default_policy = accurate_policy;
+#endif
+
+namespace detail {
+
+template<typename Policy, typename F, size_t N, typename Output, typename... Args>
+struct map_policy_impl {
+    static constexpr size_t packet_size = preferred_vector_size<Output>::value;
+    static constexpr size_t remainder = N % packet_size;
+
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
+        if constexpr (N / packet_size > 0) {
+#pragma unroll
+            for (size_t i = 0; i < N - remainder; i += packet_size) {
+                Policy::template type<F, packet_size, Output, Args...>::call(
+                    fun,
+                    output + i,
+                    (args + i)...);
+            }
+        }
+
+        if constexpr (remainder > 0) {
+#pragma unroll
+            for (size_t i = N - remainder; i < N; i++) {
+                Policy::template type<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
+            }
+        }
+    }
+};
+
+template<typename F, size_t N, typename Output, typename... Args>
+using map_impl = map_policy_impl<default_policy, F, N, Output, Args...>;
+
 }  // namespace detail
 
 template<typename F, typename... Args>
@@ -818,40 +847,13 @@ using map_type =
  * vec<float, 4> squared = map([](auto x) { return x * x; }, input); // [1.0f, 4.0f, 9.0f, 16.0f]
  * ```
  */
-template<typename F, typename... Args>
+template<typename Accuracy = default_policy, typename F, typename... Args>
 KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using Output = result_t<F, vector_value_type<Args>...>;
     using E = broadcast_vector_extent_type<Args...>;
-    vector_storage<Output, E::value> result;
+    vector_storage<Output, extent_size<E>> result;
 
-    // Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
-#if KERNEL_FLOAT_FAST_MATH
-    using apply_impl = detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>;
-#else
-    using apply_impl = detail::apply_impl<F, E::value, Output, vector_value_type<Args>...>;
-#endif
-
-    apply_impl::call(
-        fun,
-        result.data(),
-        (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
-             into_vector_storage(args))
-             .data())...);
-
-    return result;
-}
-
-/**
- * Apply the function `F` to each element from the vector `input` and return the results as a new vector. This
- * uses fast-math if available for the given function `F`, otherwise this function behaves like `map`.
- */
-template<typename F, typename... Args>
-KERNEL_FLOAT_INLINE map_type<F, Args...> fast_map(F fun, const Args&... args) {
-    using Output = result_t<F, vector_value_type<Args>...>;
-    using E = broadcast_vector_extent_type<Args...>;
-    vector_storage<Output, E::value> result;
-
-    detail::apply_fastmath_impl<F, E::value, Output, vector_value_type<Args>...>::call(
+    detail::map_policy_impl<Accuracy, F, extent_size<E>, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
@@ -1200,10 +1202,10 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)                                                        \
-    template<typename V>                                                                           \
+    template<typename Accuracy = default_policy, typename V>                                       \
     KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
         using F = ops::NAME<vector_value_type<V>>;                                                 \
-        return map(F {}, input);                                                                   \
+        return ::kernel_float::map<Accuracy>(F {}, input);                                         \
     }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)       \
@@ -1281,7 +1283,7 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(ilogb)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(lgamma)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(log)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(log10)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(logb)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(log2)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(nearbyint)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(normcdf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(rcbrt)
@@ -1308,12 +1310,11 @@ KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, 1.0 / input, 1.0f / input)
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                         \
-    template<typename V>                                                                 \
-    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME( \
-        const V& input) {                                                                \
-        using F = ops::NAME<vector_value_type<V>>;                                       \
-        return fast_map(F {}, input);                                                    \
+#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                            \
+    template<typename V>                                                                    \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME(    \
+        const V& input) {                                                                   \
+        return ::kernel_float::map<fast_policy>(ops::NAME<vector_value_type<V>> {}, input); \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)
@@ -1324,17 +1325,17 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sin)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(cos)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp2)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log2)
 
 #if KERNEL_FLOAT_IS_DEVICE
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, FAST_FUN)                       \
     namespace detail {                                                                \
-    template<size_t N>                                                                \
-    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                  \
+    template<>                                                                        \
+    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                  \
         KERNEL_FLOAT_INLINE static void call(ops::F<T>, T* result, const T* inputs) { \
-            for (size_t i = 0; i < N; i++) {                                          \
-                result[i] = FAST_FUN(inputs[i]);                                      \
-            }                                                                         \
+            *result = FAST_FUN(*inputs);                                              \
         }                                                                             \
     };                                                                                \
     }
@@ -1342,26 +1343,28 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp, __expf)
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR)                              \
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
-    template<size_t N>                                                                    \
-    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                      \
+    template<>                                                                            \
+    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                      \
         KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
-            for (size_t i = 0; i < N; i++) {                                              \
-                asm(INSTR, : "=f"(result[i]) : "f"(inputs[i]));                           \
-            }                                                                             \
+            asm(INSTR : "=" REG(*result) : REG(*inputs));                                 \
         }                                                                                 \
     };                                                                                    \
     }
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1;", "d")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1;", "d")
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1;", "f")
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32 %0, %1;", "f")
 
 #endif
 
@@ -1384,10 +1387,10 @@ namespace detail {
 template<typename T, typename E, typename T2, typename E2, RoundingMode M = RoundingMode::ANY>
 struct convert_impl {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T2, E2::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T2, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
-        vector_storage<T2, E::value> intermediate;
-        detail::apply_impl<F, E::value, T2, T>::call(F {}, intermediate.data(), input.data());
+        vector_storage<T2, extent_size<E>> intermediate;
+        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, intermediate.data(), input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -1396,7 +1399,7 @@ struct convert_impl {
 template<typename T, typename E, RoundingMode M>
 struct convert_impl<T, E, T, E, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T, extent_size<E>> call(vector_storage<T, extent_size<E>> input) {
         return input;
     }
 };
@@ -1405,7 +1408,7 @@ struct convert_impl<T, E, T, E, M> {
 template<typename T, typename E, typename E2, RoundingMode M>
 struct convert_impl<T, E, T, E2, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E2::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         return detail::broadcast_impl<T, E, E2>::call(input);
     }
 };
@@ -1414,11 +1417,11 @@ struct convert_impl<T, E, T, E2, M> {
 template<typename T, typename E, typename T2, RoundingMode M>
 struct convert_impl<T, E, T2, E, M> {
     KERNEL_FLOAT_INLINE
-    static vector_storage<T2, E::value> call(vector_storage<T, E::value> input) {
+    static vector_storage<T2, extent_size<E>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
 
-        vector_storage<T2, E::value> result;
-        detail::apply_impl<F, E::value, T2, T>::call(F {}, result.data(), input.data());
+        vector_storage<T2, extent_size<E>> result;
+        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
         return result;
     }
 };
@@ -1637,16 +1640,9 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     using O = result_t<F, T, T>;
     using E = broadcast_vector_extent_type<L, R>;
 
-    vector_storage<O, E::value> result;
+    vector_storage<O, extent_size<E>> result;
 
-// Use the `apply_fastmath_impl` if KERNEL_FLOAT_FAST_MATH is enabled
-#if KERNEL_FLOAT_FAST_MATH
-    using apply_impl = detail::apply_fastmath_impl<F, E::value, O, T, T>;
-#else
-    using apply_impl = detail::apply_impl<F, E::value, O, T, T>;
-#endif
-
-    apply_impl::call(
+    detail::map_impl<F, extent_size<E>, O, T, T>::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -1890,20 +1886,18 @@ struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
     call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
         T rhs_rcp[N];
 
-        apply_fastmath_impl<ops::rcp<T>, N, T, T, T>::call({}, rhs_rcp, rhs);
+        // Fast way to perform division is to multiply by the reciprocal
+        apply_fastmath_impl<ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
         apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
 };
 
 #if KERNEL_FLOAT_IS_DEVICE
-template<size_t N>
-struct apply_fastmath_impl<ops::divide<float>, N, float, float, float> {
+template<>
+struct apply_fastmath_impl<ops::divide<float>, 1, float, float, float> {
     KERNEL_FLOAT_INLINE static void
     call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
-#pragma unroll
-        for (size_t i = 0; i < N; i++) {
-            result[i] = __fdividef(lhs[i], rhs[i]);
-        }
+        *result = __fdividef(*lhs, *rhs);
     }
 };
 #endif
@@ -1913,9 +1907,9 @@ template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE zip_common_type<ops::divide<T>, T, T>
 fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_fastmath_impl<ops::divide<T>, E::value, T, T, T>::call(
+    detail::map_policy_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -2133,7 +2127,7 @@ KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
     auto storage = into_vector_storage(input);
 
 #pragma unroll
-    for (size_t i = 0; i < vector_extent<V>; i++) {
+    for (size_t i = 0; i < vector_size<V>; i++) {
         fun(storage.data()[i]);
     }
 }
@@ -2197,7 +2191,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
-    return range<vector_value_type<V>, vector_extent<V>>();
+    return range<vector_value_type<V>, vector_size<V>>();
 }
 
 /**
@@ -2222,11 +2216,11 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  */
 template<typename T = size_t, typename V>
 KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> each_index(const V& = {}) {
-    return range<T, vector_extent<V>>();
+    return range<T, vector_size<V>>();
 }
 
 namespace detail {
-template<typename V, typename T = vector_value_type<V>, size_t N = vector_extent<V>>
+template<typename V, typename T = vector_value_type<V>, size_t N = vector_size<V>>
 struct flatten_impl {
     using value_type = typename flatten_impl<T>::value_type;
     static constexpr size_t size = N * flatten_impl<T>::size;
@@ -2288,7 +2282,7 @@ KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
 namespace detail {
 template<typename U, typename V = U, typename T = vector_value_type<V>>
 struct concat_base_impl {
-    static constexpr size_t size = vector_extent<V>;
+    static constexpr size_t size = vector_size<V>;
 
     KERNEL_FLOAT_INLINE static void call(U* output, const V& input) {
         vector_storage<T, size> storage = into_vector_storage(input);
@@ -2405,7 +2399,7 @@ using select_type = vector<vector_value_type<V>, extent<concat_size<Is...>>>;
 template<typename V, typename... Is>
 KERNEL_FLOAT_INLINE select_type<V, Is...> select(const V& input, const Is&... indices) {
     using T = vector_value_type<V>;
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     static constexpr size_t M = concat_size<Is...>;
 
     vector_storage<size_t, M> index_set;
@@ -2467,7 +2461,7 @@ struct copy_impl<T, N, index_sequence<Is...>> {
  */
 template<typename T, typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
 KERNEL_FLOAT_INLINE vector<T, E> read(const T* ptr, const I& indices, const M& mask = true) {
-    return detail::copy_impl<T, E::value>::load(
+    return detail::copy_impl<T, extent_size<E>>::load(
         ptr,
         convert_storage<size_t>(indices, E()).data(),
         convert_storage<bool>(mask, E()).data());
@@ -2494,7 +2488,7 @@ template<
     typename M = bool,
     typename E = broadcast_vector_extent_type<V, I, M>>
 KERNEL_FLOAT_INLINE void write(T* ptr, const I& indices, const V& values, const M& mask = true) {
-    return detail::copy_impl<T, E::value>::store(
+    return detail::copy_impl<T, extent_size<E>>::store(
         ptr,
         convert_storage<T>(values, E()).data(),
         convert_storage<size_t>(indices, E()).data(),
@@ -2531,7 +2525,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read(const T* ptr) {
  */
 template<typename V, typename T>
 KERNEL_FLOAT_INLINE void write(T* ptr, const V& values) {
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     write(ptr, range<size_t, N>(), values);
 }
 
@@ -2706,7 +2700,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
  */
 template<size_t Align, typename V, typename T>
 KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
 
     return detail::copy_aligned_impl<T, N, alignment>::store(
@@ -3034,8 +3028,170 @@ vec_ptr(const T*) -> vec_ptr<T, 1, const T>;
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_MEMORY_H
+#ifndef KERNEL_FLOAT_TRIOPS_H
+#define KERNEL_FLOAT_TRIOPS_H
+
+
+
+
+namespace kernel_float {
+
+namespace ops {
+template<typename T>
+struct conditional {
+    KERNEL_FLOAT_INLINE T operator()(bool cond, T true_value, T false_value) {
+        if (cond) {
+            return true_value;
+        } else {
+            return false_value;
+        }
+    }
+};
+}  // namespace ops
+
+/**
+ * Return elements chosen from `true_values` and `false_values` depending on `cond`.
+ *
+ * This function broadcasts all arguments to the same size and then promotes the values of `true_values` and
+ * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a vector where
+ * the values are taken from `true_values` where the condition is true and `false_values` otherwise.
+ *
+ * @param cond The condition used for selection.
+ * @param true_values The vector of values to choose from when the condition is true.
+ * @param false_values The vector of values to choose from when the condition is false.
+ * @return A vector containing selected elements as per the condition.
+ */
+template<
+    typename C,
+    typename L,
+    typename R,
+    typename T = promoted_vector_value_type<L, R>,
+    typename E = broadcast_vector_extent_type<C, L, R>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
+    using F = ops::conditional<T>;
+    vector_storage<T, extent_size<E>> result;
+
+    detail::map_impl<F, extent_size<E>, T, bool, T, T>::call(
+        F {},
+        result.data(),
+        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
+            into_vector_storage(cond))
+            .data(),
+        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
+            into_vector_storage(true_values))
+            .data(),
+        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
+            into_vector_storage(false_values))
+            .data());
+
+    return result;
+}
+
+/**
+ * Selects elements from `true_values` depending on `cond`.
+ *
+ * This function returns a vector where the values are taken from `true_values` where `cond` is `true` and `0` where
+ * `cond is `false`.
+ *
+ * @param cond The condition used for selection.
+ * @param true_values The vector of values to choose from when the condition is true.
+ * @return A vector containing selected elements as per the condition.
+ */
+template<
+    typename C,
+    typename L,
+    typename T = vector_value_type<L>,
+    typename E = broadcast_vector_extent_type<C, L>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
+    vector<T, extent<1>> false_values = T {};
+    return where(cond, true_values, false_values);
+}
+
+/**
+ * Returns a vector having the value `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
+ *
+ * @param cond The condition used for selection.
+ * @return A vector containing elements as per the condition.
+ */
+template<typename T = bool, typename C, typename E = vector_extent_type<C>>
+KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond) {
+    return cast<T>(cast<bool>(cond));
+}
+
+namespace ops {
+template<typename T>
+struct fma {
+    KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
+        return ops::add<T> {}(ops::multiply<T> {}(a, b), c);
+    }
+};
+}  // namespace ops
+
+namespace detail {
+template<typename T, size_t N>
+struct apply_impl<ops::fma<T>, N, T, T, T, T> {
+    KERNEL_FLOAT_INLINE
+    static void call(ops::fma<T>, T* output, const T* a, const T* b, const T* c) {
+        T temp[N];
+        apply_impl<ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
+        apply_impl<ops::add<T>, N, T, T, T>::call({}, output, temp, c);
+    }
+};
+}  // namespace detail
+
+#if KERNEL_FLOAT_IS_DEVICE
+namespace ops {
+template<>
+struct fma<float> {
+    KERNEL_FLOAT_INLINE float operator()(float a, float b, float c) {
+        return __fmaf_rn(a, b, c);
+    }
+};
+
+template<>
+struct fma<double> {
+    KERNEL_FLOAT_INLINE double operator()(double a, double b, double c) {
+        return __fma_rn(a, b, c);
+    }
+};
+}  // namespace ops
+#endif
+
+/**
+ * Computes the result of `a * b + c`. This is done in a single operation if possible for the given vector type.
+ */
+template<
+    typename A,
+    typename B,
+    typename C,
+    typename T = promoted_vector_value_type<A, B, C>,
+    typename E = broadcast_vector_extent_type<A, B, C>>
+KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
+    using F = ops::fma<T>;
+    vector_storage<T, extent_size<E>> result;
+
+    detail::map_impl<F, extent_size<E>, T, T, T, T>::call(
+        F {},
+        result.data(),
+        detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
+            into_vector_storage(a))
+            .data(),
+        detail::convert_impl<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
+            into_vector_storage(b))
+            .data(),
+        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
+            into_vector_storage(c))
+            .data());
+
+    return result;
+}
+
+}  // namespace kernel_float
+
+#endif  //KERNEL_FLOAT_TRIOPS_H
 #ifndef KERNEL_FLOAT_REDUCE_H
 #define KERNEL_FLOAT_REDUCE_H
+
 
 
 
@@ -3059,7 +3215,7 @@ struct reduce_recur_impl {
     template<typename F, typename T>
     KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
         vector_storage<T, K> temp;
-        apply_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
+        map_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
 
         if constexpr (N < 2 * K) {
 #pragma unroll
@@ -3109,7 +3265,7 @@ struct reduce_recur_impl<2> {
  */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_impl<F, vector_extent<V>, vector_value_type<V>>::call(
+    return detail::reduce_impl<F, vector_size<V>, vector_value_type<V>>::call(
         fun,
         into_vector_storage(input).data());
 }
@@ -3213,14 +3369,38 @@ template<typename T, size_t N>
 struct dot_impl {
     KERNEL_FLOAT_INLINE
     static T call(const T* left, const T* right) {
-        vector_storage<T, N> intermediate;
-        detail::apply_impl<ops::multiply<T>, N, T, T, T>::call(
-            ops::multiply<T>(),
-            intermediate.data(),
-            left,
-            right);
+        static constexpr size_t K = preferred_vector_size<T>::value;
+        T result = {};
 
-        return detail::reduce_impl<ops::add<T>, N, T>::call(ops::add<T>(), intermediate.data());
+        if constexpr (N / K > 0) {
+            T accum[K] = {T {}};
+            apply_impl<ops::multiply<T>, K, T, T, T>::call({}, accum, left, right);
+
+#pragma unroll
+            for (size_t i = 1; i < N / K; i++) {
+                apply_impl<ops::fma<T>, K, T, T, T, T>::call(
+                    ops::fma<T> {},
+                    accum,
+                    left + i * K,
+                    right + i * K,
+                    accum);
+            }
+
+            result = reduce_impl<ops::add<T>, K, T>::call({}, accum);
+        }
+
+        if constexpr (N % K > 0) {
+            for (size_t i = N - N % K; i < N; i++) {
+                apply_impl<ops::fma<T>, 1, T, T, T, T>::call(
+                    {},
+                    &result,
+                    left + i,
+                    right + i,
+                    &result);
+            }
+        }
+
+        return result;
     }
 };
 }  // namespace detail
@@ -3239,7 +3419,7 @@ struct dot_impl {
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    return detail::dot_impl<T, E::value>::call(
+    return detail::dot_impl<T, extent_size<E>>::call(
         convert_storage<T>(left, E {}).data(),
         convert_storage<T>(right, E {}).data());
 }
@@ -3309,158 +3489,11 @@ struct magnitude_impl<double, 3> {
  */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T mag(const V& input) {
-    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input).data());
+    return detail::magnitude_impl<T, vector_size<V>>::call(into_vector_storage(input).data());
 }
 }  // namespace kernel_float
 
 #endif  //KERNEL_FLOAT_REDUCE_H
-#ifndef KERNEL_FLOAT_TRIOPS_H
-#define KERNEL_FLOAT_TRIOPS_H
-
-
-
-
-namespace kernel_float {
-
-namespace ops {
-template<typename T>
-struct conditional {
-    KERNEL_FLOAT_INLINE T operator()(bool cond, T true_value, T false_value) {
-        if (cond) {
-            return true_value;
-        } else {
-            return false_value;
-        }
-    }
-};
-}  // namespace ops
-
-/**
- * Return elements chosen from `true_values` and `false_values` depending on `cond`.
- *
- * This function broadcasts all arguments to the same size and then promotes the values of `true_values` and
- * `false_values` into the same type. Next, it casts the values of `cond` to booleans and returns a vector where
- * the values are taken from `true_values` where the condition is true and `false_values` otherwise.
- *
- * @param cond The condition used for selection.
- * @param true_values The vector of values to choose from when the condition is true.
- * @param false_values The vector of values to choose from when the condition is false.
- * @return A vector containing selected elements as per the condition.
- */
-template<
-    typename C,
-    typename L,
-    typename R,
-    typename T = promoted_vector_value_type<L, R>,
-    typename E = broadcast_vector_extent_type<C, L, R>>
-KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
-    using F = ops::conditional<T>;
-    vector_storage<T, E::value> result;
-
-    detail::apply_impl<F, E::value, T, bool, T, T>::call(
-        F {},
-        result.data(),
-        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
-            into_vector_storage(cond))
-            .data(),
-        detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
-            into_vector_storage(true_values))
-            .data(),
-        detail::convert_impl<vector_value_type<R>, vector_extent_type<R>, T, E>::call(
-            into_vector_storage(false_values))
-            .data());
-
-    return result;
-}
-
-/**
- * Selects elements from `true_values` depending on `cond`.
- *
- * This function returns a vector where the values are taken from `true_values` where `cond` is `true` and `0` where
- * `cond is `false`.
- *
- * @param cond The condition used for selection.
- * @param true_values The vector of values to choose from when the condition is true.
- * @return A vector containing selected elements as per the condition.
- */
-template<
-    typename C,
-    typename L,
-    typename T = vector_value_type<L>,
-    typename E = broadcast_vector_extent_type<C, L>>
-KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values) {
-    vector<T, extent<1>> false_values = T {};
-    return where(cond, true_values, false_values);
-}
-
-/**
- * Returns a vector having the value `T(1)` where `cond` is `true` and `T(0)` where `cond` is `false`.
- *
- * @param cond The condition used for selection.
- * @return A vector containing elements as per the condition.
- */
-template<typename T = bool, typename C, typename E = vector_extent_type<C>>
-KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond) {
-    return cast<T>(cast<bool>(cond));
-}
-
-namespace ops {
-template<typename T>
-struct fma {
-    KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
-        return a * b + c;
-    }
-};
-
-#if KERNEL_FLOAT_IS_DEVICE
-template<>
-struct fma<float> {
-    KERNEL_FLOAT_INLINE float operator()(float a, float b, float c) {
-        return __fmaf_rn(a, b, c);
-    }
-};
-
-template<>
-struct fma<double> {
-    KERNEL_FLOAT_INLINE double operator()(double a, double b, double c) {
-        return __fma_rn(a, b, c);
-    }
-};
-#endif
-}  // namespace ops
-
-/**
- * Computes the result of `a * b + c`. This is done in a single operation if possible.
- */
-template<
-    typename A,
-    typename B,
-    typename C,
-    typename T = promoted_vector_value_type<A, B, C>,
-    typename E = broadcast_vector_extent_type<A, B, C>>
-KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
-    using F = ops::fma<T>;
-    vector_storage<T, E::value> result;
-
-    detail::apply_impl<F, E::value, T, T, T, T>::call(
-        F {},
-        result.data(),
-        detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
-            into_vector_storage(a))
-            .data(),
-        detail::convert_impl<vector_value_type<B>, vector_extent_type<B>, T, E>::call(
-            into_vector_storage(b))
-            .data(),
-        detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, T, E>::call(
-            into_vector_storage(c))
-            .data());
-
-    return result;
-}
-
-}  // namespace kernel_float
-
-#endif  //KERNEL_FLOAT_TRIOPS_H
 #ifndef KERNEL_FLOAT_VECTOR_H
 #define KERNEL_FLOAT_VECTOR_H
 
@@ -3517,7 +3550,7 @@ struct vector: public S {
         typename A,
         typename B,
         typename... Rest,
-        typename = enable_if_t<sizeof...(Rest) + 2 == E::size>>
+        typename = enable_if_t<sizeof...(Rest) + 2 == extent_size<E>>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
         storage_type {T(a), T(b), T(rest)...} {}
 
@@ -3526,7 +3559,7 @@ struct vector: public S {
      */
     KERNEL_FLOAT_INLINE
     static constexpr size_t size() {
-        return E::size;
+        return extent_size<E>;
     }
 
     /**
@@ -3739,6 +3772,21 @@ struct vector: public S {
     KERNEL_FLOAT_INLINE void for_each(F fun) const {
         return kernel_float::for_each(*this, std::move(fun));
     }
+
+    /**
+     * Returns the result of `*this + lhs * rhs`.
+     *
+     * The operation is performed using a single `kernel_float::fma` call, which may be faster then perform
+     * the addition and multiplication separately.
+     */
+    template<
+        typename L,
+        typename R,
+        typename T2 = promote_t<T, vector_value_type<L>, vector_value_type<R>>,
+        typename E2 = broadcast_extent<E, vector_extent_type<L>, vector_extent_type<R>>>
+    KERNEL_FLOAT_INLINE vector<T2, E2> fma(const L& lhs, const R& rhs) const {
+        return ::kernel_float::fma(lhs, rhs, *this);
+    }
 };
 
 /**
@@ -3770,6 +3818,21 @@ template<typename T> using vec6 = vec<T, 6>;
 template<typename T> using vec7 = vec<T, 7>;
 template<typename T> using vec8 = vec<T, 8>;
 // clang-format on
+
+#define KERNEL_FLOAT_VECTOR_ALIAS(NAME, T) \
+    template<size_t N>                     \
+    using NAME##1 = vec<T, 1>;             \
+    using NAME##2 = vec<T, 2>;             \
+    using NAME##3 = vec<T, 3>;             \
+    using NAME##4 = vec<T, 4>;             \
+    using NAME##5 = vec<T, 5>;             \
+    using NAME##6 = vec<T, 6>;             \
+    using NAME##7 = vec<T, 7>;             \
+    using NAME##8 = vec<T, 8>;
+
+KERNEL_FLOAT_VECTOR_ALIAS(int, int)
+KERNEL_FLOAT_VECTOR_ALIAS(float, float)
+KERNEL_FLOAT_VECTOR_ALIAS(double, double)
 
 /**
  * Create a vector from a variable number of input values.
@@ -3816,6 +3879,12 @@ vec(Args&&... args) -> vec<promote_t<Args...>, sizeof...(Args)>;
 
 
 namespace kernel_float {
+
+template<>
+struct preferred_vector_size<__half> {
+    static constexpr size_t value = 2;
+};
+
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)
@@ -3972,57 +4041,9 @@ KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__ha
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
 
 using half = __half;
+KERNEL_FLOAT_VECTOR_ALIAS(half, __half)
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __half)
-
-#if KERNEL_FLOAT_IS_DEVICE
-namespace detail {
-template<>
-struct dot_impl<__half, 0> {
-    KERNEL_FLOAT_INLINE
-    static __half call(const __half* left, const __half* right) {
-        return __half(0);
-    }
-};
-
-template<>
-struct dot_impl<__half, 1> {
-    KERNEL_FLOAT_INLINE
-    static __half call(const __half* left, const __half* right) {
-        return __hmul(left[0], right[0]);
-    }
-};
-
-template<size_t N>
-struct dot_impl<__half, N> {
-    static_assert(N >= 2, "internal error");
-
-    KERNEL_FLOAT_INLINE
-    static __half call(const __half* left, const __half* right) {
-        __half2 first_a = {left[0], left[1]};
-        __half2 first_b = {right[0], right[1]};
-        __half2 accum = __hmul2(first_a, first_b);
-
-#pragma unroll
-        for (size_t i = 2; i + 2 <= N; i += 2) {
-            __half2 a = {left[i], left[i + 1]};
-            __half2 b = {right[i], right[i + 1]};
-            accum = __hfma2(a, b, accum);
-        }
-
-        __half result = __hadd(accum.x, accum.y);
-
-        if (N % 2 != 0) {
-            __half a = left[N - 1];
-            __half b = right[N - 1];
-            result = __hfma(a, b, result);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
-#endif
 
 }  // namespace kernel_float
 
@@ -4042,6 +4063,12 @@ struct dot_impl<__half, N> {
 
 
 namespace kernel_float {
+
+template<>
+struct preferred_vector_size<__nv_bfloat16> {
+    static constexpr size_t value = 2;
+};
+
 KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_bfloat16)
 KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_bfloat16)
@@ -4248,57 +4275,9 @@ KERNEL_FLOAT_BF16_CAST(
 #endif
 
 using bfloat16 = __nv_bfloat16;
+KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
-
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
-namespace detail {
-template<>
-struct dot_impl<__nv_bfloat16, 0> {
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
-        return __nv_bfloat16(0);
-    }
-};
-
-template<>
-struct dot_impl<__nv_bfloat16, 1> {
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
-        return __hmul(left[0], right[0]);
-    }
-};
-
-template<size_t N>
-struct dot_impl<__nv_bfloat16, N> {
-    static_assert(N >= 2, "internal error");
-
-    KERNEL_FLOAT_INLINE
-    static __nv_bfloat16 call(const __nv_bfloat16* left, const __nv_bfloat16* right) {
-        __nv_bfloat162 first_a = {left[0], left[1]};
-        __nv_bfloat162 first_b = {right[0], right[1]};
-        __nv_bfloat162 accum = __hmul2(first_a, first_b);
-
-#pragma unroll
-        for (size_t i = 2; i + 1 < N; i += 2) {
-            __nv_bfloat162 a = {left[i], left[i + 1]};
-            __nv_bfloat162 b = {right[i], right[i + 1]};
-            accum = __hfma2(a, b, accum);
-        }
-
-        __nv_bfloat16 result = __hadd(accum.x, accum.y);
-
-        if (N % 2 != 0) {
-            __nv_bfloat16 a = left[N - 1];
-            __nv_bfloat16 b = right[N - 1];
-            result = __hfma(a, b, result);
-        }
-
-        return result;
-    }
-};
-}  // namespace detail
-#endif
 
 }  // namespace kernel_float
 

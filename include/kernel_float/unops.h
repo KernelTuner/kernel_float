@@ -85,10 +85,10 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
 }
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)                                                        \
-    template<typename V>                                                                           \
+    template<typename Accuracy = default_policy, typename V>                                       \
     KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> NAME(const V& input) { \
         using F = ops::NAME<vector_value_type<V>>;                                                 \
-        return map(F {}, input);                                                                   \
+        return ::kernel_float::map<Accuracy>(F {}, input);                                         \
     }
 
 #define KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)       \
@@ -166,7 +166,7 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(ilogb)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(lgamma)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(log)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(log10)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(logb)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(log2)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(nearbyint)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(normcdf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(rcbrt)
@@ -193,12 +193,11 @@ KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, 1.0 / input, 1.0f / input)
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                         \
-    template<typename V>                                                                 \
-    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME( \
-        const V& input) {                                                                \
-        using F = ops::NAME<vector_value_type<V>>;                                       \
-        return fast_map(F {}, input);                                                    \
+#define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                            \
+    template<typename V>                                                                    \
+    KERNEL_FLOAT_INLINE vector<vector_value_type<V>, vector_extent_type<V>> fast_##NAME(    \
+        const V& input) {                                                                   \
+        return ::kernel_float::map<fast_policy>(ops::NAME<vector_value_type<V>> {}, input); \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)
@@ -209,17 +208,17 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sin)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(cos)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp2)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log2)
 
 #if KERNEL_FLOAT_IS_DEVICE
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, FAST_FUN)                       \
     namespace detail {                                                                \
-    template<size_t N>                                                                \
-    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                  \
+    template<>                                                                        \
+    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                  \
         KERNEL_FLOAT_INLINE static void call(ops::F<T>, T* result, const T* inputs) { \
-            for (size_t i = 0; i < N; i++) {                                          \
-                result[i] = FAST_FUN(inputs[i]);                                      \
-            }                                                                         \
+            *result = FAST_FUN(*inputs);                                              \
         }                                                                             \
     };                                                                                \
     }
@@ -227,26 +226,28 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp, __expf)
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR)                              \
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
-    template<size_t N>                                                                    \
-    struct apply_fastmath_impl<ops::F<T>, N, T, T> {                                      \
+    template<>                                                                            \
+    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                      \
         KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
-            for (size_t i = 0; i < N; i++) {                                              \
-                asm(INSTR, : "=f"(result[i]) : "f"(inputs[i]));                           \
-            }                                                                             \
+            asm(INSTR : "=" REG(*result) : REG(*inputs));                                 \
         }                                                                                 \
     };                                                                                    \
     }
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1;", "d")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1;", "d")
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1;", "f")
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32 %0, %1;", "f")
 
 #endif
 

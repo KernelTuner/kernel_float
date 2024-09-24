@@ -45,7 +45,6 @@ struct alignas(Alignment) aligned_array<T, 1, Alignment> {
 };
 
 template<typename T, size_t Alignment>
-
 struct aligned_array<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
     T* data() {
@@ -85,9 +84,11 @@ struct extent;
 
 template<size_t N>
 struct extent<N> {
-    static constexpr size_t value = N;
-    static constexpr size_t size = N;
+    static constexpr size_t number_of_elements = N;
 };
+
+template<typename E>
+static constexpr size_t extent_size = E::number_of_elements;
 
 namespace detail {
 // Indicates that elements of type `T` offer less precision than floats, thus operations
@@ -215,7 +216,7 @@ KERNEL_FLOAT_DEFINE_VECTOR_TYPE(unsigned long long, ulonglong1, ulonglong2, ulon
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(float, float1, float2, float3, float4)
 KERNEL_FLOAT_DEFINE_VECTOR_TYPE(double, double1, double2, double3, double4)
 
-template<typename T, typename E, typename S = vector_storage<T, E::size>>
+template<typename T, typename E, typename S = vector_storage<T, E::number_of_elements>>
 struct vector;
 
 template<typename T, typename E, typename S>
@@ -224,9 +225,14 @@ struct into_vector_impl<vector<T, E, S>> {
     using extent_type = E;
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<T, E::value> call(const vector<T, E, S>& input) {
+    static vector_storage<T, extent_size<E>> call(const vector<T, E, S>& input) {
         return input.storage();
     }
+};
+
+template<typename T>
+struct preferred_vector_size {
+    static constexpr size_t value = 1;
 };
 
 template<typename V>
@@ -247,13 +253,13 @@ template<typename V>
 using vector_extent_type = typename into_vector_impl<V>::extent_type;
 
 template<typename V>
-static constexpr size_t vector_extent = vector_extent_type<V>::value;
+static constexpr size_t vector_size = extent_size<vector_extent_type<V>>;
 
 template<typename V>
 using into_vector_type = vector<vector_value_type<V>, vector_extent_type<V>>;
 
 template<typename V>
-using vector_storage_type = vector_storage<vector_value_type<V>, vector_extent<V>>;
+using vector_storage_type = vector_storage<vector_value_type<V>, vector_size<V>>;
 
 template<typename... Vs>
 using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;

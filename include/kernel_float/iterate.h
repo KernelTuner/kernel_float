@@ -22,7 +22,7 @@ KERNEL_FLOAT_INLINE void for_each(V&& input, F fun) {
     auto storage = into_vector_storage(input);
 
 #pragma unroll
-    for (size_t i = 0; i < vector_extent<V>; i++) {
+    for (size_t i = 0; i < vector_size<V>; i++) {
         fun(storage.data()[i]);
     }
 }
@@ -86,7 +86,7 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> range() {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
-    return range<vector_value_type<V>, vector_extent<V>>();
+    return range<vector_value_type<V>, vector_size<V>>();
 }
 
 /**
@@ -111,11 +111,11 @@ KERNEL_FLOAT_INLINE into_vector_type<V> range_like(const V& = {}) {
  */
 template<typename T = size_t, typename V>
 KERNEL_FLOAT_INLINE vector<T, vector_extent_type<V>> each_index(const V& = {}) {
-    return range<T, vector_extent<V>>();
+    return range<T, vector_size<V>>();
 }
 
 namespace detail {
-template<typename V, typename T = vector_value_type<V>, size_t N = vector_extent<V>>
+template<typename V, typename T = vector_value_type<V>, size_t N = vector_size<V>>
 struct flatten_impl {
     using value_type = typename flatten_impl<T>::value_type;
     static constexpr size_t size = N * flatten_impl<T>::size;
@@ -177,7 +177,7 @@ KERNEL_FLOAT_INLINE flatten_type<V> flatten(const V& input) {
 namespace detail {
 template<typename U, typename V = U, typename T = vector_value_type<V>>
 struct concat_base_impl {
-    static constexpr size_t size = vector_extent<V>;
+    static constexpr size_t size = vector_size<V>;
 
     KERNEL_FLOAT_INLINE static void call(U* output, const V& input) {
         vector_storage<T, size> storage = into_vector_storage(input);
@@ -294,7 +294,7 @@ using select_type = vector<vector_value_type<V>, extent<concat_size<Is...>>>;
 template<typename V, typename... Is>
 KERNEL_FLOAT_INLINE select_type<V, Is...> select(const V& input, const Is&... indices) {
     using T = vector_value_type<V>;
-    static constexpr size_t N = vector_extent<V>;
+    static constexpr size_t N = vector_size<V>;
     static constexpr size_t M = concat_size<Is...>;
 
     vector_storage<size_t, M> index_set;

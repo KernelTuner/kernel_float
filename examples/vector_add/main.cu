@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "kernel_float.h"
-using namespace kernel_float::prelude;
+namespace kf = kernel_float;
 
 void cuda_check(cudaError_t code) {
     if (code != cudaSuccess) {

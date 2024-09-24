@@ -2,6 +2,7 @@
 #define KERNEL_FLOAT_REDUCE_H
 
 #include "binops.h"
+#include "triops.h"
 
 namespace kernel_float {
 namespace detail {
@@ -23,7 +24,7 @@ struct reduce_recur_impl {
     template<typename F, typename T>
     KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
         vector_storage<T, K> temp;
-        apply_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
+        map_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
 
         if constexpr (N < 2 * K) {
 #pragma unroll
@@ -73,7 +74,7 @@ struct reduce_recur_impl<2> {
  */
 template<typename F, typename V>
 KERNEL_FLOAT_INLINE vector_value_type<V> reduce(F fun, const V& input) {
-    return detail::reduce_impl<F, vector_extent<V>, vector_value_type<V>>::call(
+    return detail::reduce_impl<F, vector_size<V>, vector_value_type<V>>::call(
         fun,
         into_vector_storage(input).data());
 }
@@ -177,14 +178,38 @@ template<typename T, size_t N>
 struct dot_impl {
     KERNEL_FLOAT_INLINE
     static T call(const T* left, const T* right) {
-        vector_storage<T, N> intermediate;
-        detail::apply_impl<ops::multiply<T>, N, T, T, T>::call(
-            ops::multiply<T>(),
-            intermediate.data(),
-            left,
-            right);
+        static constexpr size_t K = preferred_vector_size<T>::value;
+        T result = {};
 
-        return detail::reduce_impl<ops::add<T>, N, T>::call(ops::add<T>(), intermediate.data());
+        if constexpr (N / K > 0) {
+            T accum[K] = {T {}};
+            apply_impl<ops::multiply<T>, K, T, T, T>::call({}, accum, left, right);
+
+#pragma unroll
+            for (size_t i = 1; i < N / K; i++) {
+                apply_impl<ops::fma<T>, K, T, T, T, T>::call(
+                    ops::fma<T> {},
+                    accum,
+                    left + i * K,
+                    right + i * K,
+                    accum);
+            }
+
+            result = reduce_impl<ops::add<T>, K, T>::call({}, accum);
+        }
+
+        if constexpr (N % K > 0) {
+            for (size_t i = N - N % K; i < N; i++) {
+                apply_impl<ops::fma<T>, 1, T, T, T, T>::call(
+                    {},
+                    &result,
+                    left + i,
+                    right + i,
+                    &result);
+            }
+        }
+
+        return result;
     }
 };
 }  // namespace detail
@@ -203,7 +228,7 @@ struct dot_impl {
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
 KERNEL_FLOAT_INLINE T dot(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
-    return detail::dot_impl<T, E::value>::call(
+    return detail::dot_impl<T, extent_size<E>>::call(
         convert_storage<T>(left, E {}).data(),
         convert_storage<T>(right, E {}).data());
 }
@@ -273,7 +298,7 @@ struct magnitude_impl<double, 3> {
  */
 template<typename V, typename T = vector_value_type<V>>
 KERNEL_FLOAT_INLINE T mag(const V& input) {
-    return detail::magnitude_impl<T, vector_extent<V>>::call(into_vector_storage(input).data());
+    return detail::magnitude_impl<T, vector_size<V>>::call(into_vector_storage(input).data());
 }
 }  // namespace kernel_float
 

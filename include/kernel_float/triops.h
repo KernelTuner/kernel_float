@@ -39,9 +39,9 @@ template<
     typename E = broadcast_vector_extent_type<C, L, R>>
 KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, const R& false_values) {
     using F = ops::conditional<T>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, E::value, T, bool, T, T>::call(
+    detail::map_impl<F, extent_size<E>, T, bool, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
@@ -92,11 +92,25 @@ namespace ops {
 template<typename T>
 struct fma {
     KERNEL_FLOAT_INLINE T operator()(T a, T b, T c) {
-        return a * b + c;
+        return ops::add<T> {}(ops::multiply<T> {}(a, b), c);
     }
 };
+}  // namespace ops
+
+namespace detail {
+template<typename T, size_t N>
+struct apply_impl<ops::fma<T>, N, T, T, T, T> {
+    KERNEL_FLOAT_INLINE
+    static void call(ops::fma<T>, T* output, const T* a, const T* b, const T* c) {
+        T temp[N];
+        apply_impl<ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
+        apply_impl<ops::add<T>, N, T, T, T>::call({}, output, temp, c);
+    }
+};
+}  // namespace detail
 
 #if KERNEL_FLOAT_IS_DEVICE
+namespace ops {
 template<>
 struct fma<float> {
     KERNEL_FLOAT_INLINE float operator()(float a, float b, float c) {
@@ -110,11 +124,11 @@ struct fma<double> {
         return __fma_rn(a, b, c);
     }
 };
-#endif
 }  // namespace ops
+#endif
 
 /**
- * Computes the result of `a * b + c`. This is done in a single operation if possible.
+ * Computes the result of `a * b + c`. This is done in a single operation if possible for the given vector type.
  */
 template<
     typename A,
@@ -124,9 +138,9 @@ template<
     typename E = broadcast_vector_extent_type<A, B, C>>
 KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
-    vector_storage<T, E::value> result;
+    vector_storage<T, extent_size<E>> result;
 
-    detail::apply_impl<F, E::value, T, T, T, T>::call(
+    detail::map_impl<F, extent_size<E>, T, T, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(

@@ -5,7 +5,7 @@
 
 #include "kernel_float.h"
 #include "kernel_float/tiling.h"
-using namespace kernel_float::prelude;
+namespace kf = kernel_float;
 
 void cuda_check(cudaError_t code) {
     if (code != cudaSuccess) {

@@ -54,7 +54,7 @@ struct vector: public S {
         typename A,
         typename B,
         typename... Rest,
-        typename = enable_if_t<sizeof...(Rest) + 2 == E::size>>
+        typename = enable_if_t<sizeof...(Rest) + 2 == extent_size<E>>>
     KERNEL_FLOAT_INLINE vector(const A& a, const B& b, const Rest&... rest) :
         storage_type {T(a), T(b), T(rest)...} {}
 
@@ -63,7 +63,7 @@ struct vector: public S {
      */
     KERNEL_FLOAT_INLINE
     static constexpr size_t size() {
-        return E::size;
+        return extent_size<E>;
     }
 
     /**
@@ -276,6 +276,21 @@ struct vector: public S {
     KERNEL_FLOAT_INLINE void for_each(F fun) const {
         return kernel_float::for_each(*this, std::move(fun));
     }
+
+    /**
+     * Returns the result of `*this + lhs * rhs`.
+     *
+     * The operation is performed using a single `kernel_float::fma` call, which may be faster then perform
+     * the addition and multiplication separately.
+     */
+    template<
+        typename L,
+        typename R,
+        typename T2 = promote_t<T, vector_value_type<L>, vector_value_type<R>>,
+        typename E2 = broadcast_extent<E, vector_extent_type<L>, vector_extent_type<R>>>
+    KERNEL_FLOAT_INLINE vector<T2, E2> fma(const L& lhs, const R& rhs) const {
+        return ::kernel_float::fma(lhs, rhs, *this);
+    }
 };
 
 /**
@@ -307,6 +322,21 @@ template<typename T> using vec6 = vec<T, 6>;
 template<typename T> using vec7 = vec<T, 7>;
 template<typename T> using vec8 = vec<T, 8>;
 // clang-format on
+
+#define KERNEL_FLOAT_VECTOR_ALIAS(NAME, T) \
+    template<size_t N>                     \
+    using NAME##1 = vec<T, 1>;             \
+    using NAME##2 = vec<T, 2>;             \
+    using NAME##3 = vec<T, 3>;             \
+    using NAME##4 = vec<T, 4>;             \
+    using NAME##5 = vec<T, 5>;             \
+    using NAME##6 = vec<T, 6>;             \
+    using NAME##7 = vec<T, 7>;             \
+    using NAME##8 = vec<T, 8>;
+
+KERNEL_FLOAT_VECTOR_ALIAS(int, int)
+KERNEL_FLOAT_VECTOR_ALIAS(float, float)
+KERNEL_FLOAT_VECTOR_ALIAS(double, double)
 
 /**
  * Create a vector from a variable number of input values.
