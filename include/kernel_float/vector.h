@@ -325,6 +325,7 @@ template<typename T> using vec8 = vec<T, 8>;
 
 #define KERNEL_FLOAT_VECTOR_ALIAS(NAME, T) \
     template<size_t N>                     \
+    using v##NAME = vec<T, N>;             \
     using NAME##1 = vec<T, 1>;             \
     using NAME##2 = vec<T, 2>;             \
     using NAME##3 = vec<T, 3>;             \

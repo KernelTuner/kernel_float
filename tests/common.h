@@ -1,8 +1,5 @@
 #pragma once
 
-#include <cuda_bf16.h>
-#include <cuda_fp16.h>
-
 #include <cstdint>
 
 #include "catch2/catch_all.hpp"
@@ -10,19 +7,37 @@
 
 namespace kf = kernel_float;
 
+#if KERNEL_FLOAT_IS_HIP
+#define cudaError_t           hipError_t
+#define cudaSuccess           hipSuccess
+#define cudaGetErrorString    hipGetErrorString
+#define cudaGetLastError      hipGetLastError
+#define cudaSetDevice         hipSetDevice
+#define cudaDeviceSynchronize hipDeviceSynchronize
+
+using __nv_bfloat16 = __hip_bfloat16;
+#endif
+
 namespace detail {
-__attribute__((noinline)) static __host__ __device__ void
+__attribute__((noinline)) static __host__ void
 __assertion_failed(const char* expr, const char* file, int line) {
-#ifndef __CUDA_ARCH__
     std::string msg =
         "assertion failed: " + std::string(expr) + " (" + file + ":" + std::to_string(line) + ")";
     throw std::runtime_error(msg);
-#else
+}
+
+__attribute__((noinline)) static __device__ void
+__assertion_failed(const char* expr, const char* file, int line) {
     printf("assertion failed: %s (%s:%d)\n", expr, file, line);
+
+#if KERNEL_FLOAT_IS_CUDA
     asm("trap;");
+#elif KERNEL_FLOAT_IS_HIP
+    __builtin_trap();
+#endif
+
     while (1)
         ;
-#endif
 }
 }  // namespace detail
 
@@ -52,14 +67,14 @@ struct equals_helper {
 template<>
 struct equals_helper<double> {
     static __host__ __device__ bool call(const double& left, const double& right) {
-        return (isnan(left) && isnan(right)) || (left == right);
+        return (std::isnan(left) && std::isnan(right)) || (left == right);
     }
 };
 
 template<>
 struct equals_helper<float> {
     static __host__ __device__ bool call(const float& left, const float& right) {
-        return (isnan(left) && isnan(right)) || (left == right);
+        return (std::isnan(left) && std::isnan(right)) || (left == right);
     }
 };
 
@@ -73,7 +88,7 @@ struct equals_helper<__half> {
 template<>
 struct equals_helper<__nv_bfloat16> {
     static __host__ __device__ bool call(const __nv_bfloat16& left, const __nv_bfloat16& right) {
-        return equals_helper<float>::call(float(left), float(right));
+        return equals_helper<float>::call(__bfloat162float(left), __bfloat162float(right));
     }
 };
 
@@ -123,14 +138,14 @@ struct approx_helper<float> {
 template<>
 struct approx_helper<__half> {
     static __host__ __device__ bool call(__half left, __half right) {
-        return approx_helper<double>::call(double(left), double(right), 0.01);
+        return approx_helper<double>::call(float(left), float(right), 0.01);
     }
 };
 
 template<>
 struct approx_helper<__nv_bfloat16> {
     static __host__ __device__ bool call(__nv_bfloat16 left, __nv_bfloat16 right) {
-        return approx_helper<double>::call(double(left), double(right), 0.05);
+        return approx_helper<double>::call(__bfloat162float(left), __bfloat162float(right), 0.05);
     }
 };
 }  // namespace detail
@@ -218,7 +233,7 @@ struct generator_value<__half> {
 template<>
 struct generator_value<__nv_bfloat16> {
     __host__ __device__ static __nv_bfloat16 call(uint64_t seed) {
-        return __nv_bfloat16(generator_value<float>::call(seed));
+        return __float2bfloat16(generator_value<float>::call(seed));
     }
 };
 }  // namespace detail

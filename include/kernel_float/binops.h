@@ -144,7 +144,7 @@ KERNEL_FLOAT_DEFINE_BINARY_OP_FALLBACK(bit_xor, ^, bool(left) ^ bool(right), boo
 // clang-format on
 
 // clang-format off
-template<template<typename> typename F, typename T, typename E, typename R>
+template<template<typename, typename=void> typename F, typename T, typename E, typename R>
 static constexpr bool is_vector_assign_allowed =
         is_vector_broadcastable<R, E> &&
         is_implicit_convertible<

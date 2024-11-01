@@ -267,21 +267,21 @@ struct magnitude_impl<T, 2> {
 };
 
 // The 3-argument overload of hypot is only available on host from C++17
-#if defined(__cpp_lib_hypot) && KERNEL_FLOAT_IS_HOST
-template<>
-struct magnitude_impl<float, 3> {
-    static float call(const float* input) {
-        return ::hypot(input[0], input[1], input[2]);
-    }
-};
-
-template<>
-struct magnitude_impl<double, 3> {
-    static double call(const double* input) {
-        return ::hypot(input[0], input[1], input[2]);
-    }
-};
-#endif
+//#if defined(__cpp_lib_hypot) && KERNEL_FLOAT_IS_HOST
+//template<>
+//struct magnitude_impl<float, 3> {
+//    static float call(const float* input) {
+//        return ::hypot(input[0], input[1], input[2]);
+//    }
+//};
+//
+//template<>
+//struct magnitude_impl<double, 3> {
+//    static double call(const double* input) {
+//        return ::hypot(input[0], input[1], input[2]);
+//    }
+//};
+//#endif
 
 }  // namespace detail
 

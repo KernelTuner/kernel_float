@@ -4,6 +4,10 @@
 #include "macros.h"
 #include "meta.h"
 
+#if KERNEL_FLOAT_IS_HIP
+#include <hip/hip_vector_types.h>
+#endif
+
 namespace kernel_float {
 
 template<typename T, size_t N, size_t Alignment = alignof(T)>

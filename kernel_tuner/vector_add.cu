@@ -1,6 +1,7 @@
 #include "kernel_float.h"
 namespace kf = kernel_float;
 
+extern "C"
 __global__ void vector_add(
         kf::vec<float_type, elements_per_thread>* c,
         const kf::vec<float_type, elements_per_thread>* a,

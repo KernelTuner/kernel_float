@@ -4,7 +4,11 @@
 #include "macros.h"
 
 #if KERNEL_FLOAT_FP16_AVAILABLE
+#if KERNEL_FLOAT_IS_CUDA
 #include <cuda_fp16.h>
+#elif KERNEL_FLOAT_IS_HIP
+#include <hip/hip_fp16.h>
+#endif
 
 #include "vector.h"
 
@@ -60,21 +64,21 @@ struct allow_float_fallback<__half> {
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
-KERNEL_FLOAT_FP16_UNARY_FUN(abs, ::__habs, ::__habs2)
-KERNEL_FLOAT_FP16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
-KERNEL_FLOAT_FP16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
-KERNEL_FLOAT_FP16_UNARY_FUN(cos, ::hcos, ::h2cos)
-KERNEL_FLOAT_FP16_UNARY_FUN(exp, ::hexp, ::h2exp)
-KERNEL_FLOAT_FP16_UNARY_FUN(exp10, ::hexp10, ::h2exp10)
-KERNEL_FLOAT_FP16_UNARY_FUN(floor, ::hfloor, ::h2floor)
-KERNEL_FLOAT_FP16_UNARY_FUN(log, ::hlog, ::h2log)
-KERNEL_FLOAT_FP16_UNARY_FUN(log10, ::hlog10, ::h2log2)
-KERNEL_FLOAT_FP16_UNARY_FUN(rint, ::hrint, ::h2rint)
-KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
-KERNEL_FLOAT_FP16_UNARY_FUN(sin, ::hsin, ::h2sin)
-KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)
-KERNEL_FLOAT_FP16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
-KERNEL_FLOAT_FP16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
+KERNEL_FLOAT_FP16_UNARY_FUN(abs, __habs, __habs2)
+KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
+KERNEL_FLOAT_FP16_UNARY_FUN(ceil, hceil, h2ceil)
+KERNEL_FLOAT_FP16_UNARY_FUN(cos, hcos, h2cos)
+KERNEL_FLOAT_FP16_UNARY_FUN(exp, hexp, h2exp)
+KERNEL_FLOAT_FP16_UNARY_FUN(exp10, hexp10, h2exp10)
+KERNEL_FLOAT_FP16_UNARY_FUN(floor, hfloor, h2floor)
+KERNEL_FLOAT_FP16_UNARY_FUN(log, hlog, h2log)
+KERNEL_FLOAT_FP16_UNARY_FUN(log10, hlog10, h2log2)
+KERNEL_FLOAT_FP16_UNARY_FUN(rint, hrint, h2rint)
+KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, hrsqrt, h2rsqrt)
+KERNEL_FLOAT_FP16_UNARY_FUN(sin, hsin, h2sin)
+KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, hsqrt, h2sqrt)
+KERNEL_FLOAT_FP16_UNARY_FUN(trunc, htrunc, h2trunc)
+KERNEL_FLOAT_FP16_UNARY_FUN(rcp, hrcp, h2rcp)
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                              \
@@ -100,12 +104,16 @@ KERNEL_FLOAT_FP16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)
 #endif
 
+// There are not available in HIP
+#if KERNEL_FLOAT_IS_CUDA
+KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
+KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
+#endif
+
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_FP16_BINARY_FUN(subtract, __hsub, __hsub2)
 KERNEL_FLOAT_FP16_BINARY_FUN(multiply, __hmul, __hmul2)
 KERNEL_FLOAT_FP16_BINARY_FUN(divide, __hdiv, __h2div)
-KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
-KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
 
 KERNEL_FLOAT_FP16_BINARY_FUN(equal_to, __heq, __heq2)
 KERNEL_FLOAT_FP16_BINARY_FUN(not_equal_to, __hneu, __hneu2)
@@ -152,6 +160,28 @@ struct apply_impl<ops::fma<__half>, 2, __half, __half, __half, __half> {
     };                                                   \
     }
 
+// Only CUDA has a special `__double2half` intrinsic
+#if KERNEL_FLOAT_IS_HIP
+#define KERNEL_FLOAT_FP16_CAST_FWD(T) \
+    KERNEL_FLOAT_FP16_CAST(T, static_cast<_Float16>(input), static_cast<T>(input))
+
+KERNEL_FLOAT_FP16_CAST_FWD(double)
+KERNEL_FLOAT_FP16_CAST_FWD(float)
+
+KERNEL_FLOAT_FP16_CAST_FWD(char)
+KERNEL_FLOAT_FP16_CAST_FWD(signed char)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned char)
+
+KERNEL_FLOAT_FP16_CAST_FWD(signed short)
+KERNEL_FLOAT_FP16_CAST_FWD(signed int)
+KERNEL_FLOAT_FP16_CAST_FWD(signed long)
+KERNEL_FLOAT_FP16_CAST_FWD(signed long long)
+
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned short)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned int)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned long)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned long long)
+#else
 KERNEL_FLOAT_FP16_CAST(double, __double2half(input), double(__half2float(input)));
 KERNEL_FLOAT_FP16_CAST(float, __float2half(input), __half2float(input));
 
@@ -169,6 +199,7 @@ KERNEL_FLOAT_FP16_CAST(unsigned short, __half2ushort_rz(input), __ushort2half_rn
 KERNEL_FLOAT_FP16_CAST(unsigned int, __half2uint_rz(input), __uint2half_rn(input));
 KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__half2ull_rz(input)));
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
+#endif
 
 using half = __half;
 KERNEL_FLOAT_VECTOR_ALIAS(half, __half)

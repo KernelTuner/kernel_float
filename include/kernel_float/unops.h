@@ -180,9 +180,13 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(trunc)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(rint)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(rsqrt)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(round)
+
+// There are not support on HIP
+#if !KERNEL_FLOAT_IS_HIP
 KERNEL_FLOAT_DEFINE_UNARY_MATH(signbit)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(isinf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(isnan)
+#endif
 
 // CUDA offers special reciprocal functions (rcp), but only on the device.
 #if KERNEL_FLOAT_IS_DEVICE
@@ -211,8 +215,8 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp2)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log2)
 
-#if KERNEL_FLOAT_IS_DEVICE
-
+// This PTX is only supported on CUDA
+#if KERNEL_FLOAT_IS_CUDA && KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, FAST_FUN)                       \
     namespace detail {                                                                \
     template<>                                                                        \
@@ -231,24 +235,23 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf)
     template<>                                                                            \
     struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                      \
         KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
-            asm(INSTR : "=" REG(*result) : REG(*inputs));                                 \
+            asm(INSTR " %0, %1;" : "=" REG(*result) : REG(*inputs));                      \
         }                                                                                 \
     };                                                                                    \
     }
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64 %0, %1;", "d")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64 %0, %1;", "d")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64", "d")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64", "d")
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32 %0, %1;", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32 %0, %1;", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32 %0, %1;", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32 %0, %1;", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32 %0, %1;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32", "f")
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32 %0, %1;", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32 %0, %1;", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32 %0, %1;", "f")
-
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32;", "f")
 #endif
 
 }  // namespace kernel_float

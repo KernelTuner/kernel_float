@@ -4,7 +4,11 @@
 #include "macros.h"
 
 #if KERNEL_FLOAT_BF16_AVAILABLE
+#if KERNEL_FLOAT_IS_CUDA
 #include <cuda_bf16.h>
+#elif KERNEL_FLOAT_IS_HIP
+#include <hip/hip_bf16.h>
+#endif
 
 #include "binops.h"
 #include "reduce.h"
@@ -12,58 +16,66 @@
 
 namespace kernel_float {
 
+#if KERNEL_FLOAT_IS_CUDA
+using __bfloat16 = __nv_bfloat16;
+using __bfloat162 = __nv_bfloat162;
+#elif KERNEL_FLOAT_IS_HIP
+using __bfloat16 = __hip_bfloat16;
+using __bfloat162 = __hip_bfloat162;
+#endif
+
+#if KERNEL_FLOAT_IS_CUDA && __CUDA_ARCH__ >= 800
+#define KERNEL_FLOAT_BF16_OPS_SUPPORTED 1
+#endif
+
 template<>
-struct preferred_vector_size<__nv_bfloat16> {
+struct preferred_vector_size<__bfloat16> {
     static constexpr size_t value = 2;
 };
 
-KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__nv_bfloat16)
-KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __nv_bfloat16)
-KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __nv_bfloat16)
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__bfloat16)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __bfloat16)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __bfloat16)
 
 template<>
-struct into_vector_impl<__nv_bfloat162> {
-    using value_type = __nv_bfloat16;
+struct into_vector_impl<__bfloat162> {
+    using value_type = __bfloat16;
     using extent_type = extent<2>;
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<__nv_bfloat16, 2> call(__nv_bfloat162 input) {
+    static vector_storage<__bfloat16, 2> call(__bfloat162 input) {
         return {input.x, input.y};
     }
 };
 
 namespace detail {
 template<>
-struct allow_float_fallback<__nv_bfloat16> {
+struct allow_float_fallback<__bfloat16> {
     static constexpr bool value = true;
 };
 };  // namespace detail
 
-#if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                                   \
-    namespace ops {                                                                     \
-    template<>                                                                          \
-    struct NAME<__nv_bfloat16> {                                                        \
-        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(__nv_bfloat16 input) {             \
-            return FUN1(input);                                                         \
-        }                                                                               \
-    };                                                                                  \
-    }                                                                                   \
-    namespace detail {                                                                  \
-    template<>                                                                          \
-    struct apply_impl<ops::NAME<__nv_bfloat16>, 2, __nv_bfloat16, __nv_bfloat16> {      \
-        KERNEL_FLOAT_INLINE static void                                                 \
-        call(ops::NAME<__nv_bfloat16>, __nv_bfloat16* result, const __nv_bfloat16* a) { \
-            __nv_bfloat162 r = FUN2(__nv_bfloat162 {a[0], a[1]});                       \
-            result[0] = r.x, result[1] = r.y;                                           \
-        }                                                                               \
-    };                                                                                  \
+#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                          \
+    namespace ops {                                                            \
+    template<>                                                                 \
+    struct NAME<__bfloat16> {                                                  \
+        KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 input) {          \
+            return FUN1(input);                                                \
+        }                                                                      \
+    };                                                                         \
+    }                                                                          \
+    namespace detail {                                                         \
+    template<>                                                                 \
+    struct apply_impl<ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16> {      \
+        KERNEL_FLOAT_INLINE static void                                        \
+        call(ops::NAME<__bfloat16>, __bfloat16* result, const __bfloat16* a) { \
+            __bfloat162 r = FUN2(__bfloat162 {a[0], a[1]});                    \
+            result[0] = r.x, result[1] = r.y;                                  \
+        }                                                                      \
+    };                                                                         \
     }
-#else
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)
-#endif
 
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
 KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2)
 KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
 KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
@@ -81,33 +93,29 @@ KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
 KERNEL_FLOAT_BF16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
 #endif
 
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
-#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                                            \
-    namespace ops {                                                                               \
-    template<>                                                                                    \
-    struct NAME<__nv_bfloat16> {                                                                  \
-        KERNEL_FLOAT_INLINE __nv_bfloat16                                                         \
-        operator()(__nv_bfloat16 left, __nv_bfloat16 right) const {                               \
-            return FUN1(left, right);                                                             \
-        }                                                                                         \
-    };                                                                                            \
-    }                                                                                             \
-    namespace detail {                                                                            \
-    template<>                                                                                    \
-    struct apply_impl<ops::NAME<__nv_bfloat16>, 2, __nv_bfloat16, __nv_bfloat16, __nv_bfloat16> { \
-        KERNEL_FLOAT_INLINE static void call(                                                     \
-            ops::NAME<__nv_bfloat16>,                                                             \
-            __nv_bfloat16* result,                                                                \
-            const __nv_bfloat16* a,                                                               \
-            const __nv_bfloat16* b) {                                                             \
-            __nv_bfloat162 r = FUN2(__nv_bfloat162 {a[0], a[1]}, __nv_bfloat162 {b[0], b[1]});    \
-            result[0] = r.x, result[1] = r.y;                                                     \
-        }                                                                                         \
-    };                                                                                            \
+#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                                       \
+    namespace ops {                                                                          \
+    template<>                                                                               \
+    struct NAME<__bfloat16> {                                                                \
+        KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 left, __bfloat16 right) const { \
+            return FUN1(left, right);                                                        \
+        }                                                                                    \
+    };                                                                                       \
+    }                                                                                        \
+    namespace detail {                                                                       \
+    template<>                                                                               \
+    struct apply_impl<ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16, __bfloat16> {        \
+        KERNEL_FLOAT_INLINE static void call(                                                \
+            ops::NAME<__bfloat16>,                                                           \
+            __bfloat16* result,                                                              \
+            const __bfloat16* a,                                                             \
+            const __bfloat16* b) {                                                           \
+            __bfloat162 r = FUN2(__bfloat162 {a[0], a[1]}, __bfloat162 {b[0], b[1]});        \
+            result[0] = r.x, result[1] = r.y;                                                \
+        }                                                                                    \
+    };                                                                                       \
     }
-#else
-#define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)
-#endif
 
 KERNEL_FLOAT_BF16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_BF16_BINARY_FUN(subtract, __hsub, __hsub2)
@@ -122,13 +130,13 @@ KERNEL_FLOAT_BF16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
+#endif
 
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
+#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
 namespace ops {
 template<>
-struct fma<__nv_bfloat16> {
-    KERNEL_FLOAT_INLINE __nv_bfloat16
-    operator()(__nv_bfloat16 a, __nv_bfloat16 b, __nv_bfloat16 c) const {
+struct fma<__bfloat16> {
+    KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 a, __bfloat16 b, __bfloat16 c) const {
         return __hfma(a, b, c);
     }
 };
@@ -136,23 +144,15 @@ struct fma<__nv_bfloat16> {
 
 namespace detail {
 template<>
-struct apply_impl<
-    ops::fma<__nv_bfloat16>,
-    2,
-    __nv_bfloat16,
-    __nv_bfloat16,
-    __nv_bfloat16,
-    __nv_bfloat16> {
+struct apply_impl<ops::fma<__bfloat16>, 2, __bfloat16, __bfloat16, __bfloat16, __bfloat16> {
     KERNEL_FLOAT_INLINE static void call(
-        ops::fma<__nv_bfloat16>,
-        __nv_bfloat16* result,
-        const __nv_bfloat16* a,
-        const __nv_bfloat16* b,
-        const __nv_bfloat16* c) {
-        __nv_bfloat162 r = __hfma2(
-            __nv_bfloat162 {a[0], a[1]},
-            __nv_bfloat162 {b[0], b[1]},
-            __nv_bfloat162 {c[0], c[1]});
+        ops::fma<__bfloat16>,
+        __bfloat16* result,
+        const __bfloat16* a,
+        const __bfloat16* b,
+        const __bfloat16* c) {
+        __bfloat162 r =
+            __hfma2(__bfloat162 {a[0], a[1]}, __bfloat162 {b[0], b[1]}, __bfloat162 {c[0], c[1]});
         result[0] = r.x, result[1] = r.y;
     }
 };
@@ -161,44 +161,44 @@ struct apply_impl<
 
 namespace ops {
 template<>
-struct cast<double, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(double input) {
+struct cast<double, __bfloat16> {
+    KERNEL_FLOAT_INLINE __bfloat16 operator()(double input) {
         return __double2bfloat16(input);
     };
 };
 
 template<>
-struct cast<float, __nv_bfloat16> {
-    KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(float input) {
+struct cast<float, __bfloat16> {
+    KERNEL_FLOAT_INLINE __bfloat16 operator()(float input) {
         return __float2bfloat16(input);
     };
 };
 
 template<>
-struct cast<__nv_bfloat16, float> {
-    KERNEL_FLOAT_INLINE float operator()(__nv_bfloat16 input) {
+struct cast<__bfloat16, float> {
+    KERNEL_FLOAT_INLINE float operator()(__bfloat16 input) {
         return __bfloat162float(input);
     };
 };
 }  // namespace ops
 
-#define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)           \
-    namespace ops {                                             \
-    template<>                                                  \
-    struct cast<T, __nv_bfloat16> {                             \
-        KERNEL_FLOAT_INLINE __nv_bfloat16 operator()(T input) { \
-            return TO_HALF;                                     \
-        }                                                       \
-    };                                                          \
-    template<>                                                  \
-    struct cast<__nv_bfloat16, T> {                             \
-        KERNEL_FLOAT_INLINE T operator()(__nv_bfloat16 input) { \
-            return FROM_HALF;                                   \
-        }                                                       \
-    };                                                          \
+#define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)        \
+    namespace ops {                                          \
+    template<>                                               \
+    struct cast<T, __bfloat16> {                             \
+        KERNEL_FLOAT_INLINE __bfloat16 operator()(T input) { \
+            return TO_HALF;                                  \
+        }                                                    \
+    };                                                       \
+    template<>                                               \
+    struct cast<__bfloat16, T> {                             \
+        KERNEL_FLOAT_INLINE T operator()(__bfloat16 input) { \
+            return FROM_HALF;                                \
+        }                                                    \
+    };                                                       \
     }
 
-#if KERNEL_FLOAT_CUDA_ARCH >= 800
+#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
 // clang-format off
 // there are no official char casts. Instead, cast to int and then to char
 KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
@@ -215,17 +215,25 @@ KERNEL_FLOAT_BF16_CAST(unsigned int, __bfloat162uint_rz(input), __uint2bfloat16_
 KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
 KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
 // clang-format on
-#else
+#endif
+
+#if KERNEL_FLOAT_IS_CUDA
 KERNEL_FLOAT_BF16_CAST(
     bool,
     __nv_bfloat16_raw {input ? (unsigned short)0 : (unsigned short)0x3C00},
     (__nv_bfloat16_raw(input).x & 0x7FFF) != 0);
+
+#elif KERNEL_FLOAT_IS_HIP
+KERNEL_FLOAT_BF16_CAST(
+    bool,
+    __hip_bfloat16 {input ? (unsigned short)0 : (unsigned short)0x3C00},
+    (__hip_bfloat16(input).data & 0x7FFF) != 0);
 #endif
 
-using bfloat16 = __nv_bfloat16;
-KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, __nv_bfloat16)
-//KERNEL_FLOAT_TYPE_ALIAS(float16x, __nv_bfloat16)
-//KERNEL_FLOAT_TYPE_ALIAS(f16x, __nv_bfloat16)
+using bfloat16 = __bfloat16;
+KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, __bfloat16)
+//KERNEL_FLOAT_TYPE_ALIAS(float16x, __bfloat16)
+//KERNEL_FLOAT_TYPE_ALIAS(f16x, __bfloat16)
 
 }  // namespace kernel_float
 
@@ -234,12 +242,12 @@ KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, __nv_bfloat16)
 
 namespace kernel_float {
 template<>
-struct promote_type<__nv_bfloat16, __half> {
+struct promote_type<__bfloat16, __half> {
     using type = float;
 };
 
 template<>
-struct promote_type<__half, __nv_bfloat16> {
+struct promote_type<__half, __bfloat16> {
     using type = float;
 };
 

@@ -329,9 +329,7 @@ struct tiling {
     using index_type = IndexType;
     using point_type = vector<index_type, extent<rank>>;
 
-#if KERNEL_FLOAT_IS_DEVICE
-    __forceinline__ __device__ tiling() : block_(threadIdx) {}
-#endif
+    __forceinline__ __device__ tiling() : block_(dim3(threadIdx)) {}
 
     KERNEL_FLOAT_INLINE
     tiling(BlockDim block, vec<index_type, rank> offset = {}) : block_(block), offset_(offset) {}
