@@ -98,13 +98,13 @@ struct fma {
 }  // namespace ops
 
 namespace detail {
-template<typename Policy, typename T, size_t N>
-struct apply_impl<Policy, ops::fma<T>, N, T, T, T, T> {
+template<typename T, size_t N>
+struct apply_impl<accurate_policy, ops::fma<T>, N, T, T, T, T> {
     KERNEL_FLOAT_INLINE
     static void call(ops::fma<T>, T* output, const T* a, const T* b, const T* c) {
         T temp[N];
-        apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
-        apply_impl<Policy, ops::add<T>, N, T, T, T>::call({}, output, temp, c);
+        apply_impl<accurate_policy, ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
+        apply_impl<accurate_policy, ops::add<T>, N, T, T, T>::call({}, output, temp, c);
     }
 };
 }  // namespace detail

@@ -291,7 +291,7 @@ struct multiply<bool> {
 
 namespace detail {
 template<typename Policy, typename T, size_t N>
-struct apply_impl<Policy, ops::divide<T>, N, T, T, T> {
+struct apply_base_impl<Policy, ops::divide<T>, N, T, T, T> {
     KERNEL_FLOAT_INLINE static void call(ops::divide<T>, T* result, const T* lhs, const T* rhs) {
         T rhs_rcp[N];
 
@@ -300,10 +300,6 @@ struct apply_impl<Policy, ops::divide<T>, N, T, T, T> {
         apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
 };
-
-template<typename T, size_t N>
-struct apply_impl<accurate_policy, ops::divide<T>, N, T, T, T>:
-    apply_base_impl<accurate_policy, ops::divide<T>, N, T, T, T> {};
 
 #if KERNEL_FLOAT_IS_DEVICE
 template<>
@@ -319,7 +315,7 @@ struct apply_impl<fast_policy, ops::divide<float>, 1, float, float, float> {
 namespace detail {
 // Override `pow` using `log2` and `exp2`
 template<typename Policy, typename T, size_t N>
-struct apply_impl<Policy, ops::pow<T>, N, T, T, T> {
+struct apply_base_impl<Policy, ops::pow<T>, N, T, T, T> {
     KERNEL_FLOAT_INLINE static void call(ops::divide<T>, T* result, const T* lhs, const T* rhs) {
         T lhs_log[N];
         T result_log[N];
@@ -330,10 +326,6 @@ struct apply_impl<Policy, ops::pow<T>, N, T, T, T> {
         apply_impl<Policy, ops::exp2<T>, N, T, T, T>::call({}, result, result_log);
     }
 };
-
-template<typename T, size_t N>
-struct apply_impl<accurate_policy, ops::pow<T>, N, T, T, T>:
-    apply_base_impl<accurate_policy, ops::pow<T>, N, T, T, T> {};
 }  // namespace detail
 
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>

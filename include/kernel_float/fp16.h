@@ -22,9 +22,6 @@ namespace kernel_float {
 using half_t = ::__half;
 using half2_t = ::__half2;
 
-using __half = void;
-using __half2 = void;
-
 template<>
 struct preferred_vector_size<half_t> {
     static constexpr size_t value = 2;
@@ -50,7 +47,7 @@ template<>
 struct allow_float_fallback<half_t> {
     static constexpr bool value = true;
 };
-};  // namespace detail
+}  // namespace detail
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                                              \

@@ -157,30 +157,52 @@ using default_policy = KERNEL_FLOAT_POLICY;
 
 namespace detail {
 
+//
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
-struct apply_base_impl {
+struct apply_fallback_impl {
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
-#pragma unroll
-        for (size_t i = 0; i < N; i++) {
-            output[i] = fun(args[i]...);
-        }
+        static_assert(N > 0, "operation not implemented");
     }
 };
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
+struct apply_base_impl: apply_fallback_impl<Policy, F, N, Output, Args...> {};
+
+template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct apply_impl: apply_base_impl<Policy, F, N, Output, Args...> {};
 
+// `fast_policy` falls back to `accurate_policy`
 template<typename F, size_t N, typename Output, typename... Args>
-struct apply_base_impl<fast_policy, F, N, Output, Args...>:
+struct apply_fallback_impl<fast_policy, F, N, Output, Args...>:
     apply_impl<accurate_policy, F, N, Output, Args...> {};
 
+// `approx_policy` falls back to `fast_policy`
 template<typename F, size_t N, typename Output, typename... Args>
-struct apply_base_impl<approx_policy, F, N, Output, Args...>:
+struct apply_fallback_impl<approx_policy, F, N, Output, Args...>:
     apply_impl<fast_policy, F, N, Output, Args...> {};
 
+// `approx_level_policy` falls back to `approx_policy`
 template<int Level, typename F, size_t N, typename Output, typename... Args>
-struct apply_base_impl<approx_level_policy<Level>, F, N, Output, Args...>:
+struct apply_fallback_impl<approx_level_policy<Level>, F, N, Output, Args...>:
     apply_impl<approx_policy, F, N, Output, Args...> {};
+
+template<typename F, typename Output, typename... Args>
+struct invoke_impl {
+    KERNEL_FLOAT_INLINE static Output call(F fun, Args... args) {
+        return fun(args...);
+    }
+};
+
+// Only for `accurate_policy` do we implement `apply_impl`, the others will fall back to `apply_base_impl`.
+template<typename F, size_t N, typename Output, typename... Args>
+struct apply_impl<accurate_policy, F, N, Output, Args...> {
+    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
+#pragma unroll
+        for (size_t i = 0; i < N; i++) {
+            output[i] = invoke_impl<F, Output, Args...>::call(fun, args[i]...);
+        }
+    }
+};
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct map_impl {
