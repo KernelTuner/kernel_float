@@ -19,29 +19,35 @@
 
 namespace kernel_float {
 
+using half_t = ::__half;
+using half2_t = ::__half2;
+
+using __half = void;
+using __half2 = void;
+
 template<>
-struct preferred_vector_size<__half> {
+struct preferred_vector_size<half_t> {
     static constexpr size_t value = 2;
 };
 
-KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(__half)
-KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, __half)
-KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, __half)
+KERNEL_FLOAT_DEFINE_PROMOTED_FLOAT(half_t)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(float, half_t)
+KERNEL_FLOAT_DEFINE_PROMOTED_TYPE(double, half_t)
 
 template<>
-struct into_vector_impl<__half2> {
-    using value_type = __half;
+struct into_vector_impl<half2_t> {
+    using value_type = half_t;
     using extent_type = extent<2>;
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<__half, 2> call(__half2 input) {
+    static vector_storage<half_t, 2> call(half2_t input) {
         return {input.x, input.y};
     }
 };
 
 namespace detail {
 template<>
-struct allow_float_fallback<__half> {
+struct allow_float_fallback<half_t> {
     static constexpr bool value = true;
 };
 };  // namespace detail
@@ -50,17 +56,17 @@ struct allow_float_fallback<__half> {
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                                              \
     namespace ops {                                                                                \
     template<>                                                                                     \
-    struct NAME<__half> {                                                                          \
-        KERNEL_FLOAT_INLINE __half operator()(__half input) {                                      \
+    struct NAME<half_t> {                                                                          \
+        KERNEL_FLOAT_INLINE half_t operator()(half_t input) {                                      \
             return FUN1(input);                                                                    \
         }                                                                                          \
     };                                                                                             \
     }                                                                                              \
     namespace detail {                                                                             \
     template<>                                                                                     \
-    struct apply_impl<accurate_policy, ops::NAME<__half>, 2, __half, __half> {                     \
-        KERNEL_FLOAT_INLINE static void call(ops::NAME<__half>, __half* result, const __half* a) { \
-            __half2 r = FUN2(__half2 {a[0], a[1]});                                                \
+    struct apply_impl<accurate_policy, ops::NAME<half_t>, 2, half_t, half_t> {                     \
+        KERNEL_FLOAT_INLINE static void call(ops::NAME<half_t>, half_t* result, const half_t* a) { \
+            half2_t r = FUN2(half2_t {a[0], a[1]});                                                \
             result[0] = r.x, result[1] = r.y;                                                      \
         }                                                                                          \
     };                                                                                             \
@@ -94,18 +100,18 @@ KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                   \
     namespace ops {                                                                      \
     template<>                                                                           \
-    struct NAME<__half> {                                                                \
-        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const {         \
-            return ops::cast<decltype(FUN1(left, right)), __half> {}(FUN1(left, right)); \
+    struct NAME<half_t> {                                                                \
+        KERNEL_FLOAT_INLINE half_t operator()(half_t left, half_t right) const {         \
+            return ops::cast<decltype(FUN1(left, right)), half_t> {}(FUN1(left, right)); \
         }                                                                                \
     };                                                                                   \
     }                                                                                    \
     namespace detail {                                                                   \
     template<>                                                                           \
-    struct apply_impl<accurate_policy, ops::NAME<__half>, 2, __half, __half, __half> {   \
+    struct apply_impl<accurate_policy, ops::NAME<half_t>, 2, half_t, half_t, half_t> {   \
         KERNEL_FLOAT_INLINE static void                                                  \
-        call(ops::NAME<__half>, __half* result, const __half* a, const __half* b) {      \
-            __half2 r = FUN2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]});                \
+        call(ops::NAME<half_t>, half_t* result, const half_t* a, const half_t* b) {      \
+            half2_t r = FUN2(half2_t {a[0], a[1]}, half2_t {b[0], b[1]});                \
             result[0] = r.x, result[1] = r.y;                                            \
         }                                                                                \
     };                                                                                   \
@@ -135,8 +141,8 @@ KERNEL_FLOAT_FP16_BINARY_FUN(greater_equal, __hge, __hgt2)
 #if KERNEL_FLOAT_IS_DEVICE
 namespace ops {
 template<>
-struct fma<__half> {
-    KERNEL_FLOAT_INLINE __half operator()(__half a, __half b, __half c) const {
+struct fma<half_t> {
+    KERNEL_FLOAT_INLINE half_t operator()(half_t a, half_t b, half_t c) const {
         return __hfma(a, b, c);
     }
 };
@@ -144,10 +150,10 @@ struct fma<__half> {
 
 namespace detail {
 template<>
-struct apply_impl<accurate_policy, ops::fma<__half>, 2, __half, __half, __half, __half> {
+struct apply_impl<accurate_policy, ops::fma<half_t>, 2, half_t, half_t, half_t, half_t> {
     KERNEL_FLOAT_INLINE static void
-    call(ops::fma<__half>, __half* result, const __half* a, const __half* b, const __half* c) {
-        __half2 r = __hfma2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]}, __half2 {c[0], c[1]});
+    call(ops::fma<half_t>, half_t* result, const half_t* a, const half_t* b, const half_t* c) {
+        half2_t r = __hfma2(half2_t {a[0], a[1]}, half2_t {b[0], b[1]}, half2_t {c[0], c[1]});
         result[0] = r.x, result[1] = r.y;
     }
 };
@@ -157,14 +163,14 @@ struct apply_impl<accurate_policy, ops::fma<__half>, 2, __half, __half, __half, 
 #define KERNEL_FLOAT_FP16_CAST(T, TO_HALF, FROM_HALF)    \
     namespace ops {                                      \
     template<>                                           \
-    struct cast<T, __half> {                             \
-        KERNEL_FLOAT_INLINE __half operator()(T input) { \
+    struct cast<T, half_t> {                             \
+        KERNEL_FLOAT_INLINE half_t operator()(T input) { \
             return TO_HALF;                              \
         }                                                \
     };                                                   \
     template<>                                           \
-    struct cast<__half, T> {                             \
-        KERNEL_FLOAT_INLINE T operator()(__half input) { \
+    struct cast<half_t, T> {                             \
+        KERNEL_FLOAT_INLINE T operator()(half_t input) { \
             return FROM_HALF;                            \
         }                                                \
     };                                                   \
@@ -211,10 +217,9 @@ KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__ha
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
 #endif
 
-using half = __half;
-KERNEL_FLOAT_VECTOR_ALIAS(half, __half)
-//KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
-//KERNEL_FLOAT_TYPE_ALIAS(f16x, __half)
+KERNEL_FLOAT_VECTOR_ALIAS(half, half_t)
+//KERNEL_FLOAT_TYPE_ALIAS(float16x, half_t)
+//KERNEL_FLOAT_TYPE_ALIAS(f16x, half_t)
 
 }  // namespace kernel_float
 

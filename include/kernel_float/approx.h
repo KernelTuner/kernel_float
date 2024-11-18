@@ -85,7 +85,7 @@ KERNEL_FLOAT_DEFINE_POLY(asin_poly, 4, -0.02103, 0.077, -0.2129, 1.57)
 KERNEL_FLOAT_DEFINE_POLY(asin_poly, 5, 0.009796, -0.03772, 0.0857, -0.2142, 1.57)
 
 #if KERNEL_FLOAT_FP16_AVAILABLE
-KERNEL_FLOAT_DEVICE __half2 flipsign(__half2 input, __half2 sign) {
+KERNEL_FLOAT_DEVICE half2_t flipsign(half2_t input, half2_t sign) {
     // Flip signbit of input when sign<0
     uint32_t result;
 
@@ -97,10 +97,10 @@ KERNEL_FLOAT_DEVICE __half2 flipsign(__half2 input, __half2 sign) {
     result = uint32_t(transmute<uint32_t>(sign) & 0x80008000) ^ transmute<uint32_t>(input);
 #endif
 
-    return transmute<__half2>(result);
+    return transmute<half2_t>(result);
 }
 
-KERNEL_FLOAT_DEVICE uint32_t half2_gt_mask(__half2 a, __half2 b) {
+KERNEL_FLOAT_DEVICE uint32_t half2_gt_mask(half2_t a, half2_t b) {
     uint32_t val;
 #if KERNEL_FLOAT_IS_CUDA
     uint32_t ai = *(reinterpret_cast<const uint32_t*>(&a));
@@ -112,42 +112,42 @@ KERNEL_FLOAT_DEVICE uint32_t half2_gt_mask(__half2 a, __half2 b) {
     return val;
 }
 
-KERNEL_FLOAT_INLINE __half2 make_half2(half x) {
+KERNEL_FLOAT_INLINE half2_t make_half2(half x) {
     return {x, x};
 }
 
-KERNEL_FLOAT_DEVICE __half2 normalize_trig_input(__half2 x) {
+KERNEL_FLOAT_DEVICE half2_t normalize_trig_input(half2_t x) {
     /* Using rint is too slow. Round using floating-point magic instead. */
-    // __half2 x = arg * make_half2(-0.15915494309);
+    // half2_t x = arg * make_half2(-0.15915494309);
     // return __hfma2(arg, make_half2(0.15915494309),  h2rint(x));
 
     // 1/(2pi) = 0.15915494309189535
     static constexpr double ONE_OVER_TWOPI = 0.15915494309189535;
     static constexpr double OFFSET = -2042.0;
 
-    __half2 ws = __hfma2(x, make_half2(-ONE_OVER_TWOPI), make_half2(-OFFSET)) + make_half2(OFFSET);
+    half2_t ws = __hfma2(x, make_half2(-ONE_OVER_TWOPI), make_half2(-OFFSET)) + make_half2(OFFSET);
     return __hfma2(x, make_half2(ONE_OVER_TWOPI), ws);
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __half2 cos(__half2 x) {
-    __half2 xf = normalize_trig_input(x);
+KERNEL_FLOAT_DEVICE half2_t cos(half2_t x) {
+    half2_t xf = normalize_trig_input(x);
     return cos_poly<half, Iter + 1>::call(__hmul2(xf, xf));
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __half2 sin(__half2 x) {
-    __half2 xf = normalize_trig_input(x);
+KERNEL_FLOAT_DEVICE half2_t sin(half2_t x) {
+    half2_t xf = normalize_trig_input(x);
     return sin_poly<half, Iter>::call(__hmul2(xf, xf)) * xf;
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __half2 rcp(__half2 x) {
+KERNEL_FLOAT_DEVICE half2_t rcp(half2_t x) {
     // Flip bits
     uint32_t m = ~transmute<uint32_t>(x);
 
     // Multiply by bias (add contant)
-    __half2 y = transmute<__half2>(uint32_t(0x776d776d) + m);
+    half2_t y = transmute<half2_t>(uint32_t(0x776d776d) + m);
 
 #pragma unroll
     for (int i = 0; i < Iter; i++) {
@@ -159,19 +159,19 @@ KERNEL_FLOAT_DEVICE __half2 rcp(__half2 x) {
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __half2 rsqrt(__half2 x) {
+KERNEL_FLOAT_DEVICE half2_t rsqrt(half2_t x) {
     // Set top and bottom bits for both halfs, then shift by 1, then invert
     uint32_t r = ~((uint32_t(transmute<uint32_t>(x) >> 1)) | ~uint32_t(0x3fff3fff));
     //uint32_t r = uint32_t(~(transmute<uint32_t>(arg) | (~uint32_t(0x3ffe3ffe)))) >> 1;
 
     // Add bias (0x199c)
-    __half2 y = transmute<__half2>(uint32_t(r) + uint32_t(0x199c199c));
+    half2_t y = transmute<half2_t>(uint32_t(r) + uint32_t(0x199c199c));
 
     // Newton-Raphson iterations
 #pragma unroll
     for (int i = 0; i < Iter; i++) {
-        __half2 half_x = make_half2(-0.5) * x;
-        __half2 correction = __hfma2(half_x, y * y, make_half2(0.5));
+        half2_t half_x = make_half2(-0.5) * x;
+        half2_t correction = __hfma2(half_x, y * y, make_half2(0.5));
         y = __hfma2(correction, y, y);  // y += y * correction
     }
 
@@ -179,12 +179,12 @@ KERNEL_FLOAT_DEVICE __half2 rsqrt(__half2 x) {
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __half2 sqrt(__half2 x) {
+KERNEL_FLOAT_DEVICE half2_t sqrt(half2_t x) {
     if (Iter == 1) {
-        __half2 y = rsqrt<0>(x);
+        half2_t y = rsqrt<0>(x);
 
         // This method uses only 4 muls, instead of 5 muls when using `arg * approx_rsqrt<1>(arg)`
-        __half2 xy = x * y;
+        half2_t xy = x * y;
         return xy * __hfma2(make_half2(-0.5) * y, xy, make_half2(1.5));
     }
 
@@ -192,7 +192,7 @@ KERNEL_FLOAT_DEVICE __half2 sqrt(__half2 x) {
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __half2 asin(__half2 x) {
+KERNEL_FLOAT_DEVICE half2_t asin(half2_t x) {
     static constexpr double HALF_PI = 1.57079632679;
     auto abs_x = __habs2(x);
     auto v = asin_poly<half, Iter + 1>::call(abs_x);
@@ -201,36 +201,36 @@ KERNEL_FLOAT_DEVICE __half2 asin(__half2 x) {
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __half2 acos(__half2 x) {
+KERNEL_FLOAT_DEVICE half2_t acos(half2_t x) {
     static constexpr double HALF_PI = 1.57079632679;
     return make_half2(HALF_PI) - asin<Iter>(x);
 }
 
 template<int Deg>
-KERNEL_FLOAT_DEVICE __half2 exp(__half2 x) {
-    __half2 y;
+KERNEL_FLOAT_DEVICE half2_t exp(half2_t x) {
+    half2_t y;
 
     if (Deg == 0) {
         // Bring the value to range [32, 64]
         // 1.442 = 1/log(2)
         // 46.969 = 32.5/log(2)
-        __half2 m = __hfma2(x, make_half2(1.442), make_half2(46.9375));
+        half2_t m = __hfma2(x, make_half2(1.442), make_half2(46.9375));
 
         // Transmute to int, shift higher mantissa bits into exponent field.
-        y = transmute<__half2>((transmute<uint32_t>(m) & 0x03ff03ff) << 5);
+        y = transmute<half2_t>((transmute<uint32_t>(m) & 0x03ff03ff) << 5);
     } else {
         // Add a large number to round to an integer
-        __half2 v = __hfma2(x, make_half2(1.442), make_half2(1231.0));
+        half2_t v = __hfma2(x, make_half2(1.442), make_half2(1231.0));
 
         // The exponent is now in the lower 5 bits. Shift that into the exponent field.
-        __half2 exp = transmute<__half2>((transmute<uint32_t>(v) & 0x001f001f) << 10);
+        half2_t exp = transmute<half2_t>((transmute<uint32_t>(v) & 0x001f001f) << 10);
 
         // The fractional part can be obtained from "1231-v".
         // 0.6934 = log(2)
-        __half2 frac = __hfma2(make_half2(1231.0) - v, make_half2(0.6934), x);
+        half2_t frac = __hfma2(make_half2(1231.0) - v, make_half2(0.6934), x);
 
         // This is the Taylor expansion of "exp(x)-1" around 0
-        __half2 adjust;
+        half2_t adjust;
         if (Deg == 1) {
             adjust = frac;
         } else if (Deg == 2) {
@@ -250,21 +250,21 @@ KERNEL_FLOAT_DEVICE __half2 exp(__half2 x) {
 
     // Values below -10.39 (= -15*log(2)) become zero
     uint32_t zero_mask = half2_gt_mask(x, make_half2(-10.390625));
-    return transmute<__half2>(zero_mask & transmute<uint32_t>(y));
+    return transmute<half2_t>(zero_mask & transmute<uint32_t>(y));
 }
 
 template<int = 0>
-KERNEL_FLOAT_DEVICE __half2 log(__half2 arg) {
+KERNEL_FLOAT_DEVICE half2_t log(half2_t arg) {
     // Shift exponent field into mantissa bits. Fill exponent bits with 0x5000 (= 32.0)
     uint32_t bits = bitwise_if_else(0x03ff03ff, transmute<uint32_t>(arg) >> 5, 0x50005000);
 
     // 0.6934 = log(2)
     // 32.53 = 46.969*log(2)
-    return __hfma2(transmute<__half2>(bits), make_half2(0.6934), make_half2(-32.53125));
+    return __hfma2(transmute<half2_t>(bits), make_half2(0.6934), make_half2(-32.53125));
 }
 
 template<int Deg>
-KERNEL_FLOAT_DEVICE __half2 tanh(__half2 x) {
+KERNEL_FLOAT_DEVICE half2_t tanh(half2_t x) {
     if (Deg == 0) {
         return x * rcp<0>(make_half2(0.2869) + __habs2(x));
     } else {
@@ -278,39 +278,39 @@ KERNEL_FLOAT_DEVICE __half2 tanh(__half2 x) {
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
 
 #if KERNEL_FLOAT_BF16_OPS_SUPPORTED
-KERNEL_FLOAT_DEVICE __bfloat162 make_bfloat162(__bfloat16 x) {
+KERNEL_FLOAT_DEVICE bfloat16x2_t make_bfloat162(bfloat16_t x) {
     return {x, x};
 }
 
-KERNEL_FLOAT_DEVICE __bfloat162 make_bfloat162(double x) {
+KERNEL_FLOAT_DEVICE bfloat16x2_t make_bfloat162(double x) {
     return {__double2bfloat16(x), __double2bfloat16(x)};
 }
 
-KERNEL_FLOAT_DEVICE __bfloat162 normalize_trig_input(__nv_bfloat162 x) {
+KERNEL_FLOAT_DEVICE bfloat16x2_t normalize_trig_input(bfloat16x2_t x) {
     static constexpr double ONE_OVER_TWOPI = 0.15915494309189535;
     static constexpr double OFFSET = -2042.0;
 
-    __bfloat162 ws = __hadd2(
+    bfloat16x2_t ws = __hadd2(
         __hfma2(x, make_bfloat162(-ONE_OVER_TWOPI), make_bfloat162(-OFFSET)),
         make_bfloat162(OFFSET));
     return __hfma2(x, make_bfloat162(ONE_OVER_TWOPI), ws);
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __bfloat162 cos(__bfloat162 x) {
-    __bfloat162 xf = normalize_trig_input(x);
+KERNEL_FLOAT_DEVICE bfloat16x2_t cos(bfloat16x2_t x) {
+    bfloat16x2_t xf = normalize_trig_input(x);
     return cos_poly<__bfloat16, Iter + 1>::call(__hmul2(xf, xf));
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __bfloat162 sin(__bfloat162 x) {
-    __bfloat162 xf = normalize_trig_input(x);
+KERNEL_FLOAT_DEVICE bfloat16x2_t sin(bfloat16x2_t x) {
+    bfloat16x2_t xf = normalize_trig_input(x);
     return __hmul2(sin_poly<__bfloat16, Iter>::call(__hmul2(xf, xf)), xf);
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __bfloat162 rcp(__bfloat162 x) {
-    __bfloat162 y = transmute<__bfloat162>(uint32_t(0x7ef07ef0) + ~transmute<uint32_t>(x));
+KERNEL_FLOAT_DEVICE bfloat16x2_t rcp(bfloat16x2_t x) {
+    bfloat16x2_t y = transmute<bfloat16x2_t>(uint32_t(0x7ef07ef0) + ~transmute<uint32_t>(x));
 
 #pragma unroll
     for (int i = 0; i < Iter; i++) {
@@ -321,18 +321,18 @@ KERNEL_FLOAT_DEVICE __bfloat162 rcp(__bfloat162 x) {
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __bfloat162 rsqrt(__bfloat162 x) {
+KERNEL_FLOAT_DEVICE bfloat16x2_t rsqrt(bfloat16x2_t x) {
     // Set top and bottom bits for both halfs, then shift by 1, then invert
     uint32_t r = ~((uint32_t(transmute<uint32_t>(x) >> 1)) | ~uint32_t(0x3fff3fff));
 
     // Add bias (0x1f36)
-    __bfloat162 y = transmute<__bfloat162>(uint32_t(r) + uint32_t(0x1f361f36));
+    bfloat16x2_t y = transmute<bfloat16x2_t>(uint32_t(r) + uint32_t(0x1f361f36));
 
     // Newton-Raphson iterations
 #pragma unroll
     for (int i = 0; i < Iter; i++) {
-        __bfloat162 half_x = __hmul2(make_bfloat162(-0.5), x);
-        __bfloat162 correction = __hfma2(half_x, __hmul2(y, y), make_bfloat162(0.5));
+        bfloat16x2_t half_x = __hmul2(make_bfloat162(-0.5), x);
+        bfloat16x2_t correction = __hfma2(half_x, __hmul2(y, y), make_bfloat162(0.5));
         y = __hfma2(correction, y, y);  // y += y * correction
     }
 
@@ -340,17 +340,17 @@ KERNEL_FLOAT_DEVICE __bfloat162 rsqrt(__bfloat162 x) {
 }
 
 template<int Iter>
-KERNEL_FLOAT_DEVICE __bfloat162 sqrt(__bfloat162 x) {
+KERNEL_FLOAT_DEVICE bfloat16x2_t sqrt(bfloat16x2_t x) {
     return __hmul2(x, rsqrt<Iter>(x));
 }
 
 template<int = 0>
-KERNEL_FLOAT_DEVICE __bfloat162 exp(__bfloat162 arg) {
+KERNEL_FLOAT_DEVICE bfloat16x2_t exp(bfloat16x2_t arg) {
     static constexpr float SCALE = 1.44272065994f / 256.0f;
     static constexpr float OFFSET = 382.4958400542335;
 
-    auto a = fmaf(__bfloat162float(arg.x), SCALE, OFFSET);
-    auto b = fmaf(__bfloat162float(arg.y), SCALE, OFFSET);
+    auto a = fmaf(bfloat16x2_tfloat(arg.x), SCALE, OFFSET);
+    auto b = fmaf(bfloat16x2_tfloat(arg.y), SCALE, OFFSET);
 
     return {
         transmute<__bfloat16>(uint16_t(transmute<uint32_t>(a))),
@@ -362,17 +362,17 @@ KERNEL_FLOAT_DEVICE __bfloat162 exp(__bfloat162 arg) {
 #define KERNEL_FLOAT_DEFINE_APPROX_FUN(FULL_NAME, FUN, DEG)                               \
     namespace detail {                                                                    \
     template<int Degree>                                                                  \
-    struct apply_impl<approx_level_policy<Degree>, ops::FUN<__half>, 2, __half, __half> { \
+    struct apply_impl<approx_level_policy<Degree>, ops::FUN<half_t>, 2, half_t, half_t> { \
         KERNEL_FLOAT_INLINE static void                                                   \
-        call(ops::FUN<__half> fun, __half* output, const __half* input) {                 \
-            __half2 res = approx::FUN<Degree>(__half2 {input[0], input[1]});              \
+        call(ops::FUN<half_t> fun, half_t* output, const half_t* input) {                 \
+            half2_t res = approx::FUN<Degree>(half2_t {input[0], input[1]});              \
             output[0] = res.x;                                                            \
             output[1] = res.y;                                                            \
         }                                                                                 \
     };                                                                                    \
     template<>                                                                            \
-    struct apply_impl<approx_policy, ops::FUN<__half>, 2, __half, __half>:                \
-        apply_impl<approx_level_policy<DEG>, ops::FUN<__half>, 2, __half, __half> {};     \
+    struct apply_impl<approx_policy, ops::FUN<half_t>, 2, half_t, half_t>:                \
+        apply_impl<approx_level_policy<DEG>, ops::FUN<half_t>, 2, half_t, half_t> {};     \
     }                                                                                     \
                                                                                           \
     template<int Level = -1, typename V>                                                  \
