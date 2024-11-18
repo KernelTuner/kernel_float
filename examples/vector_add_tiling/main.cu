@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "../hip_compat.h"
 #include "kernel_float.h"
 #include "kernel_float/tiling.h"
 namespace kf = kernel_float;
