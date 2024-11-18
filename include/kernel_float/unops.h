@@ -178,7 +178,6 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(cbrt)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(rcbrt)
 
 KERNEL_FLOAT_DEFINE_UNARY_MATH(abs)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(fabs)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(floor)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(round)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(ceil)
@@ -208,31 +207,43 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
         return ::kernel_float::map<fast_policy>(ops::NAME<vector_value_type<V>> {}, input); \
     }
 
-KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)
-KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log)
-KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sqrt)
-KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rcp)
-KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sin)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(cos)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
+
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp2)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log2)
+
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sqrt)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rcp)
+KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 
 // This PTX is only supported on CUDA
 #if KERNEL_FLOAT_IS_CUDA && KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, FAST_FUN)                       \
+#define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, EXPR_F32)                       \
     namespace detail {                                                                \
     template<>                                                                        \
     struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                  \
         KERNEL_FLOAT_INLINE static void call(ops::F<T>, T* result, const T* inputs) { \
-            *result = FAST_FUN(*inputs);                                              \
+            T input = inputs[0];                                                      \
+            *result = EXPR_F32;                                                       \
         }                                                                             \
     };                                                                                \
     }
 
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp, __expf)
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf)
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp, __expf(input))
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp2, __exp2f(input))
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp10, __exp10f(input))
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf(input))
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log2, __log2f(input))
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log10, __log10f(input))
+
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, sin, __sinf(input))
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, cos, __cosf(input))
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, tan, __tanf(input))
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
@@ -250,12 +261,13 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64", "d")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32", "f")
-
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32;", "f")
+
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32", "f")
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32", "f")
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32", "f")
+
 #endif
 
 }  // namespace kernel_float

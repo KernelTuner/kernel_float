@@ -85,8 +85,10 @@ KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_BF16_UNARY_FUN(cos, ::hcos, ::h2cos)
 
 KERNEL_FLOAT_BF16_UNARY_FUN(exp, ::hexp, ::h2exp)
+KERNEL_FLOAT_BF16_UNARY_FUN(exp2, ::hexp2, ::h2exp2)
 KERNEL_FLOAT_BF16_UNARY_FUN(exp10, ::hexp10, ::h2exp10)
 KERNEL_FLOAT_BF16_UNARY_FUN(log, ::hlog, ::h2log)
+KERNEL_FLOAT_BF16_UNARY_FUN(log2, ::hlog2, ::h2log2)
 KERNEL_FLOAT_BF16_UNARY_FUN(log10, ::hlog10, ::h2log2)
 
 KERNEL_FLOAT_BF16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)

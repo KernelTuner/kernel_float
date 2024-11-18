@@ -359,8 +359,7 @@ template<
     typename L,
     typename R,
     typename T = promoted_vector_value_type<L, R>,
-    typename =
-        enable_if_t<is_vector_broadcastable<L, extent<3>> && is_vector_broadcastable<R, extent<3>>>>
+    typename = enable_if_t<(vector_size<L> == 3 && vector_size<R> == 3)>>
 KERNEL_FLOAT_INLINE vector<T, extent<3>> cross(const L& left, const R& right) {
     return detail::cross_impl<T>::call(convert_storage<T, 3>(left), convert_storage<T, 3>(right));
 }

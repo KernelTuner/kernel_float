@@ -130,6 +130,9 @@ struct apply_impl {
 
 template<typename F, size_t N, typename Output, typename... Args>
 struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
+
+template<int Deg, typename F, size_t N, typename Output, typename... Args>
+struct apply_approx_impl: apply_fastmath_impl<F, N, Output, Args...> {};
 }  // namespace detail
 
 struct accurate_policy {
@@ -141,6 +144,14 @@ struct fast_policy {
     template<typename F, size_t N, typename Output, typename... Args>
     using type = detail::apply_fastmath_impl<F, N, Output, Args...>;
 };
+
+template<int Degree = -1>
+struct approximate_policy {
+    template<typename F, size_t N, typename Output, typename... Args>
+    using type = detail::apply_approx_impl<Degree, F, N, Output, Args...>;
+};
+
+using default_approximate_policy = approximate_policy<>;
 
 #ifdef KERNEL_FLOAT_POLICY
 using default_policy = KERNEL_FLOAT_POLICY;
