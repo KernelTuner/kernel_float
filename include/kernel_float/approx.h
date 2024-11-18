@@ -9,7 +9,7 @@ namespace kernel_float {
 
 namespace approx {
 
-static_assert(sizeof(unsigned int) * 8 == 32, "invalid side of unsigned int");
+static_assert(sizeof(unsigned int) * 8 == 32, "invalid size of unsigned int");
 using uint32_t = unsigned int;
 
 template<typename T, typename U>
@@ -346,11 +346,12 @@ KERNEL_FLOAT_DEVICE bfloat16x2_t sqrt(bfloat16x2_t x) {
 
 template<int = 0>
 KERNEL_FLOAT_DEVICE bfloat16x2_t exp(bfloat16x2_t arg) {
-    static constexpr float SCALE = 1.44272065994f / 256.0f;
+    static constexpr float SCALE = 1.44272065994 / 256.0;
     static constexpr float OFFSET = 382.4958400542335;
+    static constexpr float MINIMUM = 382;
 
-    auto a = fmaf(bfloat16x2_tfloat(arg.x), SCALE, OFFSET);
-    auto b = fmaf(bfloat16x2_tfloat(arg.y), SCALE, OFFSET);
+    float a = fmaxf(fmaf(bfloat162float(arg.x), SCALE, OFFSET), MINIMUM);
+    float b = fmaxf(fmaf(bfloat162float(arg.y), SCALE, OFFSET), MINIMUM);
 
     return {
         transmute<__bfloat16>(uint16_t(transmute<uint32_t>(a))),
@@ -359,33 +360,66 @@ KERNEL_FLOAT_DEVICE bfloat16x2_t exp(bfloat16x2_t arg) {
 #endif
 }  // namespace approx
 
-#define KERNEL_FLOAT_DEFINE_APPROX_FUN(FULL_NAME, FUN, DEG)                               \
-    namespace detail {                                                                    \
-    template<int Degree>                                                                  \
-    struct apply_impl<approx_level_policy<Degree>, ops::FUN<half_t>, 2, half_t, half_t> { \
-        KERNEL_FLOAT_INLINE static void                                                   \
-        call(ops::FUN<half_t> fun, half_t* output, const half_t* input) {                 \
-            half2_t res = approx::FUN<Degree>(half2_t {input[0], input[1]});              \
-            output[0] = res.x;                                                            \
-            output[1] = res.y;                                                            \
-        }                                                                                 \
-    };                                                                                    \
-    template<>                                                                            \
-    struct apply_impl<approx_policy, ops::FUN<half_t>, 2, half_t, half_t>:                \
-        apply_impl<approx_level_policy<DEG>, ops::FUN<half_t>, 2, half_t, half_t> {};     \
-    }                                                                                     \
-                                                                                          \
-    template<int Level = -1, typename V>                                                  \
-    KERNEL_FLOAT_INLINE into_vector_type<V> approx_##FUN(const V& args) {                 \
-        return map<approx_level_policy<Level>>(ops::FUN<vector_value_type<V>> {}, args);  \
+namespace detail {
+template<int Level, typename F, typename T>
+struct apply_impl<approx_level_policy<Level>, F, 1, T, T> {
+    KERNEL_FLOAT_INLINE static void call(F fun, T* output, const T* input) {
+        T in2[2], out2[2];
+        out2[0] = input[0];
+        apply_impl<approx_level_policy<Level>, F, 2, T, T>::call(fun, out2, in2);
+        output[0] = out2[0];
+    }
+};
+}  // namespace detail
+
+#define KERNEL_FLOAT_DEFINE_APPROX_IMPL(T, FUN, DEFAULT_LEVEL)                         \
+    namespace detail {                                                                 \
+    template<int Degree>                                                               \
+    struct apply_impl<approx_level_policy<Degree>, ops::FUN<T>, 2, T, T> {             \
+        KERNEL_FLOAT_INLINE static void call(ops::FUN<T>, T* output, const T* input) { \
+            auto res = approx::FUN<Degree>({input[0], input[1]});                      \
+            output[0] = res.x;                                                         \
+            output[1] = res.y;                                                         \
+        }                                                                              \
+    };                                                                                 \
+                                                                                       \
+    template<>                                                                         \
+    struct apply_impl<approx_policy, ops::FUN<T>, 2, T, T>:                            \
+        apply_impl<approx_level_policy<DEFAULT_LEVEL>, ops::FUN<T>, 2, T, T> {};       \
     }
 
-KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_sin, sin, 4)
-KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_cos, cos, 4)
-KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_rsqrt, rsqrt, 1)
-KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_sqrt, sqrt, 1)
-KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_rcp, rcp, 1)
-KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_exp, exp, 0)
-KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_log, log, 0)
+#if KERNEL_FLOAT_FP16_AVAILABLE
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, sin, 4)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, cos, 4)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, rsqrt, 1)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, sqrt, 1)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, rcp, 1)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, exp, 0)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, log, 0)
+#endif
+
+#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, cos, 4)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, sin, 4)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, rcp, 1)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, rsqrt, 1)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, sqrt, 1)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, exp, 0)
+//KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, log, 0)
+#endif
+
+#define KERNEL_FLOAT_DEFINE_APPROX_FUN(FUN)                                              \
+    template<int Level = -1, typename V>                                                 \
+    KERNEL_FLOAT_INLINE into_vector_type<V> approx_##FUN(const V& args) {                \
+        return map<approx_level_policy<Level>>(ops::FUN<vector_value_type<V>> {}, args); \
+    }
+
+KERNEL_FLOAT_DEFINE_APPROX_FUN(sin)
+KERNEL_FLOAT_DEFINE_APPROX_FUN(cos)
+KERNEL_FLOAT_DEFINE_APPROX_FUN(rsqrt)
+KERNEL_FLOAT_DEFINE_APPROX_FUN(sqrt)
+KERNEL_FLOAT_DEFINE_APPROX_FUN(rcp)
+KERNEL_FLOAT_DEFINE_APPROX_FUN(exp)
+KERNEL_FLOAT_DEFINE_APPROX_FUN(log)
 
 }  // namespace kernel_float
