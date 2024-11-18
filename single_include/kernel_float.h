@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-11-18 13:40:03.668017
-// git hash: ae0e6b16ac2d626e69bb08554044a77671f408ab
+// date: 2024-11-18 13:50:24.614671
+// git hash: f89cf98f79e78ab6013063dea4b4b516ce163855
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1950,8 +1950,7 @@ struct multiply<bool> {
 namespace detail {
 template<typename Policy, typename T, size_t N>
 struct apply_impl<Policy, ops::divide<T>, N, T, T, T> {
-    KERNEL_FLOAT_INLINE static void
-    call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
+    KERNEL_FLOAT_INLINE static void call(ops::divide<T>, T* result, const T* lhs, const T* rhs) {
         T rhs_rcp[N];
 
         // Fast way to perform division is to multiply by the reciprocal
@@ -1968,11 +1967,31 @@ struct apply_impl<accurate_policy, ops::divide<T>, N, T, T, T>:
 template<>
 struct apply_impl<fast_policy, ops::divide<float>, 1, float, float, float> {
     KERNEL_FLOAT_INLINE static void
-    call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
+    call(ops::divide<float>, float* result, const float* lhs, const float* rhs) {
         *result = __fdividef(*lhs, *rhs);
     }
 };
 #endif
+}  // namespace detail
+
+namespace detail {
+// Override `pow` using `log2` and `exp2`
+template<typename Policy, typename T, size_t N>
+struct apply_impl<Policy, ops::pow<T>, N, T, T, T> {
+    KERNEL_FLOAT_INLINE static void call(ops::divide<T>, T* result, const T* lhs, const T* rhs) {
+        T lhs_log[N];
+        T result_log[N];
+
+        // Fast way to perform power function is using log2 and exp2
+        apply_impl<Policy, ops::log2<T>, N, T, T>::call({}, lhs_log, lhs);
+        apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, result_log, lhs_log, rhs);
+        apply_impl<Policy, ops::exp2<T>, N, T, T, T>::call({}, result, result_log);
+    }
+};
+
+template<typename T, size_t N>
+struct apply_impl<accurate_policy, ops::pow<T>, N, T, T, T>:
+    apply_base_impl<accurate_policy, ops::pow<T>, N, T, T, T> {};
 }  // namespace detail
 
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
