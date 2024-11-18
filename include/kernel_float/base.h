@@ -270,7 +270,7 @@ using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
 
 template<typename V>
 KERNEL_FLOAT_INLINE vector_storage_type<V> into_vector_storage(V&& input) {
-    return into_vector_impl<V>::call(std::forward<V>(input));
+    return into_vector_impl<V>::call(static_cast<V&&>(input));
 }
 
 }  // namespace kernel_float

@@ -67,8 +67,8 @@ KERNEL_FLOAT_TYPE_ALIAS(float16x, __half)
 #endif
 
 #if KERNEL_FLOAT_BF16_AVAILABLE
-KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __nv_bfloat16)
-KERNEL_FLOAT_TYPE_ALIAS(bf16x, __nv_bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bfloat16x, __bfloat16)
+KERNEL_FLOAT_TYPE_ALIAS(bf16x, __bfloat16)
 #endif
 
 #if KERNEL_FLOAT_BF8_AVAILABLE
@@ -82,12 +82,12 @@ static constexpr extent<N> kextent = {};
 
 template<typename... Args>
 KERNEL_FLOAT_INLINE kvec<promote_t<Args...>, sizeof...(Args)> make_kvec(Args&&... args) {
-    return ::kernel_float::make_vec(std::forward<Args>(args)...);
+    return ::kernel_float::make_vec(static_cast<Args&&>(args)...);
 };
 
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> into_kvec(V&& input) {
-    return ::kernel_float::into_vec(std::forward<V>(input));
+    return ::kernel_float::into_vec(static_cast<V&&>(input));
 }
 
 template<typename T = double>

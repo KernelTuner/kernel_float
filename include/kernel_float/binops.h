@@ -65,10 +65,10 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     return result;
 }
 
-#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                               \
-    template<typename L, typename R, typename C = promoted_vector_value_type<L, R>>        \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
-        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
+#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                                 \
+    template<typename L, typename R, typename C = promoted_vector_value_type<L, R>>          \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {      \
+        return zip_common(ops::NAME<C> {}, static_cast<L&&>(left), static_cast<R&&>(right)); \
     }
 
 #define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR, EXPR_F64, EXPR_F32)         \

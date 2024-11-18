@@ -4,6 +4,11 @@
 #include "macros.h"
 
 #if KERNEL_FLOAT_BF16_AVAILABLE
+//#define CUDA_NO_BFLOAT16 (1)
+//#define __CUDA_NO_BFLOAT16_OPERATORS__ (1)
+//#define __CUDA_NO_BFLOAT162_OPERATORS__ (1)
+//#define __CUDA_NO_BFLOAT16_CONVERSIONS__ (1)
+
 #if KERNEL_FLOAT_IS_CUDA
 #include <cuda_bf16.h>
 #elif KERNEL_FLOAT_IS_HIP
@@ -76,21 +81,24 @@ struct allow_float_fallback<__bfloat16> {
     };                                                                         \
     }
 
-KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2)
-KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
-KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
+KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_BF16_UNARY_FUN(cos, ::hcos, ::h2cos)
+
 KERNEL_FLOAT_BF16_UNARY_FUN(exp, ::hexp, ::h2exp)
 KERNEL_FLOAT_BF16_UNARY_FUN(exp10, ::hexp10, ::h2exp10)
-KERNEL_FLOAT_BF16_UNARY_FUN(floor, ::hfloor, ::h2floor)
 KERNEL_FLOAT_BF16_UNARY_FUN(log, ::hlog, ::h2log)
 KERNEL_FLOAT_BF16_UNARY_FUN(log10, ::hlog10, ::h2log2)
-KERNEL_FLOAT_BF16_UNARY_FUN(rint, ::hrint, ::h2rint)
-KERNEL_FLOAT_BF16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
-KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
+
 KERNEL_FLOAT_BF16_UNARY_FUN(sqrt, ::hsqrt, ::h2sqrt)
-KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
+KERNEL_FLOAT_BF16_UNARY_FUN(rsqrt, ::hrsqrt, ::h2rsqrt)
 KERNEL_FLOAT_BF16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
+
+KERNEL_FLOAT_BF16_UNARY_FUN(abs, ::__habs, ::__habs2)
+KERNEL_FLOAT_BF16_UNARY_FUN(floor, ::hfloor, ::h2floor)
+KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
+KERNEL_FLOAT_BF16_UNARY_FUN(rint, ::hrint, ::h2rint)
+KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
+KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
 #endif
 
 #if KERNEL_FLOAT_BF16_OPS_SUPPORTED
@@ -99,7 +107,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(rcp, ::hrcp, ::h2rcp)
     template<>                                                                               \
     struct NAME<__bfloat16> {                                                                \
         KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 left, __bfloat16 right) const { \
-            return FUN1(left, right);                                                        \
+            return ops::cast<decltype(FUN1(left, right)), __bfloat16> {}(FUN1(left, right)); \
         }                                                                                    \
     };                                                                                       \
     }                                                                                        \
@@ -159,29 +167,6 @@ struct apply_impl<ops::fma<__bfloat16>, 2, __bfloat16, __bfloat16, __bfloat16, _
 }  // namespace detail
 #endif
 
-namespace ops {
-template<>
-struct cast<double, __bfloat16> {
-    KERNEL_FLOAT_INLINE __bfloat16 operator()(double input) {
-        return __double2bfloat16(input);
-    };
-};
-
-template<>
-struct cast<float, __bfloat16> {
-    KERNEL_FLOAT_INLINE __bfloat16 operator()(float input) {
-        return __float2bfloat16(input);
-    };
-};
-
-template<>
-struct cast<__bfloat16, float> {
-    KERNEL_FLOAT_INLINE float operator()(__bfloat16 input) {
-        return __bfloat162float(input);
-    };
-};
-}  // namespace ops
-
 #define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)        \
     namespace ops {                                          \
     template<>                                               \
@@ -198,6 +183,9 @@ struct cast<__bfloat16, float> {
     };                                                       \
     }
 
+KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input))
+KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), __bfloat162float(input))
+
 #if KERNEL_FLOAT_BF16_OPS_SUPPORTED
 // clang-format off
 // there are no official char casts. Instead, cast to int and then to char
@@ -205,24 +193,23 @@ KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(i
 KERNEL_FLOAT_BF16_CAST(signed char, __int2bfloat16_rn(input), (signed char)__bfloat162int_rz(input));
 KERNEL_FLOAT_BF16_CAST(unsigned char, __int2bfloat16_rn(input), (unsigned char)__bfloat162int_rz(input));
 
-KERNEL_FLOAT_BF16_CAST(signed short, __bfloat162short_rz(input), __short2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(signed int, __bfloat162int_rz(input), __int2bfloat16_rn(input));
+KERNEL_FLOAT_BF16_CAST(signed short, __short2bfloat16_rn(input), __bfloat162short_rz(input));
+KERNEL_FLOAT_BF16_CAST(signed int, __int2bfloat16_rn(input), __bfloat162int_rz(input));
 KERNEL_FLOAT_BF16_CAST(signed long, __ll2bfloat16_rn(input), (signed long)(__bfloat162ll_rz(input)));
 KERNEL_FLOAT_BF16_CAST(signed long long, __ll2bfloat16_rn(input), __bfloat162ll_rz(input));
 
-KERNEL_FLOAT_BF16_CAST(unsigned short, __bfloat162ushort_rz(input), __ushort2bfloat16_rn(input));
-KERNEL_FLOAT_BF16_CAST(unsigned int, __bfloat162uint_rz(input), __uint2bfloat16_rn(input));
+KERNEL_FLOAT_BF16_CAST(unsigned short, __ushort2bfloat16_rn(input), __bfloat162ushort_rz(input));
+KERNEL_FLOAT_BF16_CAST(unsigned int, __uint2bfloat16_rn(input), __bfloat162uint_rz(input));
 KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
 KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
 // clang-format on
 #endif
 
 #if KERNEL_FLOAT_IS_CUDA
-KERNEL_FLOAT_BF16_CAST(
-    bool,
-    __nv_bfloat16_raw {input ? (unsigned short)0 : (unsigned short)0x3C00},
-    (__nv_bfloat16_raw(input).x & 0x7FFF) != 0);
-
+//KERNEL_FLOAT_BF16_CAST(
+//    bool,
+//    __nv_bfloat16_raw {input ? (unsigned short)0 : (unsigned short)0x3C00},
+//    (__nv_bfloat16_raw(input).x & 0x7FFF) != 0);
 #elif KERNEL_FLOAT_IS_HIP
 KERNEL_FLOAT_BF16_CAST(
     bool,

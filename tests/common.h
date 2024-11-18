@@ -19,6 +19,22 @@ using __nv_bfloat16 = __hip_bfloat16;
 #endif
 
 namespace detail {
+#if KERNEL_FLOAT_IS_CUDA
+__attribute__((noinline)) static __host__ __device__ void
+__assertion_failed(const char* expr, const char* file, int line) {
+#if KERNEL_FLOAT_IS_HOST
+    std::string msg =
+        "assertion failed: " + std::string(expr) + " (" + file + ":" + std::to_string(line) + ")";
+    throw std::runtime_error(msg);
+#else
+    printf("assertion failed: %s (%s:%d)\n", expr, file, line);
+    asm("trap;");
+    while (1)
+        ;
+#endif
+}
+
+#elif KERNEL_FLOAT_IS_HIP
 __attribute__((noinline)) static __host__ void
 __assertion_failed(const char* expr, const char* file, int line) {
     std::string msg =
@@ -29,16 +45,11 @@ __assertion_failed(const char* expr, const char* file, int line) {
 __attribute__((noinline)) static __device__ void
 __assertion_failed(const char* expr, const char* file, int line) {
     printf("assertion failed: %s (%s:%d)\n", expr, file, line);
-
-#if KERNEL_FLOAT_IS_CUDA
-    asm("trap;");
-#elif KERNEL_FLOAT_IS_HIP
     __builtin_trap();
-#endif
-
     while (1)
         ;
 }
+#endif
 }  // namespace detail
 
 #define ASSERT(...)                                                         \
@@ -81,7 +92,7 @@ struct equals_helper<float> {
 template<>
 struct equals_helper<__half> {
     static __host__ __device__ bool call(const __half& left, const __half& right) {
-        return equals_helper<float>::call(float(left), float(right));
+        return equals_helper<float>::call(__half2float(left), __half2float(right));
     }
 };
 
@@ -138,7 +149,7 @@ struct approx_helper<float> {
 template<>
 struct approx_helper<__half> {
     static __host__ __device__ bool call(__half left, __half right) {
-        return approx_helper<double>::call(float(left), float(right), 0.01);
+        return approx_helper<double>::call(__half2float(left), __half2float(right), 0.01);
     }
 };
 
@@ -226,7 +237,7 @@ struct generator_value<T, std::enable_if_t<std::is_floating_point_v<T>>> {
 template<>
 struct generator_value<__half> {
     __host__ __device__ static __half call(uint64_t seed) {
-        return __half(generator_value<float>::call(seed));
+        return __float2half(generator_value<float>::call(seed));
     }
 };
 

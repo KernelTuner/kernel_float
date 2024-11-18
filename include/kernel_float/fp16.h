@@ -4,6 +4,11 @@
 #include "macros.h"
 
 #if KERNEL_FLOAT_FP16_AVAILABLE
+//#define CUDA_NO_HALF (1)
+//#define __CUDA_NO_HALF_OPERATORS__ (1)
+//#define __CUDA_NO_HALF2_OPERATORS__ (1)
+//#define __CUDA_NO_HALF_CONVERSIONS__ (1)
+
 #if KERNEL_FLOAT_IS_CUDA
 #include <cuda_fp16.h>
 #elif KERNEL_FLOAT_IS_HIP
@@ -64,41 +69,44 @@ struct allow_float_fallback<__half> {
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
-KERNEL_FLOAT_FP16_UNARY_FUN(abs, __habs, __habs2)
-KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
-KERNEL_FLOAT_FP16_UNARY_FUN(ceil, hceil, h2ceil)
+KERNEL_FLOAT_FP16_UNARY_FUN(sin, hsin, h2sin)
 KERNEL_FLOAT_FP16_UNARY_FUN(cos, hcos, h2cos)
+
 KERNEL_FLOAT_FP16_UNARY_FUN(exp, hexp, h2exp)
 KERNEL_FLOAT_FP16_UNARY_FUN(exp10, hexp10, h2exp10)
-KERNEL_FLOAT_FP16_UNARY_FUN(floor, hfloor, h2floor)
 KERNEL_FLOAT_FP16_UNARY_FUN(log, hlog, h2log)
 KERNEL_FLOAT_FP16_UNARY_FUN(log10, hlog10, h2log2)
-KERNEL_FLOAT_FP16_UNARY_FUN(rint, hrint, h2rint)
-KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, hrsqrt, h2rsqrt)
-KERNEL_FLOAT_FP16_UNARY_FUN(sin, hsin, h2sin)
+
 KERNEL_FLOAT_FP16_UNARY_FUN(sqrt, hsqrt, h2sqrt)
-KERNEL_FLOAT_FP16_UNARY_FUN(trunc, htrunc, h2trunc)
+KERNEL_FLOAT_FP16_UNARY_FUN(rsqrt, hrsqrt, h2rsqrt)
 KERNEL_FLOAT_FP16_UNARY_FUN(rcp, hrcp, h2rcp)
 
+KERNEL_FLOAT_FP16_UNARY_FUN(abs, __habs, __habs2)
+KERNEL_FLOAT_FP16_UNARY_FUN(floor, hfloor, h2floor)
+KERNEL_FLOAT_FP16_UNARY_FUN(ceil, hceil, h2ceil)
+KERNEL_FLOAT_FP16_UNARY_FUN(rint, hrint, h2rint)
+KERNEL_FLOAT_FP16_UNARY_FUN(trunc, htrunc, h2trunc)
+KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
+
 #if KERNEL_FLOAT_IS_DEVICE
-#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                              \
-    namespace ops {                                                                 \
-    template<>                                                                      \
-    struct NAME<__half> {                                                           \
-        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const {    \
-            return FUN1(left, right);                                               \
-        }                                                                           \
-    };                                                                              \
-    }                                                                               \
-    namespace detail {                                                              \
-    template<>                                                                      \
-    struct apply_impl<ops::NAME<__half>, 2, __half, __half, __half> {               \
-        KERNEL_FLOAT_INLINE static void                                             \
-        call(ops::NAME<__half>, __half* result, const __half* a, const __half* b) { \
-            __half2 r = FUN2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]});           \
-            result[0] = r.x, result[1] = r.y;                                       \
-        }                                                                           \
-    };                                                                              \
+#define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                   \
+    namespace ops {                                                                      \
+    template<>                                                                           \
+    struct NAME<__half> {                                                                \
+        KERNEL_FLOAT_INLINE __half operator()(__half left, __half right) const {         \
+            return ops::cast<decltype(FUN1(left, right)), __half> {}(FUN1(left, right)); \
+        }                                                                                \
+    };                                                                                   \
+    }                                                                                    \
+    namespace detail {                                                                   \
+    template<>                                                                           \
+    struct apply_impl<ops::NAME<__half>, 2, __half, __half, __half> {                    \
+        KERNEL_FLOAT_INLINE static void                                                  \
+        call(ops::NAME<__half>, __half* result, const __half* a, const __half* b) {      \
+            __half2 r = FUN2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]});                \
+            result[0] = r.x, result[1] = r.y;                                            \
+        }                                                                                \
+    };                                                                                   \
     }
 #else
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)
@@ -190,13 +198,13 @@ KERNEL_FLOAT_FP16_CAST(char, __int2half_rn(input), (char)__half2int_rz(input));
 KERNEL_FLOAT_FP16_CAST(signed char, __int2half_rn(input), (signed char)__half2int_rz(input));
 KERNEL_FLOAT_FP16_CAST(unsigned char, __int2half_rn(input), (unsigned char)__half2int_rz(input));
 
-KERNEL_FLOAT_FP16_CAST(signed short, __half2short_rz(input), __short2half_rn(input));
-KERNEL_FLOAT_FP16_CAST(signed int, __half2int_rz(input), __int2half_rn(input));
+KERNEL_FLOAT_FP16_CAST(signed short, __short2half_rn(input), __half2short_rz(input));
+KERNEL_FLOAT_FP16_CAST(signed int, __int2half_rn(input), __half2int_rz(input));
 KERNEL_FLOAT_FP16_CAST(signed long, __ll2half_rn(input), (signed long)(__half2ll_rz(input)));
 KERNEL_FLOAT_FP16_CAST(signed long long, __ll2half_rn(input), __half2ll_rz(input));
 
-KERNEL_FLOAT_FP16_CAST(unsigned short, __half2ushort_rz(input), __ushort2half_rn(input));
-KERNEL_FLOAT_FP16_CAST(unsigned int, __half2uint_rz(input), __uint2half_rn(input));
+KERNEL_FLOAT_FP16_CAST(unsigned short, __ushort2half_rn(input), __half2ushort_rz(input));
+KERNEL_FLOAT_FP16_CAST(unsigned int, __uint2half_rn(input), __half2uint_rz(input));
 KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__half2ull_rz(input)));
 KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
 #endif
