@@ -225,7 +225,7 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, EXPR_F32)                       \
     namespace detail {                                                                \
     template<>                                                                        \
-    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                  \
+    struct apply_impl<fast_policy, ops::F<T>, 1, T, T> {                              \
         KERNEL_FLOAT_INLINE static void call(ops::F<T>, T* result, const T* inputs) { \
             T input = inputs[0];                                                      \
             *result = EXPR_F32;                                                       \
@@ -248,7 +248,7 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, tan, __tanf(input))
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
     template<>                                                                            \
-    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                      \
+    struct apply_impl<fast_policy, ops::F<T>, 1, T, T> {                                  \
         KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
             asm(INSTR " %0, %1;" : "=" REG(*result) : REG(*inputs));                      \
         }                                                                                 \

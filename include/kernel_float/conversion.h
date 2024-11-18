@@ -17,7 +17,10 @@ struct convert_impl {
     static vector_storage<T2, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
         vector_storage<T2, extent_size<E>> intermediate;
-        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, intermediate.data(), input.data());
+        detail::default_map_impl<F, extent_size<E>, T2, T>::call(
+            F {},
+            intermediate.data(),
+            input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -48,7 +51,7 @@ struct convert_impl<T, E, T2, E, M> {
         using F = ops::cast<T, T2, M>;
 
         vector_storage<T2, extent_size<E>> result;
-        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
+        detail::default_map_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
         return result;
     }
 };

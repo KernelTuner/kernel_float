@@ -25,13 +25,13 @@ kf::vec<float, 4> c = kf::fast_rcp(x);
 kf::vec<float, 4> d = kf::fast_div(a, b);
 ```
 
-These functions are only functional for 32-bit and 16-bit floats. 
+These functions are only functional for 32-bit and 16-bit floats.
 For other input types, the operation falls back to the regular version.
 
 ## Approximate Math
 
-For 16-bit floats, several approximate functions are provided. 
-These use approximations (typically low-degree polynomials) to calculate rough estimates of the functions. 
+For 16-bit floats, several approximate functions are provided.
+These use approximations (typically low-degree polynomials) to calculate rough estimates of the functions.
 This can be very fast but also less accurate.
 
 
@@ -69,14 +69,15 @@ kf::vec<half, 4> a = kf::approx_sin<3>(x);
 
 ## Tuning Accuracy Level
 
-Many functions in Kernel Float accept an additional Accuracy option as a template parameter. 
+Many functions in Kernel Float accept an additional `Accuracy` option as a template parameter.
 This allows you to tune the accuracy level without changing the function name.
 
-There are four possible values for this parameter:
+There are five possible values for this parameter:
 
 - `kf::accurate_policy`: Use the most accurate version of the function available.
 - `kf::fast_policy`: Use the "fast math" version.
-- `kf::approx_policy<N>`: Use the approximate version with degree `N`.
+- `kf::approx_level_policy<N>`: Use the approximate version with accuracy level `N` (higher is more accurate).
+- `kf::approx_policy`: Use the approximate version with a default accuracy level.
 - `kf::default_policy`: Use a global default policy (see the next section).
 
 For example, consider this code:
@@ -97,15 +98,19 @@ kf::vec<float, 2> c = kf::cos<kf::accurate_policy>(input);
 kf::vec<float, 2> d = kf::cos<kf::fast_policy>(input);
 
 // Use the approximate policy
-kf::vec<float, 2> e = kf::cos<kf::approx_policy<3>>(input);
+kf::vec<float, 2> e = kf::cos<kf::approx_policy>(input);
+
+// Use the approximate policy with degree 3 polynomial.
+kf::vec<float, 2> f = kf::cos<kf::approx_level_policy<3>>(input);
 
 // You can use aliases to define your own policy
 using my_own_policy = kf::fast_policy;
-kf::vec<float, 2> f = kf::cos<my_own_policy>(input);
+kf::vec<float, 2> g = kf::cos<my_own_policy>(input);
 ```
 
 ## Setting `default_policy`
 
+If no policy is explicitly set, any function use the `kf::default_policy`.
 By default, `kf::default_policy` is set to `kf::accurate_policy`.
 
 Set the preprocessor option `KERNEL_FLOAT_FAST_MATH=1` to change the default policy to `kf::fast_policy`.

@@ -52,7 +52,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, extent_size<E>> result;
 
-    detail::map_impl<F, extent_size<E>, O, T, T>::call(
+    detail::default_map_impl<F, extent_size<E>, O, T, T>::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -290,21 +290,25 @@ struct multiply<bool> {
 };  // namespace ops
 
 namespace detail {
-template<typename T, size_t N>
-struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
+template<typename Policy, typename T, size_t N>
+struct apply_impl<Policy, ops::divide<T>, N, T, T, T> {
     KERNEL_FLOAT_INLINE static void
     call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
         T rhs_rcp[N];
 
         // Fast way to perform division is to multiply by the reciprocal
-        apply_fastmath_impl<ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
-        apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
+        apply_impl<Policy, ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
+        apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
 };
 
+template<typename T, size_t N>
+struct apply_impl<accurate_policy, ops::divide<T>, N, T, T, T>:
+    apply_base_impl<accurate_policy, ops::divide<T>, N, T, T, T> {};
+
 #if KERNEL_FLOAT_IS_DEVICE
 template<>
-struct apply_fastmath_impl<ops::divide<float>, 1, float, float, float> {
+struct apply_impl<fast_policy, ops::divide<float>, 1, float, float, float> {
     KERNEL_FLOAT_INLINE static void
     call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
         *result = __fdividef(*lhs, *rhs);
@@ -319,7 +323,7 @@ fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::map_policy_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
+    detail::map_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(

@@ -61,24 +61,24 @@ struct allow_float_fallback<__bfloat16> {
 };  // namespace detail
 
 #if KERNEL_FLOAT_BF16_OPS_SUPPORTED
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                          \
-    namespace ops {                                                            \
-    template<>                                                                 \
-    struct NAME<__bfloat16> {                                                  \
-        KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 input) {          \
-            return FUN1(input);                                                \
-        }                                                                      \
-    };                                                                         \
-    }                                                                          \
-    namespace detail {                                                         \
-    template<>                                                                 \
-    struct apply_impl<ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16> {      \
-        KERNEL_FLOAT_INLINE static void                                        \
-        call(ops::NAME<__bfloat16>, __bfloat16* result, const __bfloat16* a) { \
-            __bfloat162 r = FUN2(__bfloat162 {a[0], a[1]});                    \
-            result[0] = r.x, result[1] = r.y;                                  \
-        }                                                                      \
-    };                                                                         \
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                                      \
+    namespace ops {                                                                        \
+    template<>                                                                             \
+    struct NAME<__bfloat16> {                                                              \
+        KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 input) {                      \
+            return FUN1(input);                                                            \
+        }                                                                                  \
+    };                                                                                     \
+    }                                                                                      \
+    namespace detail {                                                                     \
+    template<>                                                                             \
+    struct apply_impl<accurate_policy, ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16> { \
+        KERNEL_FLOAT_INLINE static void                                                    \
+        call(ops::NAME<__bfloat16>, __bfloat16* result, const __bfloat16* a) {             \
+            __bfloat162 r = FUN2(__bfloat162 {a[0], a[1]});                                \
+            result[0] = r.x, result[1] = r.y;                                              \
+        }                                                                                  \
+    };                                                                                     \
     }
 
 KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
@@ -115,7 +115,13 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
     }                                                                                        \
     namespace detail {                                                                       \
     template<>                                                                               \
-    struct apply_impl<ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16, __bfloat16> {        \
+    struct apply_impl<                                                                       \
+        accurate_policy,                                                                     \
+        ops::NAME<__bfloat16>,                                                               \
+        2,                                                                                   \
+        __bfloat16,                                                                          \
+        __bfloat16,                                                                          \
+        __bfloat16> {                                                                        \
         KERNEL_FLOAT_INLINE static void call(                                                \
             ops::NAME<__bfloat16>,                                                           \
             __bfloat16* result,                                                              \
@@ -154,7 +160,14 @@ struct fma<__bfloat16> {
 
 namespace detail {
 template<>
-struct apply_impl<ops::fma<__bfloat16>, 2, __bfloat16, __bfloat16, __bfloat16, __bfloat16> {
+struct apply_impl<
+    accurate_policy,
+    ops::fma<__bfloat16>,
+    2,
+    __bfloat16,
+    __bfloat16,
+    __bfloat16,
+    __bfloat16> {
     KERNEL_FLOAT_INLINE static void call(
         ops::fma<__bfloat16>,
         __bfloat16* result,

@@ -58,7 +58,7 @@ struct allow_float_fallback<__half> {
     }                                                                                              \
     namespace detail {                                                                             \
     template<>                                                                                     \
-    struct apply_impl<ops::NAME<__half>, 2, __half, __half> {                                      \
+    struct apply_impl<accurate_policy, ops::NAME<__half>, 2, __half, __half> {                     \
         KERNEL_FLOAT_INLINE static void call(ops::NAME<__half>, __half* result, const __half* a) { \
             __half2 r = FUN2(__half2 {a[0], a[1]});                                                \
             result[0] = r.x, result[1] = r.y;                                                      \
@@ -102,7 +102,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
     }                                                                                    \
     namespace detail {                                                                   \
     template<>                                                                           \
-    struct apply_impl<ops::NAME<__half>, 2, __half, __half, __half> {                    \
+    struct apply_impl<accurate_policy, ops::NAME<__half>, 2, __half, __half, __half> {   \
         KERNEL_FLOAT_INLINE static void                                                  \
         call(ops::NAME<__half>, __half* result, const __half* a, const __half* b) {      \
             __half2 r = FUN2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]});                \
@@ -144,7 +144,7 @@ struct fma<__half> {
 
 namespace detail {
 template<>
-struct apply_impl<ops::fma<__half>, 2, __half, __half, __half, __half> {
+struct apply_impl<accurate_policy, ops::fma<__half>, 2, __half, __half, __half, __half> {
     KERNEL_FLOAT_INLINE static void
     call(ops::fma<__half>, __half* result, const __half* a, const __half* b, const __half* c) {
         __half2 r = __hfma2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]}, __half2 {c[0], c[1]});

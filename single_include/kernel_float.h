@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-11-18 12:11:06.609851
-// git hash: de62ad0ced81f2d5129b31bfb621fcbc0ce161e9
+// date: 2024-11-18 13:09:09.880139
+// git hash: 5bd24b5f693cf68213714f0e9fd2d471abe04e66
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -783,10 +783,49 @@ broadcast_like(const V& input, const R& other) {
     return broadcast(input, vector_extent_type<R> {});
 }
 
+/**
+ * The accurate_policy is designed for computations where maximum accuracy is essential. This policy ensures that all
+ * operations are performed without any approximations or optimizations that could potentially alter the precise
+ * outcome of the computations
+ */
+struct accurate_policy {};
+
+/**
+ * The fast_policy is intended for scenarios where performance and execution speed are more critical than achieving
+ * the utmost accuracy. This policy leverages optimizations to accelerate computations, which may involve
+ * approximations that slightly compromise precision.
+ */
+struct fast_policy {};
+
+/**
+ * This template policy allows developers to specify a custom degree of approximation for their computations. By
+ * adjusting the `Level` parameter, you can fine-tune the balance between accuracy and performance to meet the
+ * specific needs of your application. Higher values mean more precision.
+ */
+template<int Level = -1>
+struct approx_level_policy {};
+
+/**
+ * The approximate_policy serves as the default approximation policy, providing a standard level of approximation
+ * without requiring explicit configuration. It balances accuracy and performance, making it suitable for
+ * general-purpose use cases where neither extreme precision nor maximum speed is necessary.
+ */
+using approx_policy = approx_level_policy<>;
+
+#ifndef KERNEL_FLOAT_POLICY
+#define KERNEL_FLOAT_POLICY accurate_policy;
+#endif
+
+/**
+ * The `default_policy` acts as the standard computation policy. It can be configured externally using the
+ * `KERNEL_FLOAT_POLICY` macro. If `KERNEL_FLOAT_POLICY` is not defined, it defaults to `accurate_policy`.
+ */
+using default_policy = KERNEL_FLOAT_POLICY;
+
 namespace detail {
 
-template<typename F, size_t N, typename Output, typename... Args>
-struct apply_impl {
+template<typename Policy, typename F, size_t N, typename Output, typename... Args>
+struct apply_base_impl {
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
@@ -795,41 +834,23 @@ struct apply_impl {
     }
 };
 
+template<typename Policy, typename F, size_t N, typename Output, typename... Args>
+struct apply_impl: apply_base_impl<Policy, F, N, Output, Args...> {};
+
 template<typename F, size_t N, typename Output, typename... Args>
-struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
+struct apply_base_impl<fast_policy, F, N, Output, Args...>:
+    apply_impl<accurate_policy, F, N, Output, Args...> {};
 
-template<int Deg, typename F, size_t N, typename Output, typename... Args>
-struct apply_approx_impl: apply_fastmath_impl<F, N, Output, Args...> {};
-}  // namespace detail
+template<typename F, size_t N, typename Output, typename... Args>
+struct apply_base_impl<approx_policy, F, N, Output, Args...>:
+    apply_impl<fast_policy, F, N, Output, Args...> {};
 
-struct accurate_policy {
-    template<typename F, size_t N, typename Output, typename... Args>
-    using type = detail::apply_impl<F, N, Output, Args...>;
-};
-
-struct fast_policy {
-    template<typename F, size_t N, typename Output, typename... Args>
-    using type = detail::apply_fastmath_impl<F, N, Output, Args...>;
-};
-
-template<int Degree = -1>
-struct approximate_policy {
-    template<typename F, size_t N, typename Output, typename... Args>
-    using type = detail::apply_approx_impl<Degree, F, N, Output, Args...>;
-};
-
-using default_approximate_policy = approximate_policy<>;
-
-#ifdef KERNEL_FLOAT_POLICY
-using default_policy = KERNEL_FLOAT_POLICY;
-#else
-using default_policy = accurate_policy;
-#endif
-
-namespace detail {
+template<int Level, typename F, size_t N, typename Output, typename... Args>
+struct apply_base_impl<approx_level_policy<Level>, F, N, Output, Args...>:
+    apply_impl<approx_policy, F, N, Output, Args...> {};
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
-struct map_policy_impl {
+struct map_impl {
     static constexpr size_t packet_size = preferred_vector_size<Output>::value;
     static constexpr size_t remainder = N % packet_size;
 
@@ -837,7 +858,7 @@ struct map_policy_impl {
         if constexpr (N / packet_size > 0) {
 #pragma unroll
             for (size_t i = 0; i < N - remainder; i += packet_size) {
-                Policy::template type<F, packet_size, Output, Args...>::call(
+                apply_impl<Policy, F, packet_size, Output, Args...>::call(
                     fun,
                     output + i,
                     (args + i)...);
@@ -847,14 +868,14 @@ struct map_policy_impl {
         if constexpr (remainder > 0) {
 #pragma unroll
             for (size_t i = N - remainder; i < N; i++) {
-                Policy::template type<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
+                apply_impl<Policy, F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
             }
         }
     }
 };
 
 template<typename F, size_t N, typename Output, typename... Args>
-using map_impl = map_policy_impl<default_policy, F, N, Output, Args...>;
+using default_map_impl = map_impl<default_policy, F, N, Output, Args...>;
 
 }  // namespace detail
 
@@ -878,7 +899,7 @@ KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using E = broadcast_vector_extent_type<Args...>;
     vector_storage<Output, extent_size<E>> result;
 
-    detail::map_policy_impl<Accuracy, F, extent_size<E>, Output, vector_value_type<Args>...>::call(
+    detail::map_impl<Accuracy, F, extent_size<E>, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
@@ -1367,7 +1388,7 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, EXPR_F32)                       \
     namespace detail {                                                                \
     template<>                                                                        \
-    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                  \
+    struct apply_impl<fast_policy, ops::F<T>, 1, T, T> {                              \
         KERNEL_FLOAT_INLINE static void call(ops::F<T>, T* result, const T* inputs) { \
             T input = inputs[0];                                                      \
             *result = EXPR_F32;                                                       \
@@ -1390,7 +1411,7 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, tan, __tanf(input))
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
     template<>                                                                            \
-    struct apply_fastmath_impl<ops::F<T>, 1, T, T> {                                      \
+    struct apply_impl<fast_policy, ops::F<T>, 1, T, T> {                                  \
         KERNEL_FLOAT_INLINE static void call(ops::F<T> fun, T* result, const T* inputs) { \
             asm(INSTR " %0, %1;" : "=" REG(*result) : REG(*inputs));                      \
         }                                                                                 \
@@ -1434,7 +1455,10 @@ struct convert_impl {
     static vector_storage<T2, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
         vector_storage<T2, extent_size<E>> intermediate;
-        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, intermediate.data(), input.data());
+        detail::default_map_impl<F, extent_size<E>, T2, T>::call(
+            F {},
+            intermediate.data(),
+            input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -1465,7 +1489,7 @@ struct convert_impl<T, E, T2, E, M> {
         using F = ops::cast<T, T2, M>;
 
         vector_storage<T2, extent_size<E>> result;
-        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
+        detail::default_map_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
         return result;
     }
 };
@@ -1686,7 +1710,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, extent_size<E>> result;
 
-    detail::map_impl<F, extent_size<E>, O, T, T>::call(
+    detail::default_map_impl<F, extent_size<E>, O, T, T>::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -1924,21 +1948,25 @@ struct multiply<bool> {
 };  // namespace ops
 
 namespace detail {
-template<typename T, size_t N>
-struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
+template<typename Policy, typename T, size_t N>
+struct apply_impl<Policy, ops::divide<T>, N, T, T, T> {
     KERNEL_FLOAT_INLINE static void
     call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
         T rhs_rcp[N];
 
         // Fast way to perform division is to multiply by the reciprocal
-        apply_fastmath_impl<ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
-        apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
+        apply_impl<Policy, ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
+        apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
 };
 
+template<typename T, size_t N>
+struct apply_impl<accurate_policy, ops::divide<T>, N, T, T, T>:
+    apply_base_impl<accurate_policy, ops::divide<T>, N, T, T, T> {};
+
 #if KERNEL_FLOAT_IS_DEVICE
 template<>
-struct apply_fastmath_impl<ops::divide<float>, 1, float, float, float> {
+struct apply_impl<fast_policy, ops::divide<float>, 1, float, float, float> {
     KERNEL_FLOAT_INLINE static void
     call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
         *result = __fdividef(*lhs, *rhs);
@@ -1953,7 +1981,7 @@ fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::map_policy_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
+    detail::map_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -3114,7 +3142,7 @@ KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, cons
     using F = ops::conditional<T>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::map_impl<F, extent_size<E>, T, bool, T, T>::call(
+    detail::default_map_impl<F, extent_size<E>, T, bool, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
@@ -3171,13 +3199,13 @@ struct fma {
 }  // namespace ops
 
 namespace detail {
-template<typename T, size_t N>
-struct apply_impl<ops::fma<T>, N, T, T, T, T> {
+template<typename Policy, typename T, size_t N>
+struct apply_impl<Policy, ops::fma<T>, N, T, T, T, T> {
     KERNEL_FLOAT_INLINE
     static void call(ops::fma<T>, T* output, const T* a, const T* b, const T* c) {
         T temp[N];
-        apply_impl<ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
-        apply_impl<ops::add<T>, N, T, T, T>::call({}, output, temp, c);
+        apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
+        apply_impl<Policy, ops::add<T>, N, T, T, T>::call({}, output, temp, c);
     }
 };
 }  // namespace detail
@@ -3213,7 +3241,7 @@ KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::map_impl<F, extent_size<E>, T, T, T, T>::call(
+    detail::default_map_impl<F, extent_size<E>, T, T, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(
@@ -3258,7 +3286,7 @@ struct reduce_recur_impl {
     template<typename F, typename T>
     KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
         vector_storage<T, K> temp;
-        map_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
+        default_map_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
 
         if constexpr (N < 2 * K) {
 #pragma unroll
@@ -3417,11 +3445,11 @@ struct dot_impl {
 
         if constexpr (N / K > 0) {
             T accum[K] = {T {}};
-            apply_impl<ops::multiply<T>, K, T, T, T>::call({}, accum, left, right);
+            apply_impl<default_policy, ops::multiply<T>, K, T, T, T>::call({}, accum, left, right);
 
 #pragma unroll
             for (size_t i = 1; i < N / K; i++) {
-                apply_impl<ops::fma<T>, K, T, T, T, T>::call(
+                apply_impl<default_policy, ops::fma<T>, K, T, T, T, T>::call(
                     ops::fma<T> {},
                     accum,
                     left + i * K,
@@ -3434,7 +3462,7 @@ struct dot_impl {
 
         if constexpr (N % K > 0) {
             for (size_t i = N - N % K; i < N; i++) {
-                apply_impl<ops::fma<T>, 1, T, T, T, T>::call(
+                apply_impl<default_policy, ops::fma<T>, 1, T, T, T, T>::call(
                     {},
                     &result,
                     left + i,
@@ -3981,7 +4009,7 @@ struct allow_float_fallback<__half> {
     }                                                                                              \
     namespace detail {                                                                             \
     template<>                                                                                     \
-    struct apply_impl<ops::NAME<__half>, 2, __half, __half> {                                      \
+    struct apply_impl<accurate_policy, ops::NAME<__half>, 2, __half, __half> {                     \
         KERNEL_FLOAT_INLINE static void call(ops::NAME<__half>, __half* result, const __half* a) { \
             __half2 r = FUN2(__half2 {a[0], a[1]});                                                \
             result[0] = r.x, result[1] = r.y;                                                      \
@@ -4025,7 +4053,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
     }                                                                                    \
     namespace detail {                                                                   \
     template<>                                                                           \
-    struct apply_impl<ops::NAME<__half>, 2, __half, __half, __half> {                    \
+    struct apply_impl<accurate_policy, ops::NAME<__half>, 2, __half, __half, __half> {   \
         KERNEL_FLOAT_INLINE static void                                                  \
         call(ops::NAME<__half>, __half* result, const __half* a, const __half* b) {      \
             __half2 r = FUN2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]});                \
@@ -4067,7 +4095,7 @@ struct fma<__half> {
 
 namespace detail {
 template<>
-struct apply_impl<ops::fma<__half>, 2, __half, __half, __half, __half> {
+struct apply_impl<accurate_policy, ops::fma<__half>, 2, __half, __half, __half, __half> {
     KERNEL_FLOAT_INLINE static void
     call(ops::fma<__half>, __half* result, const __half* a, const __half* b, const __half* c) {
         __half2 r = __hfma2(__half2 {a[0], a[1]}, __half2 {b[0], b[1]}, __half2 {c[0], c[1]});
@@ -4207,24 +4235,24 @@ struct allow_float_fallback<__bfloat16> {
 };  // namespace detail
 
 #if KERNEL_FLOAT_BF16_OPS_SUPPORTED
-#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                          \
-    namespace ops {                                                            \
-    template<>                                                                 \
-    struct NAME<__bfloat16> {                                                  \
-        KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 input) {          \
-            return FUN1(input);                                                \
-        }                                                                      \
-    };                                                                         \
-    }                                                                          \
-    namespace detail {                                                         \
-    template<>                                                                 \
-    struct apply_impl<ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16> {      \
-        KERNEL_FLOAT_INLINE static void                                        \
-        call(ops::NAME<__bfloat16>, __bfloat16* result, const __bfloat16* a) { \
-            __bfloat162 r = FUN2(__bfloat162 {a[0], a[1]});                    \
-            result[0] = r.x, result[1] = r.y;                                  \
-        }                                                                      \
-    };                                                                         \
+#define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                                      \
+    namespace ops {                                                                        \
+    template<>                                                                             \
+    struct NAME<__bfloat16> {                                                              \
+        KERNEL_FLOAT_INLINE __bfloat16 operator()(__bfloat16 input) {                      \
+            return FUN1(input);                                                            \
+        }                                                                                  \
+    };                                                                                     \
+    }                                                                                      \
+    namespace detail {                                                                     \
+    template<>                                                                             \
+    struct apply_impl<accurate_policy, ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16> { \
+        KERNEL_FLOAT_INLINE static void                                                    \
+        call(ops::NAME<__bfloat16>, __bfloat16* result, const __bfloat16* a) {             \
+            __bfloat162 r = FUN2(__bfloat162 {a[0], a[1]});                                \
+            result[0] = r.x, result[1] = r.y;                                              \
+        }                                                                                  \
+    };                                                                                     \
     }
 
 KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
@@ -4261,7 +4289,13 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
     }                                                                                        \
     namespace detail {                                                                       \
     template<>                                                                               \
-    struct apply_impl<ops::NAME<__bfloat16>, 2, __bfloat16, __bfloat16, __bfloat16> {        \
+    struct apply_impl<                                                                       \
+        accurate_policy,                                                                     \
+        ops::NAME<__bfloat16>,                                                               \
+        2,                                                                                   \
+        __bfloat16,                                                                          \
+        __bfloat16,                                                                          \
+        __bfloat16> {                                                                        \
         KERNEL_FLOAT_INLINE static void call(                                                \
             ops::NAME<__bfloat16>,                                                           \
             __bfloat16* result,                                                              \
@@ -4300,7 +4334,14 @@ struct fma<__bfloat16> {
 
 namespace detail {
 template<>
-struct apply_impl<ops::fma<__bfloat16>, 2, __bfloat16, __bfloat16, __bfloat16, __bfloat16> {
+struct apply_impl<
+    accurate_policy,
+    ops::fma<__bfloat16>,
+    2,
+    __bfloat16,
+    __bfloat16,
+    __bfloat16,
+    __bfloat16> {
     KERNEL_FLOAT_INLINE static void call(
         ops::fma<__bfloat16>,
         __bfloat16* result,
@@ -4753,25 +4794,25 @@ KERNEL_FLOAT_DEVICE __bfloat162 exp(__bfloat162 arg) {
 #endif
 }  // namespace approx
 
-#define KERNEL_FLOAT_DEFINE_APPROX_FUN(FULL_NAME, FUN, DEG)                        \
-    namespace detail {                                                             \
-    template<int Degree>                                                           \
-    struct apply_approx_impl<Deg, ops::FUN<__half>, 2, __half, __half> {           \
-        KERNEL_FLOAT_INLINE static void                                            \
-        call(ops::FUN<__half> fun, __half* output, const __half* input) {          \
-            __half2 res = approx::FUN<Degree>(__half2 {input[0], input[1]});       \
-            output[0] = res.x;                                                     \
-            output[1] = res.y;                                                     \
-        }                                                                          \
-    };                                                                             \
-    template<>                                                                     \
-    struct apply_approx_impl<-1, ops::FUN<__half>, 2, __half, __half>:             \
-        apply_approx_impl<DEG, ops::FUN<__half>, 2, __half, __half> {};            \
-    }                                                                              \
-                                                                                   \
-    template<typename V>                                                           \
-    KERNEL_FLOAT_INLINE into_vector_type<V> approx_##FUN(const V& args) {          \
-        return map<approximate_policy<>>(ops::FUN<vector_value_type<V>> {}, args); \
+#define KERNEL_FLOAT_DEFINE_APPROX_FUN(FULL_NAME, FUN, DEG)                               \
+    namespace detail {                                                                    \
+    template<int Degree>                                                                  \
+    struct apply_impl<approx_level_policy<Degree>, ops::FUN<__half>, 2, __half, __half> { \
+        KERNEL_FLOAT_INLINE static void                                                   \
+        call(ops::FUN<__half> fun, __half* output, const __half* input) {                 \
+            __half2 res = approx::FUN<Degree>(__half2 {input[0], input[1]});              \
+            output[0] = res.x;                                                            \
+            output[1] = res.y;                                                            \
+        }                                                                                 \
+    };                                                                                    \
+    template<>                                                                            \
+    struct apply_impl<approx_policy, ops::FUN<__half>, 2, __half, __half>:                \
+        apply_impl<approx_level_policy<DEG>, ops::FUN<__half>, 2, __half, __half> {};     \
+    }                                                                                     \
+                                                                                          \
+    template<int Level = -1, typename V>                                                  \
+    KERNEL_FLOAT_INLINE into_vector_type<V> approx_##FUN(const V& args) {                 \
+        return map<approx_level_policy<Level>>(ops::FUN<vector_value_type<V>> {}, args);  \
     }
 
 KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_sin, sin, 4)

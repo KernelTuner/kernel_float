@@ -359,25 +359,25 @@ KERNEL_FLOAT_DEVICE __bfloat162 exp(__bfloat162 arg) {
 #endif
 }  // namespace approx
 
-#define KERNEL_FLOAT_DEFINE_APPROX_FUN(FULL_NAME, FUN, DEG)                        \
-    namespace detail {                                                             \
-    template<int Degree>                                                           \
-    struct apply_approx_impl<Deg, ops::FUN<__half>, 2, __half, __half> {           \
-        KERNEL_FLOAT_INLINE static void                                            \
-        call(ops::FUN<__half> fun, __half* output, const __half* input) {          \
-            __half2 res = approx::FUN<Degree>(__half2 {input[0], input[1]});       \
-            output[0] = res.x;                                                     \
-            output[1] = res.y;                                                     \
-        }                                                                          \
-    };                                                                             \
-    template<>                                                                     \
-    struct apply_approx_impl<-1, ops::FUN<__half>, 2, __half, __half>:             \
-        apply_approx_impl<DEG, ops::FUN<__half>, 2, __half, __half> {};            \
-    }                                                                              \
-                                                                                   \
-    template<typename V>                                                           \
-    KERNEL_FLOAT_INLINE into_vector_type<V> approx_##FUN(const V& args) {          \
-        return map<approximate_policy<>>(ops::FUN<vector_value_type<V>> {}, args); \
+#define KERNEL_FLOAT_DEFINE_APPROX_FUN(FULL_NAME, FUN, DEG)                               \
+    namespace detail {                                                                    \
+    template<int Degree>                                                                  \
+    struct apply_impl<approx_level_policy<Degree>, ops::FUN<__half>, 2, __half, __half> { \
+        KERNEL_FLOAT_INLINE static void                                                   \
+        call(ops::FUN<__half> fun, __half* output, const __half* input) {                 \
+            __half2 res = approx::FUN<Degree>(__half2 {input[0], input[1]});              \
+            output[0] = res.x;                                                            \
+            output[1] = res.y;                                                            \
+        }                                                                                 \
+    };                                                                                    \
+    template<>                                                                            \
+    struct apply_impl<approx_policy, ops::FUN<__half>, 2, __half, __half>:                \
+        apply_impl<approx_level_policy<DEG>, ops::FUN<__half>, 2, __half, __half> {};     \
+    }                                                                                     \
+                                                                                          \
+    template<int Level = -1, typename V>                                                  \
+    KERNEL_FLOAT_INLINE into_vector_type<V> approx_##FUN(const V& args) {                 \
+        return map<approx_level_policy<Level>>(ops::FUN<vector_value_type<V>> {}, args);  \
     }
 
 KERNEL_FLOAT_DEFINE_APPROX_FUN(approx_sin, sin, 4)

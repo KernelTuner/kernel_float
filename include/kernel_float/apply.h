@@ -116,10 +116,49 @@ broadcast_like(const V& input, const R& other) {
     return broadcast(input, vector_extent_type<R> {});
 }
 
+/**
+ * The accurate_policy is designed for computations where maximum accuracy is essential. This policy ensures that all
+ * operations are performed without any approximations or optimizations that could potentially alter the precise
+ * outcome of the computations
+ */
+struct accurate_policy {};
+
+/**
+ * The fast_policy is intended for scenarios where performance and execution speed are more critical than achieving
+ * the utmost accuracy. This policy leverages optimizations to accelerate computations, which may involve
+ * approximations that slightly compromise precision.
+ */
+struct fast_policy {};
+
+/**
+ * This template policy allows developers to specify a custom degree of approximation for their computations. By
+ * adjusting the `Level` parameter, you can fine-tune the balance between accuracy and performance to meet the
+ * specific needs of your application. Higher values mean more precision.
+ */
+template<int Level = -1>
+struct approx_level_policy {};
+
+/**
+ * The approximate_policy serves as the default approximation policy, providing a standard level of approximation
+ * without requiring explicit configuration. It balances accuracy and performance, making it suitable for
+ * general-purpose use cases where neither extreme precision nor maximum speed is necessary.
+ */
+using approx_policy = approx_level_policy<>;
+
+#ifndef KERNEL_FLOAT_POLICY
+#define KERNEL_FLOAT_POLICY accurate_policy;
+#endif
+
+/**
+ * The `default_policy` acts as the standard computation policy. It can be configured externally using the
+ * `KERNEL_FLOAT_POLICY` macro. If `KERNEL_FLOAT_POLICY` is not defined, it defaults to `accurate_policy`.
+ */
+using default_policy = KERNEL_FLOAT_POLICY;
+
 namespace detail {
 
-template<typename F, size_t N, typename Output, typename... Args>
-struct apply_impl {
+template<typename Policy, typename F, size_t N, typename Output, typename... Args>
+struct apply_base_impl {
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
@@ -128,41 +167,23 @@ struct apply_impl {
     }
 };
 
+template<typename Policy, typename F, size_t N, typename Output, typename... Args>
+struct apply_impl: apply_base_impl<Policy, F, N, Output, Args...> {};
+
 template<typename F, size_t N, typename Output, typename... Args>
-struct apply_fastmath_impl: apply_impl<F, N, Output, Args...> {};
+struct apply_base_impl<fast_policy, F, N, Output, Args...>:
+    apply_impl<accurate_policy, F, N, Output, Args...> {};
 
-template<int Deg, typename F, size_t N, typename Output, typename... Args>
-struct apply_approx_impl: apply_fastmath_impl<F, N, Output, Args...> {};
-}  // namespace detail
+template<typename F, size_t N, typename Output, typename... Args>
+struct apply_base_impl<approx_policy, F, N, Output, Args...>:
+    apply_impl<fast_policy, F, N, Output, Args...> {};
 
-struct accurate_policy {
-    template<typename F, size_t N, typename Output, typename... Args>
-    using type = detail::apply_impl<F, N, Output, Args...>;
-};
-
-struct fast_policy {
-    template<typename F, size_t N, typename Output, typename... Args>
-    using type = detail::apply_fastmath_impl<F, N, Output, Args...>;
-};
-
-template<int Degree = -1>
-struct approximate_policy {
-    template<typename F, size_t N, typename Output, typename... Args>
-    using type = detail::apply_approx_impl<Degree, F, N, Output, Args...>;
-};
-
-using default_approximate_policy = approximate_policy<>;
-
-#ifdef KERNEL_FLOAT_POLICY
-using default_policy = KERNEL_FLOAT_POLICY;
-#else
-using default_policy = accurate_policy;
-#endif
-
-namespace detail {
+template<int Level, typename F, size_t N, typename Output, typename... Args>
+struct apply_base_impl<approx_level_policy<Level>, F, N, Output, Args...>:
+    apply_impl<approx_policy, F, N, Output, Args...> {};
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
-struct map_policy_impl {
+struct map_impl {
     static constexpr size_t packet_size = preferred_vector_size<Output>::value;
     static constexpr size_t remainder = N % packet_size;
 
@@ -170,7 +191,7 @@ struct map_policy_impl {
         if constexpr (N / packet_size > 0) {
 #pragma unroll
             for (size_t i = 0; i < N - remainder; i += packet_size) {
-                Policy::template type<F, packet_size, Output, Args...>::call(
+                apply_impl<Policy, F, packet_size, Output, Args...>::call(
                     fun,
                     output + i,
                     (args + i)...);
@@ -180,14 +201,14 @@ struct map_policy_impl {
         if constexpr (remainder > 0) {
 #pragma unroll
             for (size_t i = N - remainder; i < N; i++) {
-                Policy::template type<F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
+                apply_impl<Policy, F, 1, Output, Args...>::call(fun, output + i, (args + i)...);
             }
         }
     }
 };
 
 template<typename F, size_t N, typename Output, typename... Args>
-using map_impl = map_policy_impl<default_policy, F, N, Output, Args...>;
+using default_map_impl = map_impl<default_policy, F, N, Output, Args...>;
 
 }  // namespace detail
 
@@ -211,7 +232,7 @@ KERNEL_FLOAT_INLINE map_type<F, Args...> map(F fun, const Args&... args) {
     using E = broadcast_vector_extent_type<Args...>;
     vector_storage<Output, extent_size<E>> result;
 
-    detail::map_policy_impl<Accuracy, F, extent_size<E>, Output, vector_value_type<Args>...>::call(
+    detail::map_impl<Accuracy, F, extent_size<E>, Output, vector_value_type<Args>...>::call(
         fun,
         result.data(),
         (detail::broadcast_impl<vector_value_type<Args>, vector_extent_type<Args>, E>::call(
