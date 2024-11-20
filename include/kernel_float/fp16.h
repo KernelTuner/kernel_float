@@ -154,6 +154,22 @@ struct apply_impl<accurate_policy, ops::fma<half_t>, 2, half_t, half_t, half_t, 
         result[0] = r.x, result[1] = r.y;
     }
 };
+
+// clang-format off
+#define KERNEL_FLOAT_FAST_FP16_DISPATCH(OP)                                                         \
+    template<size_t N>                                                                              \
+    struct apply_impl<fast_policy, ops::OP<half_t>, N, half_t, half_t> {                            \
+        KERNEL_FLOAT_INLINE static void                                                             \
+        call(ops::OP<half_t>, half_t* output, const half_t* input) {                                \
+            float v[N];                                                                             \
+            map_impl<fast_policy, ops::cast<half_t, float>, N, float, half_t>::call({}, v, input);  \
+            map_impl<fast_policy, ops::OP<float>, N, float, float>::call({}, v, v);                 \
+            map_impl<fast_policy, ops::cast<float, half_t>, N, half_t, float>::call({}, output, v); \
+        }                                                                                           \
+    };
+// clang-format on
+
+KERNEL_FLOAT_FAST_F32_MAP(KERNEL_FLOAT_FAST_FP16_DISPATCH)
 }  // namespace detail
 #endif
 

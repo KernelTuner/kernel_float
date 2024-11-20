@@ -181,6 +181,22 @@ struct apply_impl<
         result[0] = r.x, result[1] = r.y;
     }
 };
+
+// clang-format off
+#define KERNEL_FLOAT_FAST_BF16_DISPATCH(OP)                                                                 \
+    template<size_t N>                                                                                      \
+    struct apply_impl<fast_policy, ops::OP<bfloat16_t>, N, bfloat16_t, bfloat16_t> {                        \
+        KERNEL_FLOAT_INLINE static void                                                                     \
+        call(ops::OP<bfloat16_t>, bfloat16_t* output, const bfloat16_t* input) {                            \
+            float v[N];                                                                                     \
+            map_impl<fast_policy, ops::cast<bfloat16_t, float>, N, float, bfloat16_t>::call({}, v, input);  \
+            map_impl<fast_policy, ops::OP<float>, N, float, float>::call({}, v, v);                         \
+            map_impl<fast_policy, ops::cast<float, bfloat16_t>, N, bfloat16_t, float>::call({}, output, v); \
+        }                                                                                                   \
+    };
+// clang-format on
+
+KERNEL_FLOAT_FAST_F32_MAP(KERNEL_FLOAT_FAST_BF16_DISPATCH)
 }  // namespace detail
 #endif
 
