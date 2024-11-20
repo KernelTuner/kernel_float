@@ -146,7 +146,7 @@ struct approx_level_policy {};
 using approx_policy = approx_level_policy<>;
 
 #ifndef KERNEL_FLOAT_POLICY
-#define KERNEL_FLOAT_POLICY accurate_policy;
+#define KERNEL_FLOAT_POLICY accurate_policy
 #endif
 
 /**
