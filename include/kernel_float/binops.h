@@ -44,7 +44,7 @@ using zip_common_type = vector<
  * vec<float, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
  * ```
  */
-template<typename F, typename L, typename R>
+template<typename Accuracy = default_policy, typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {
     using T = promoted_vector_value_type<L, R>;
     using O = result_t<F, T, T>;
@@ -52,7 +52,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, extent_size<E>> result;
 
-    detail::default_map_impl<F, extent_size<E>, O, T, T>::call(
+    detail::map_impl<Accuracy, F, extent_size<E>, O, T, T>::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -65,10 +65,17 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     return result;
 }
 
-#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                                 \
-    template<typename L, typename R, typename C = promoted_vector_value_type<L, R>>          \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {      \
-        return zip_common(ops::NAME<C> {}, static_cast<L&&>(left), static_cast<R&&>(right)); \
+#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                            \
+    template<                                                                           \
+        typename Accuracy = default_policy,                                             \
+        typename L,                                                                     \
+        typename R,                                                                     \
+        typename C = promoted_vector_value_type<L, R>>                                  \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) { \
+        return zip_common<Accuracy>(                                                    \
+            ops::NAME<C> {},                                                            \
+            static_cast<L&&>(left),                                                     \
+            static_cast<R&&>(right));                                                   \
     }
 
 #define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR, EXPR_F64, EXPR_F32)         \
