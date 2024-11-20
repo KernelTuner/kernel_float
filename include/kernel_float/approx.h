@@ -160,17 +160,20 @@ KERNEL_FLOAT_DEVICE half2_t rcp(half2_t x) {
 
 template<int Iter>
 KERNEL_FLOAT_DEVICE half2_t rsqrt(half2_t x) {
+    // A small number added such that rsqrt(0) does not return NaN
+    static constexpr double EPS = 0.00000768899917602539;
+
     // Set top and bottom bits for both halfs, then shift by 1, then invert
     uint32_t r = ~((uint32_t(transmute<uint32_t>(x) >> 1)) | ~uint32_t(0x3fff3fff));
-    //uint32_t r = uint32_t(~(transmute<uint32_t>(arg) | (~uint32_t(0x3ffe3ffe)))) >> 1;
 
-    // Add bias (0x199c)
-    half2_t y = transmute<half2_t>(uint32_t(r) + uint32_t(0x199c199c));
+    // Add bias
+    static constexpr uint32_t BIAS = 0x199c199c;
+    half2_t y = transmute<half2_t>(uint32_t(r) + BIAS);
 
     // Newton-Raphson iterations
 #pragma unroll
     for (int i = 0; i < Iter; i++) {
-        half2_t half_x = make_half2(-0.5) * x;
+        half2_t half_x = __hfma2(make_half2(-0.5), x, make_half2(-EPS));
         half2_t correction = __hfma2(half_x, y * y, make_half2(0.5));
         y = __hfma2(correction, y, y);  // y += y * correction
     }
@@ -365,7 +368,7 @@ template<int Level, typename F, typename T>
 struct apply_impl<approx_level_policy<Level>, F, 1, T, T> {
     KERNEL_FLOAT_INLINE static void call(F fun, T* output, const T* input) {
         T in2[2], out2[2];
-        out2[0] = input[0];
+        in2[0] = input[0];
         apply_impl<approx_level_policy<Level>, F, 2, T, T>::call(fun, out2, in2);
         output[0] = out2[0];
     }
@@ -396,6 +399,8 @@ KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, sqrt, 1)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, rcp, 1)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, exp, 0)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, log, 0)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, asin, 2)
+KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, acos, 2)
 #endif
 
 #if KERNEL_FLOAT_BF16_OPS_SUPPORTED
