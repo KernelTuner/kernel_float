@@ -212,16 +212,13 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(cos)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(tan)
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp)
-KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(exp2)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log)
-KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(log2)
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(sqrt)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rcp)
 KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
 
-// This PTX is only supported on CUDA
-#if KERNEL_FLOAT_IS_CUDA && KERNEL_FLOAT_IS_DEVICE
+#if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(T, F, EXPR_F32)                       \
     namespace detail {                                                                \
     template<>                                                                        \
@@ -245,6 +242,8 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, sin, __sinf(input))
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, cos, __cosf(input))
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, tan, __tanf(input))
 
+// This PTX is only supported on CUDA
+#if KERNEL_FLOAT_IS_CUDA
 #define KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(T, F, INSTR, REG)                         \
     namespace detail {                                                                    \
     template<>                                                                            \
@@ -261,7 +260,8 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64", "d")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32", "f")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32;", "f")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32", "f")
+#endif
 
 #define KERNEL_FLOAT_FAST_F32_MAP(F) \
     F(exp) F(exp2) F(exp10) F(log) F(log2) F(log10) F(sin) F(cos) F(tan) F(rcp) F(rsqrt) F(sqrt)
@@ -270,7 +270,8 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32;", "f")
 //KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32", "f")
 //KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
 //KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32", "f")
-
+#else
+#define KERNEL_FLOAT_FAST_F32_MAP(F)
 #endif
 
 }  // namespace kernel_float
