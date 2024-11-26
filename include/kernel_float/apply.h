@@ -157,6 +157,13 @@ using default_policy = KERNEL_FLOAT_POLICY;
 
 namespace detail {
 
+template<typename F, typename Output, typename... Args>
+struct invoke_impl {
+    KERNEL_FLOAT_INLINE static Output call(F fun, Args... args) {
+        return fun(args...);
+    }
+};
+
 //
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct apply_fallback_impl {
@@ -185,13 +192,6 @@ struct apply_fallback_impl<approx_policy, F, N, Output, Args...>:
 template<int Level, typename F, size_t N, typename Output, typename... Args>
 struct apply_fallback_impl<approx_level_policy<Level>, F, N, Output, Args...>:
     apply_impl<approx_policy, F, N, Output, Args...> {};
-
-template<typename F, typename Output, typename... Args>
-struct invoke_impl {
-    KERNEL_FLOAT_INLINE static Output call(F fun, Args... args) {
-        return fun(args...);
-    }
-};
 
 // Only for `accurate_policy` do we implement `apply_impl`, the others will fall back to `apply_base_impl`.
 template<typename F, size_t N, typename Output, typename... Args>

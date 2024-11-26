@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-11-26 13:52:06.286983
-// git hash: c4c6ac09808d14b5407afb06ecdecd235cd50ed3
+// date: 2024-11-26 14:20:49.081641
+// git hash: 76c695a4cc5b13b3d5841ac5085574a5b47a299c
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -824,6 +824,13 @@ using default_policy = KERNEL_FLOAT_POLICY;
 
 namespace detail {
 
+template<typename F, typename Output, typename... Args>
+struct invoke_impl {
+    KERNEL_FLOAT_INLINE static Output call(F fun, Args... args) {
+        return fun(args...);
+    }
+};
+
 //
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct apply_fallback_impl {
@@ -852,13 +859,6 @@ struct apply_fallback_impl<approx_policy, F, N, Output, Args...>:
 template<int Level, typename F, size_t N, typename Output, typename... Args>
 struct apply_fallback_impl<approx_level_policy<Level>, F, N, Output, Args...>:
     apply_impl<approx_policy, F, N, Output, Args...> {};
-
-template<typename F, typename Output, typename... Args>
-struct invoke_impl {
-    KERNEL_FLOAT_INLINE static Output call(F fun, Args... args) {
-        return fun(args...);
-    }
-};
 
 // Only for `accurate_policy` do we implement `apply_impl`, the others will fall back to `apply_base_impl`.
 template<typename F, size_t N, typename Output, typename... Args>
@@ -1416,7 +1416,7 @@ KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(rsqrt)
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp, __expf(input))
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp2, __exp2f(input))
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp2, __exp2f(input)) // Seems to be missing?
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, exp10, __exp10f(input))
 
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, log, __logf(input))
@@ -1442,19 +1442,21 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, tan, __tanf(input))
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64", "d")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64", "d")
 
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rcp, "rcp.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, rsqrt, "rsqrt.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, tanh, "tanh.approx.f32", "f")
+
+// These are no longer necessary due to the KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN above
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32", "f")
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32", "f")
+//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32", "f")
 #endif
 
 #define KERNEL_FLOAT_FAST_F32_MAP(F) \
     F(exp) F(exp2) F(exp10) F(log) F(log2) F(log10) F(sin) F(cos) F(tan) F(rcp) F(rsqrt) F(sqrt)
 
-//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sin, "sin.approx.f32", "f")
-//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, cos, "cos.approx.f32", "f")
-//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
-//KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, log2, "lg2.approx.f32", "f")
 #else
 #define KERNEL_FLOAT_FAST_F32_MAP(F)
 #endif
