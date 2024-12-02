@@ -60,7 +60,6 @@ struct allow_float_fallback<bfloat16_t> {
 };
 };  // namespace detail
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
 #define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                                      \
     namespace ops {                                                                        \
     template<>                                                                             \
@@ -81,6 +80,7 @@ struct allow_float_fallback<bfloat16_t> {
     };                                                                                     \
     }
 
+#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
 KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_BF16_UNARY_FUN(cos, ::hcos, ::h2cos)
 
@@ -101,9 +101,34 @@ KERNEL_FLOAT_BF16_UNARY_FUN(ceil, ::hceil, ::h2ceil)
 KERNEL_FLOAT_BF16_UNARY_FUN(rint, ::hrint, ::h2rint)
 KERNEL_FLOAT_BF16_UNARY_FUN(trunc, ::htrunc, ::h2trunc)
 KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
+
+// For some reason, HIP struggles with the functions `__habs` and `__hneg`. We define them here using bitwise ops.
+// For CUDA, we can just use the regular bfloat16 functions (see above).
+#elif KERNEL_FLOAT_IS_HIP
+KERNEL_FLOAT_INLINE __hip_bfloat16 hip_habs(const __hip_bfloat16 a) {
+    __hip_bfloat16 res = a;
+    res.data &= 0x7FFF;
+    return res;
+}
+
+KERNEL_FLOAT_INLINE __hip_bfloat16 hip_hneg(const __hip_bfloat16 a) {
+    __hip_bfloat16 res = a;
+    res.data ^= 0x8000;
+    return res;
+}
+
+KERNEL_FLOAT_INLINE __hip_bfloat162 hip_habs2(const __hip_bfloat162 a) {
+    return {hip_habs(a.x), hip_habs(a.y)};
+}
+
+KERNEL_FLOAT_INLINE __hip_bfloat162 hip_hneg2(const __hip_bfloat162 a) {
+    return {hip_hneg(a.x), hip_hneg(a.y)};
+}
+
+KERNEL_FLOAT_BF16_UNARY_FUN(abs, hip_habs, hip_habs2)
+KERNEL_FLOAT_BF16_UNARY_FUN(negate, hip_hneg, hip_hneg2)
 #endif
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
 #define KERNEL_FLOAT_BF16_BINARY_FUN(NAME, FUN1, FUN2)                                       \
     namespace ops {                                                                          \
     template<>                                                                               \
@@ -133,6 +158,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
     };                                                                                       \
     }
 
+#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
 KERNEL_FLOAT_BF16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_BF16_BINARY_FUN(subtract, __hsub, __hsub2)
 KERNEL_FLOAT_BF16_BINARY_FUN(multiply, __hmul, __hmul2)

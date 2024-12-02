@@ -189,14 +189,16 @@ namespace ops {
 template<typename T>
 struct min {
     KERNEL_FLOAT_INLINE T operator()(T left, T right) {
-        return left < right ? left : right;
+        auto cond = less<T> {}(left, right);
+        return cast<decltype(cond), bool> {}(cond) ? left : right;
     }
 };
 
 template<typename T>
 struct max {
     KERNEL_FLOAT_INLINE T operator()(T left, T right) {
-        return left > right ? left : right;
+        auto cond = greater<T> {}(left, right);
+        return cast<decltype(cond), bool> {}(cond) ? left : right;
     }
 };
 
