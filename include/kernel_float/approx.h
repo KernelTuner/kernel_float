@@ -10,7 +10,9 @@ namespace kernel_float {
 namespace approx {
 
 static_assert(sizeof(unsigned int) * 8 == 32, "invalid size of unsigned int");
+static_assert(sizeof(unsigned short) * 8 == 16, "invalid size of unsigned short");
 using uint32_t = unsigned int;
+using uint16_t = unsigned short;
 
 template<typename T, typename U>
 KERNEL_FLOAT_DEVICE T transmute(const U& input) {
@@ -353,12 +355,12 @@ KERNEL_FLOAT_DEVICE bfloat16x2_t exp(bfloat16x2_t arg) {
     static constexpr float OFFSET = 382.4958400542335;
     static constexpr float MINIMUM = 382;
 
-    float a = fmaxf(fmaf(bfloat162float(arg.x), SCALE, OFFSET), MINIMUM);
-    float b = fmaxf(fmaf(bfloat162float(arg.y), SCALE, OFFSET), MINIMUM);
+    float a = fmaxf(fmaf(__bfloat162float(arg.x), SCALE, OFFSET), MINIMUM);
+    float b = fmaxf(fmaf(__bfloat162float(arg.y), SCALE, OFFSET), MINIMUM);
 
     return {
-        transmute<__bfloat16>(uint16_t(transmute<uint32_t>(a))),
-        transmute<__bfloat16>(uint16_t(transmute<uint32_t>(b)))};
+        transmute<bfloat16_t>(uint16_t(transmute<uint32_t>(a))),
+        transmute<bfloat16_t>(uint16_t(transmute<uint32_t>(b)))};
 }
 #endif
 }  // namespace approx
