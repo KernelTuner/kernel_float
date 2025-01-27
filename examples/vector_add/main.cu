@@ -22,7 +22,7 @@ __global__ void my_kernel(
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        output(i) = kf::fma(input[i], input[i], kf::cast<half>(constant));
+        output[i] = kf::fma(input[i], input[i], kf::cast<half>(constant));
     }
 }
 
