@@ -7,41 +7,41 @@ namespace kernel_float {
 namespace detail {
 
 template<typename... Es>
-struct broadcast_extent_helper;
+struct broadcast_extent_impl;
 
 template<typename E>
-struct broadcast_extent_helper<E> {
+struct broadcast_extent_impl<E> {
     using type = E;
 };
 
 template<size_t N>
-struct broadcast_extent_helper<extent<N>, extent<N>> {
+struct broadcast_extent_impl<extent<N>, extent<N>> {
     using type = extent<N>;
 };
 
 template<size_t N>
-struct broadcast_extent_helper<extent<1>, extent<N>> {
+struct broadcast_extent_impl<extent<1>, extent<N>> {
     using type = extent<N>;
 };
 
 template<size_t N>
-struct broadcast_extent_helper<extent<N>, extent<1>> {
+struct broadcast_extent_impl<extent<N>, extent<1>> {
     using type = extent<N>;
 };
 
 template<>
-struct broadcast_extent_helper<extent<1>, extent<1>> {
+struct broadcast_extent_impl<extent<1>, extent<1>> {
     using type = extent<1>;
 };
 
 template<typename A, typename B, typename C, typename... Rest>
-struct broadcast_extent_helper<A, B, C, Rest...>:
-    broadcast_extent_helper<typename broadcast_extent_helper<A, B>::type, C, Rest...> {};
+struct broadcast_extent_impl<A, B, C, Rest...>:
+    broadcast_extent_impl<typename broadcast_extent_impl<A, B>::type, C, Rest...> {};
 
 }  // namespace detail
 
 template<typename... Es>
-using broadcast_extent = typename detail::broadcast_extent_helper<Es...>::type;
+using broadcast_extent = typename detail::broadcast_extent_impl<Es...>::type;
 
 template<typename... Vs>
 using broadcast_vector_extent_type = broadcast_extent<vector_extent_type<Vs>...>;
@@ -128,7 +128,9 @@ struct accurate_policy {};
  * the utmost accuracy. This policy leverages optimizations to accelerate computations, which may involve
  * approximations that slightly compromise precision.
  */
-struct fast_policy {};
+struct fast_policy {
+    using fallback_policy = accurate_policy;
+};
 
 /**
  * This template policy allows developers to specify a custom degree of approximation for their computations. By
@@ -136,7 +138,14 @@ struct fast_policy {};
  * specific needs of your application. Higher values mean more precision.
  */
 template<int Level = -1>
-struct approx_level_policy {};
+struct approx_level_policy {
+    using fallback_policy = approx_level_policy<>;
+};
+
+template<>
+struct approx_level_policy<> {
+    using fallback_policy = fast_policy;
+};
 
 /**
  * The approximate_policy serves as the default approximation policy, providing a standard level of approximation
@@ -145,15 +154,17 @@ struct approx_level_policy {};
  */
 using approx_policy = approx_level_policy<>;
 
-#ifndef KERNEL_FLOAT_POLICY
-#define KERNEL_FLOAT_POLICY accurate_policy
-#endif
-
 /**
  * The `default_policy` acts as the standard computation policy. It can be configured externally using the
- * `KERNEL_FLOAT_POLICY` macro. If `KERNEL_FLOAT_POLICY` is not defined, it defaults to `accurate_policy`.
+ * `KERNEL_FLOAT_GLOBAL_POLICY` macro. If `KERNEL_FLOAT_GLOBAL_POLICY` is not defined, default to `accurate_policy`.
  */
+#if defined(KERNEL_FLOAT_GLOBAL_POLICY)
+using default_policy = KERNEL_FLOAT_GLOBAL_POLICY;
+#elif defined(KERNEL_FLOAT_POLICY)
 using default_policy = KERNEL_FLOAT_POLICY;
+#else
+using default_policy = accurate_policy;
+#endif
 
 namespace detail {
 
@@ -164,34 +175,14 @@ struct invoke_impl {
     }
 };
 
-//
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl {
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
-        static_assert(N > 0, "operation not implemented");
-    }
-};
+struct apply_impl;
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
-struct apply_base_impl: apply_fallback_impl<Policy, F, N, Output, Args...> {};
+struct apply_base_impl: apply_impl<typename Policy::fallback_policy, F, N, Output, Args...> {};
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct apply_impl: apply_base_impl<Policy, F, N, Output, Args...> {};
-
-// `fast_policy` falls back to `accurate_policy`
-template<typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl<fast_policy, F, N, Output, Args...>:
-    apply_impl<accurate_policy, F, N, Output, Args...> {};
-
-// `approx_policy` falls back to `fast_policy`
-template<typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl<approx_policy, F, N, Output, Args...>:
-    apply_impl<fast_policy, F, N, Output, Args...> {};
-
-// `approx_level_policy` falls back to `approx_policy`
-template<int Level, typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl<approx_level_policy<Level>, F, N, Output, Args...>:
-    apply_impl<approx_policy, F, N, Output, Args...> {};
 
 // Only for `accurate_policy` do we implement `apply_impl`, the others will fall back to `apply_base_impl`.
 template<typename F, size_t N, typename Output, typename... Args>
