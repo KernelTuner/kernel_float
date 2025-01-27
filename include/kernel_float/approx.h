@@ -304,13 +304,13 @@ KERNEL_FLOAT_DEVICE bfloat16x2_t normalize_trig_input(bfloat16x2_t x) {
 template<int Iter>
 KERNEL_FLOAT_DEVICE bfloat16x2_t cos(bfloat16x2_t x) {
     bfloat16x2_t xf = normalize_trig_input(x);
-    return cos_poly<__bfloat16, Iter + 1>::call(__hmul2(xf, xf));
+    return cos_poly<bfloat16_t, Iter + 1>::call(__hmul2(xf, xf));
 }
 
 template<int Iter>
 KERNEL_FLOAT_DEVICE bfloat16x2_t sin(bfloat16x2_t x) {
     bfloat16x2_t xf = normalize_trig_input(x);
-    return __hmul2(sin_poly<__bfloat16, Iter>::call(__hmul2(xf, xf)), xf);
+    return __hmul2(sin_poly<bfloat16_t, Iter>::call(__hmul2(xf, xf)), xf);
 }
 
 template<int Iter>
