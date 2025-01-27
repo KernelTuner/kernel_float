@@ -325,7 +325,7 @@ namespace detail {
 // Override `pow` using `log2` and `exp2`
 template<typename Policy, typename T, size_t N>
 struct apply_base_impl<Policy, ops::pow<T>, N, T, T, T> {
-    KERNEL_FLOAT_INLINE static void call(ops::divide<T>, T* result, const T* lhs, const T* rhs) {
+    KERNEL_FLOAT_INLINE static void call(ops::pow<T>, T* result, const T* lhs, const T* rhs) {
         T lhs_log[N];
         T result_log[N];
 
