@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2024-12-02 18:48:50.243676
-// git hash: 846de1f9aefaef76da15ebb5474080d531efaf38
+// date: 2025-01-27 16:26:28.827757
+// git hash: 09dc82096e4c013a079f0e315da1ccce17453c93
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -673,41 +673,41 @@ namespace kernel_float {
 namespace detail {
 
 template<typename... Es>
-struct broadcast_extent_helper;
+struct broadcast_extent_impl;
 
 template<typename E>
-struct broadcast_extent_helper<E> {
+struct broadcast_extent_impl<E> {
     using type = E;
 };
 
 template<size_t N>
-struct broadcast_extent_helper<extent<N>, extent<N>> {
+struct broadcast_extent_impl<extent<N>, extent<N>> {
     using type = extent<N>;
 };
 
 template<size_t N>
-struct broadcast_extent_helper<extent<1>, extent<N>> {
+struct broadcast_extent_impl<extent<1>, extent<N>> {
     using type = extent<N>;
 };
 
 template<size_t N>
-struct broadcast_extent_helper<extent<N>, extent<1>> {
+struct broadcast_extent_impl<extent<N>, extent<1>> {
     using type = extent<N>;
 };
 
 template<>
-struct broadcast_extent_helper<extent<1>, extent<1>> {
+struct broadcast_extent_impl<extent<1>, extent<1>> {
     using type = extent<1>;
 };
 
 template<typename A, typename B, typename C, typename... Rest>
-struct broadcast_extent_helper<A, B, C, Rest...>:
-    broadcast_extent_helper<typename broadcast_extent_helper<A, B>::type, C, Rest...> {};
+struct broadcast_extent_impl<A, B, C, Rest...>:
+    broadcast_extent_impl<typename broadcast_extent_impl<A, B>::type, C, Rest...> {};
 
 }  // namespace detail
 
 template<typename... Es>
-using broadcast_extent = typename detail::broadcast_extent_helper<Es...>::type;
+using broadcast_extent = typename detail::broadcast_extent_impl<Es...>::type;
 
 template<typename... Vs>
 using broadcast_vector_extent_type = broadcast_extent<vector_extent_type<Vs>...>;
@@ -794,7 +794,9 @@ struct accurate_policy {};
  * the utmost accuracy. This policy leverages optimizations to accelerate computations, which may involve
  * approximations that slightly compromise precision.
  */
-struct fast_policy {};
+struct fast_policy {
+    using fallback_policy = accurate_policy;
+};
 
 /**
  * This template policy allows developers to specify a custom degree of approximation for their computations. By
@@ -802,7 +804,14 @@ struct fast_policy {};
  * specific needs of your application. Higher values mean more precision.
  */
 template<int Level = -1>
-struct approx_level_policy {};
+struct approx_level_policy {
+    using fallback_policy = approx_level_policy<>;
+};
+
+template<>
+struct approx_level_policy<> {
+    using fallback_policy = fast_policy;
+};
 
 /**
  * The approximate_policy serves as the default approximation policy, providing a standard level of approximation
@@ -811,15 +820,17 @@ struct approx_level_policy {};
  */
 using approx_policy = approx_level_policy<>;
 
-#ifndef KERNEL_FLOAT_POLICY
-#define KERNEL_FLOAT_POLICY accurate_policy
-#endif
-
 /**
  * The `default_policy` acts as the standard computation policy. It can be configured externally using the
- * `KERNEL_FLOAT_POLICY` macro. If `KERNEL_FLOAT_POLICY` is not defined, it defaults to `accurate_policy`.
+ * `KERNEL_FLOAT_GLOBAL_POLICY` macro. If `KERNEL_FLOAT_GLOBAL_POLICY` is not defined, default to `accurate_policy`.
  */
+#if defined(KERNEL_FLOAT_GLOBAL_POLICY)
+using default_policy = KERNEL_FLOAT_GLOBAL_POLICY;
+#elif defined(KERNEL_FLOAT_POLICY)
 using default_policy = KERNEL_FLOAT_POLICY;
+#else
+using default_policy = accurate_policy;
+#endif
 
 namespace detail {
 
@@ -830,34 +841,14 @@ struct invoke_impl {
     }
 };
 
-//
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl {
-    KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
-        static_assert(N > 0, "operation not implemented");
-    }
-};
+struct apply_impl;
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
-struct apply_base_impl: apply_fallback_impl<Policy, F, N, Output, Args...> {};
+struct apply_base_impl: apply_impl<typename Policy::fallback_policy, F, N, Output, Args...> {};
 
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct apply_impl: apply_base_impl<Policy, F, N, Output, Args...> {};
-
-// `fast_policy` falls back to `accurate_policy`
-template<typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl<fast_policy, F, N, Output, Args...>:
-    apply_impl<accurate_policy, F, N, Output, Args...> {};
-
-// `approx_policy` falls back to `fast_policy`
-template<typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl<approx_policy, F, N, Output, Args...>:
-    apply_impl<fast_policy, F, N, Output, Args...> {};
-
-// `approx_level_policy` falls back to `approx_policy`
-template<int Level, typename F, size_t N, typename Output, typename... Args>
-struct apply_fallback_impl<approx_level_policy<Level>, F, N, Output, Args...>:
-    apply_impl<approx_policy, F, N, Output, Args...> {};
 
 // Only for `accurate_policy` do we implement `apply_impl`, the others will fall back to `apply_base_impl`.
 template<typename F, size_t N, typename Output, typename... Args>
@@ -1204,43 +1195,49 @@ struct cast<T, T, m> {
 };
 
 template<typename T>
-struct cast<T, T, RoundingMode::ANY> {
+struct cast<T, T> {
     KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
         return input;
     }
 };
 
-template<typename T, typename R, typename = void>
-struct cast_float_fallback;
-
-template<typename T, typename R, typename>
-struct cast_float_fallback {
+template<typename T, typename R>
+struct cast<T, R> {
     KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return R(input);
+        if constexpr (
+            detail::allow_float_fallback<T>::value || detail::allow_float_fallback<R>::value) {
+            return cast<float, R> {}(cast<T, float> {}(input));
+        } else {
+            return R(input);
+        }
     }
 };
 
-// clang-format off
-template<typename T, typename R>
-struct cast_float_fallback<
-    T,
-    R,
-    enable_if_t<
-        !is_same_type<T, float> &&
-        !is_same_type<R, float> &&
-        (detail::allow_float_fallback<T>::value || detail::allow_float_fallback<R>::value)
-    >
-> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return cast<float, R> {}(cast<T, float> {}(input));
+template<>
+struct cast<float, float> {
+    KERNEL_FLOAT_INLINE float operator()(float input) noexcept {
+        return input;
     }
 };
-// clang-format on
 
-template<typename T, typename R>
-struct cast<T, R, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return cast_float_fallback<T, R> {}(input);
+template<RoundingMode m>
+struct cast<float, float, m> {
+    KERNEL_FLOAT_INLINE float operator()(float input) noexcept {
+        return input;
+    }
+};
+
+template<typename T>
+struct cast<T, float> {
+    KERNEL_FLOAT_INLINE float operator()(T input) noexcept {
+        return float(input);
+    }
+};
+
+template<typename T>
+struct cast<float, T> {
+    KERNEL_FLOAT_INLINE T operator()(float input) noexcept {
+        return T(input);
     }
 };
 
@@ -1439,7 +1436,7 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, tan, __tanf(input))
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64", "d")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64", "d")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.ftz.f64", "d")
 
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32", "f")
@@ -1552,11 +1549,11 @@ KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_s
 template<typename T, RoundingMode M = RoundingMode::ANY>
 struct AssignConversionProxy {
     KERNEL_FLOAT_INLINE
-    explicit AssignConversionProxy(T* ptr) : ptr_(ptr) {}
+    explicit AssignConversionProxy(T&& ptr) : ptr_(std::forward<T>(ptr)) {}
 
     template<typename U>
     KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
-        *ptr_ = detail::convert_impl<
+        ptr_ = detail::convert_impl<
             vector_value_type<U>,
             vector_extent_type<U>,
             vector_value_type<T>,
@@ -1567,12 +1564,12 @@ struct AssignConversionProxy {
     }
 
   private:
-    T* ptr_;
+    T ptr_;
 };
 
 /**
  * Takes a vector reference and gives back a helper object. This object allows you to assign
- * a vector of a different type to another vector while perofrming implicit type converion.
+ * a vector of a different type to another vector while performing implicit type conversion.
  *
  * For example, if `x = expression;` does not compile because `x` and `expression` are
  * different vector types, you can use `cast_to(x) = expression;` to make it work.
@@ -1585,9 +1582,9 @@ struct AssignConversionProxy {
  * cast_to(x) = y;  // Normally, `x = y;` would give an error, but `cast_to` fixes that.
  * ```
  */
-template<typename T, RoundingMode M = RoundingMode::ANY>
-KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T& input) {
-    return AssignConversionProxy<T, M>(&input);
+template<RoundingMode M = RoundingMode::ANY, typename T>
+KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T&& input) {
+    return AssignConversionProxy<T, M>(std::forward<T>(input));
 }
 
 /**
@@ -1600,7 +1597,7 @@ KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T& input) {
  * ```
  */
 template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
+KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value, extent<N> = {}) {
     vector_storage<T, 1> input = {value};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }
@@ -2010,7 +2007,7 @@ namespace detail {
 // Override `pow` using `log2` and `exp2`
 template<typename Policy, typename T, size_t N>
 struct apply_base_impl<Policy, ops::pow<T>, N, T, T, T> {
-    KERNEL_FLOAT_INLINE static void call(ops::divide<T>, T* result, const T* lhs, const T* rhs) {
+    KERNEL_FLOAT_INLINE static void call(ops::pow<T>, T* result, const T* lhs, const T* rhs) {
         T lhs_log[N];
         T result_log[N];
 
@@ -2574,7 +2571,7 @@ struct copy_impl<T, N, index_sequence<Is...>> {
  *
  * ```
  * // Load 2 elements at data[0] and data[8], skip data[2] and data[4]
- * vec<T, 4> values = = read(data, make_vec(0, 2, 4, 8), make_vec(true, false, false, true));
+ * vec<T, 4> values = read(data, make_vec(0, 2, 4, 8), make_vec(true, false, false, true));
  * ```
  */
 template<typename T, typename I, typename M = bool, typename E = broadcast_vector_extent_type<I, M>>
@@ -2621,7 +2618,7 @@ KERNEL_FLOAT_INLINE void write(T* ptr, const I& indices, const V& values, const 
  * vec<T, 4> values = read<4>(data);
  *
  * // Load 4 elements at locations data[10], data[11], data[12], data[13]
- * vec<T, 4> values = read<4>(values + 10, data);
+ * vec<T, 4> values = read<4>(data + 10);
  * ```
  */
 template<size_t N, typename T>
@@ -2648,31 +2645,42 @@ KERNEL_FLOAT_INLINE void write(T* ptr, const V& values) {
 }
 
 namespace detail {
+/**
+ * Returns the greatest common divisor of `a` and `b`.
+ */
 KERNEL_FLOAT_INLINE
 constexpr size_t gcd(size_t a, size_t b) {
     return b == 0 ? a : gcd(b, a % b);
 }
 
-template<typename T, size_t N, size_t alignment, typename = void>
+/**
+ * Returns true if a pointer having alignment of `a` bytes also has an alignment of `b` bytes. Returns false otherwise.
+ */
+KERNEL_FLOAT_INLINE
+constexpr size_t alignment_divisible(size_t a, size_t b) {
+    return gcd(a, KERNEL_FLOAT_MAX_ALIGNMENT) % gcd(b, KERNEL_FLOAT_MAX_ALIGNMENT) == 0;
+}
+
+template<typename T, size_t N, size_t Alignment, typename = void>
 struct copy_aligned_impl {
     static constexpr size_t K = N > 8 ? 8 : (N > 4 ? 4 : (N > 2 ? 2 : 1));
-    static constexpr size_t alignment_K = gcd(alignment, sizeof(T) * K);
+    static constexpr size_t Alignment_K = gcd(Alignment, sizeof(T) * K);
 
     KERNEL_FLOAT_INLINE
     static void load(T* output, const T* input) {
-        copy_aligned_impl<T, K, alignment>::load(output, input);
-        copy_aligned_impl<T, N - K, alignment_K>::load(output + K, input + K);
+        copy_aligned_impl<T, K, Alignment>::load(output, input);
+        copy_aligned_impl<T, N - K, Alignment_K>::load(output + K, input + K);
     }
 
     KERNEL_FLOAT_INLINE
     static void store(T* output, const T* input) {
-        copy_aligned_impl<T, K, alignment>::store(output, input);
-        copy_aligned_impl<T, N - K, alignment_K>::store(output + K, input + K);
+        copy_aligned_impl<T, K, Alignment>::store(output, input);
+        copy_aligned_impl<T, N - K, Alignment_K>::store(output + K, input + K);
     }
 };
 
-template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 0, alignment> {
+template<typename T, size_t Alignment>
+struct copy_aligned_impl<T, 0, Alignment> {
     KERNEL_FLOAT_INLINE
     static void load(T* output, const T* input) {}
 
@@ -2680,8 +2688,8 @@ struct copy_aligned_impl<T, 0, alignment> {
     static void store(T* output, const T* input) {}
 };
 
-template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 1, alignment> {
+template<typename T, size_t Alignment>
+struct copy_aligned_impl<T, 1, Alignment> {
     using storage_type = T;
 
     KERNEL_FLOAT_INLINE
@@ -2695,9 +2703,9 @@ struct copy_aligned_impl<T, 1, alignment> {
     }
 };
 
-template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 2, alignment, enable_if_t<(alignment > sizeof(T))>> {
-    static constexpr size_t storage_alignment = gcd(alignment, 2 * sizeof(T));
+template<typename T, size_t Alignment>
+struct copy_aligned_impl<T, 2, Alignment, enable_if_t<(Alignment > sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(Alignment, 2 * sizeof(T));
     struct alignas(storage_alignment) storage_type {
         T v0, v1;
     };
@@ -2715,9 +2723,9 @@ struct copy_aligned_impl<T, 2, alignment, enable_if_t<(alignment > sizeof(T))>> 
     }
 };
 
-template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 4, alignment, enable_if_t<(alignment > 2 * sizeof(T))>> {
-    static constexpr size_t storage_alignment = gcd(alignment, 4 * sizeof(T));
+template<typename T, size_t Alignment>
+struct copy_aligned_impl<T, 4, Alignment, enable_if_t<(Alignment > 2 * sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(Alignment, 4 * sizeof(T));
     struct alignas(storage_alignment) storage_type {
         T v0, v1, v2, v3;
     };
@@ -2741,9 +2749,9 @@ struct copy_aligned_impl<T, 4, alignment, enable_if_t<(alignment > 2 * sizeof(T)
     }
 };
 
-template<typename T, size_t alignment>
-struct copy_aligned_impl<T, 8, alignment, enable_if_t<(alignment > 4 * sizeof(T))>> {
-    static constexpr size_t storage_alignment = gcd(alignment, 8 * sizeof(T));
+template<typename T, size_t Alignment>
+struct copy_aligned_impl<T, 8, Alignment, enable_if_t<(Alignment > 4 * sizeof(T))>> {
+    static constexpr size_t storage_alignment = gcd(Alignment, 8 * sizeof(T));
     struct alignas(storage_alignment) storage_type {
         T v0, v1, v2, v3, v4, v5, v6, v7;
     };
@@ -2787,8 +2795,8 @@ struct copy_aligned_impl<T, 8, alignment, enable_if_t<(alignment > 4 * sizeof(T)
  * // Load 4 elements at locations data[0], data[1], data[2], data[3]
  * vec<T, 4> values = read_aligned<4>(data);
  *
- * // Load 4 elements at locations data[10], data[11], data[12], data[13]
- * vec<T, 4> values2 = read_aligned<4>(data + 10);
+ * // Load 4 elements at locations data[12], data[13], data[14], data[15]
+ * vec<T, 4> values2 = read_aligned<4>(data + 12);
  * ```
  */
 template<size_t Align, size_t N = Align, typename T>
@@ -2835,10 +2843,13 @@ KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
  * @tparam U The underlying storage type. Defaults to the same type as T.
  * @tparam Align  The alignment constraint for read and write operations.
  */
-template<typename T, size_t N, typename U = T, size_t Align = 1>
+template<typename T, size_t N, typename U = T, size_t Alignment = alignof(U)>
 struct vector_ref {
+    static constexpr size_t access_alignment = detail::gcd(Alignment, KERNEL_FLOAT_MAX_ALIGNMENT);
+    static_assert(access_alignment >= alignof(U), "invalid alignment for pointer type");
+
     using pointer_type = U*;
-    using value_type = decay_t<T>;
+    using value_type = T;
     using vector_type = vector<value_type, extent<N>>;
 
     /**
@@ -2854,7 +2865,12 @@ struct vector_ref {
      * @return vector_type A vector of type vector_type containing the read and converted data.
      */
     KERNEL_FLOAT_INLINE vector_type read() const {
-        return convert<value_type, N>(read_aligned<Align, N>(data_));
+        vector_storage<U, N> result;
+        detail::copy_aligned_impl<U, N, access_alignment>::load(
+            result.data(),
+            KERNEL_FLOAT_ASSUME_ALIGNED(const U, data_, access_alignment));
+
+        return convert<value_type, N>(result);
     }
 
     /**
@@ -2865,7 +2881,9 @@ struct vector_ref {
      */
     template<typename V = vector_type>
     KERNEL_FLOAT_INLINE void write(const V& values) const {
-        write_aligned<Align>(data_, convert<U, N>(values));
+        detail::copy_aligned_impl<U, N, access_alignment>::store(
+            KERNEL_FLOAT_ASSUME_ALIGNED(U, data_, access_alignment),
+            convert_storage<U, N>(values).data());
     }
 
     /**
@@ -2898,16 +2916,24 @@ struct vector_ref {
 /**
  * Specialization for `vector_ref` if the backing storage is const.
  */
-template<typename T, size_t N, typename U, size_t Align>
-struct vector_ref<T, N, const U, Align> {
+template<typename T, size_t N, typename U, size_t Alignment>
+struct vector_ref<T, N, const U, Alignment> {
+    static constexpr size_t access_alignment = detail::gcd(Alignment, KERNEL_FLOAT_MAX_ALIGNMENT);
+    static_assert(access_alignment >= alignof(U), "invalid alignment for pointer type");
+
     using pointer_type = const U*;
-    using value_type = decay_t<T>;
+    using value_type = T;
     using vector_type = vector<value_type, extent<N>>;
 
     KERNEL_FLOAT_INLINE explicit vector_ref(pointer_type data) : data_(data) {}
 
     KERNEL_FLOAT_INLINE vector_type read() const {
-        return convert<value_type, N>(read_aligned<Align, N>(data_));
+        vector_storage<U, N> result;
+        detail::copy_aligned_impl<U, N, access_alignment>::load(
+            result.data(),
+            KERNEL_FLOAT_ASSUME_ALIGNED(const U, data_, access_alignment));
+
+        return convert_storage<value_type, N>(result);
     }
 
     KERNEL_FLOAT_INLINE operator vector_type() const {
@@ -2922,19 +2948,30 @@ struct vector_ref<T, N, const U, Align> {
     pointer_type data_ = nullptr;
 };
 
-#define KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(OP, OP_ASSIGN)                 \
-    template<typename T, size_t N, typename U, size_t Align, typename V> \
-    KERNEL_FLOAT_INLINE vector_ref<T, N, U, Align> operator OP_ASSIGN(   \
-        vector_ref<T, N, U, Align> ptr,                                  \
-        const V& value) {                                                \
-        ptr.write(ptr.read() OP value);                                  \
-        return ptr;                                                      \
+#define KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(OP, OP_ASSIGN)                     \
+    template<typename T, size_t N, typename U, size_t Alignment, typename V> \
+    KERNEL_FLOAT_INLINE vector_ref<T, N, U, Alignment> operator OP_ASSIGN(   \
+        vector_ref<T, N, U, Alignment> ptr,                                  \
+        const V& value) {                                                    \
+        ptr.write(ptr.read() OP value);                                      \
+        return ptr;                                                          \
     }
 
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(+, +=)
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(-, -=)
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(*, *=)
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(/, /=)
+
+template<typename T, size_t N, typename U, size_t Alignment>
+struct into_vector_impl<vector_ref<T, N, U, Alignment>> {
+    using value_type = T;
+    using extent_type = extent<N>;
+
+    KERNEL_FLOAT_INLINE
+    static vector_storage<value_type, N> call(const vector_ref<T, N, U, Alignment>& reference) {
+        return reference.read();
+    }
+};
 
 /**
  * A wrapper for a pointer that enables vectorized access and supports type conversions..
@@ -2949,9 +2986,11 @@ KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(/, /=)
  * @tparam T The type of the elements as viewed by the user.
  * @tparam N The alignment of T in number of elements.
  * @tparam U The underlying storage type, defaults to T.
+ * @tparam Alignment The assumed alignment of the underlying U* pointer.
  */
-template<typename T, size_t N, typename U = T>
+template<typename T, size_t N, typename U = T, size_t Alignment = sizeof(U) * N>
 struct vector_ptr {
+    static constexpr size_t offset_alignment = detail::gcd(Alignment, sizeof(U) * N);
     using pointer_type = U*;
     using value_type = decay_t<T>;
 
@@ -2969,19 +3008,36 @@ struct vector_ptr {
      * Constructs a vector_ptr from another vector_ptr with potentially different alignment and type. This constructor
      * only allows conversion if the alignment of the source is greater than or equal to the alignment of the target.
      */
-    template<typename T2, size_t N2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 % N == 0), int> = {}) :
+    template<typename T2, size_t N2, size_t A2>
+    KERNEL_FLOAT_INLINE vector_ptr(
+        vector_ptr<T2, N2, U, A2> p,
+        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = {}) :
         data_(p.get()) {}
+
+    /**
+     * Shorthand for `at(0)`.
+     */
+    KERNEL_FLOAT_INLINE const vector_ref<value_type, N, U, Alignment> operator*() const {
+        return vector_ref<value_type, N, U, Alignment> {data_};
+    }
 
     /**
      * Accesses a reference to a vector at a specific index with optional alignment considerations.
      *
-     * @tparam N The number of elements in the vector to access, defaults to the alignment.
+     * @tparam N The number of elements in the vector to access, defaults to N.
      * @param index The index at which to access the vector.
      */
     template<size_t K = N>
-    KERNEL_FLOAT_INLINE vector_ref<T, K, U, N> at(size_t index) const {
-        return vector_ref<T, K, U, N> {data_ + index * N};
+    KERNEL_FLOAT_INLINE vector_ref<value_type, K, U, offset_alignment> at(size_t index) const {
+        return vector_ref<T, K, U, offset_alignment> {data_ + index * N};
+    }
+
+    /**
+     * Shorthand for `at(index)`.
+     */
+    KERNEL_FLOAT_INLINE vector_ref<value_type, N, U, offset_alignment>
+    operator[](size_t index) const {
+        return at(index);
     }
 
     /**
@@ -2991,22 +3047,8 @@ struct vector_ptr {
      * @param index The index from which to read the data.
      */
     template<size_t K = N>
-    KERNEL_FLOAT_INLINE vector<value_type, extent<K>> read(size_t index) const {
+    KERNEL_FLOAT_INLINE vector<value_type, extent<K>> read(size_t index = 0) const {
         return this->template at<K>(index).read();
-    }
-
-    /**
-     * Shorthand for `read(index)`.
-     */
-    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator[](size_t index) const {
-        return read(index);
-    }
-
-    /**
-     * Shorthand for `read(0)`.
-     */
-    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator*() const {
-        return read(0);
     }
 
     /**
@@ -3023,15 +3065,6 @@ struct vector_ptr {
     }
 
     /**
-     * Shorthand for `at(index)`. Returns a vector reference to can be used
-     * to assign to this pointer, contrary to `operator[]` that does not
-     * allow assignment.
-     */
-    KERNEL_FLOAT_INLINE vector_ref<T, N, U, N> operator()(size_t index) const {
-        return at(index);
-    }
-
-    /**
      * Gets the raw data pointer managed by this `vector_ptr`.
      */
     KERNEL_FLOAT_INLINE pointer_type get() const {
@@ -3045,26 +3078,36 @@ struct vector_ptr {
 /**
  * Specialization for `vector_ptr` if the backing storage is const.
  */
-template<typename T, size_t N, typename U>
-struct vector_ptr<T, N, const U> {
+template<typename T, size_t N, typename U, size_t Alignment>
+struct vector_ptr<T, N, const U, Alignment> {
+    static constexpr size_t offset_alignment = detail::gcd(Alignment, sizeof(U) * N);
     using pointer_type = const U*;
     using value_type = decay_t<T>;
 
     vector_ptr() = default;
+
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
 
-    template<typename T2, size_t N2>
-    KERNEL_FLOAT_INLINE
-    vector_ptr(vector_ptr<T2, N2, const U> p, enable_if_t<(N2 % N == 0), int> = {}) :
+    template<typename T2, size_t N2, size_t A2>
+    KERNEL_FLOAT_INLINE vector_ptr(
+        vector_ptr<T2, N2, const U, A2> p,
+        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = {}) :
         data_(p.get()) {}
 
-    template<typename T2, size_t N2>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U> p, enable_if_t<(N2 % N == 0), int> = {}) :
+    template<typename T2, size_t N2, size_t A2>
+    KERNEL_FLOAT_INLINE vector_ptr(
+        vector_ptr<T2, N2, U, A2> p,
+        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = {}) :
         data_(p.get()) {}
+
+    KERNEL_FLOAT_INLINE vector_ref<value_type, N, const U, Alignment> operator*() const {
+        return vector_ref<value_type, N, const U, Alignment> {data_};
+    }
 
     template<size_t K = N>
-    KERNEL_FLOAT_INLINE vector_ref<T, K, const U, N> at(size_t index) const {
-        return vector_ref<T, K, const U, N> {data_ + index * N};
+    KERNEL_FLOAT_INLINE vector_ref<value_type, K, const U, offset_alignment>
+    at(size_t index) const {
+        return vector_ref<value_type, K, const U, offset_alignment> {data_ + index * N};
     }
 
     template<size_t K = N>
@@ -3076,10 +3119,6 @@ struct vector_ptr<T, N, const U> {
         return read(index);
     }
 
-    KERNEL_FLOAT_INLINE const vector<value_type, extent<N>> operator*() const {
-        return read(0);
-    }
-
     KERNEL_FLOAT_INLINE pointer_type get() const {
         return data_;
     }
@@ -3088,44 +3127,54 @@ struct vector_ptr<T, N, const U> {
     pointer_type data_ = nullptr;
 };
 
-template<typename T, size_t N, typename U>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U> operator+(vector_ptr<T, N, U> p, size_t i) {
-    return vector_ptr<T, N, U> {p.get() + i * N};
+template<typename T, size_t N, typename U, size_t A>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U, detail::gcd(A, N * sizeof(U))>
+operator+(vector_ptr<T, N, U, A> p, size_t i) {
+    return vector_ptr<T, N, U, detail::gcd(A, N * sizeof(U))> {p.get() + i * N};
 }
 
-template<typename T, size_t N, typename U>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U> operator+(size_t i, vector_ptr<T, N, U> p) {
+template<typename T, size_t N, typename U, size_t A>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U, detail::gcd(A, N * sizeof(U))>
+operator+(size_t i, vector_ptr<T, N, U, A> p) {
     return p + i;
 }
 
-/**
- * Creates a `vector_ptr<T, N>` from a raw pointer `U*` by asserting a specific alignment `N`.
- *
- * @tparam T The type of the elements as viewed by the user. This type may differ from `U`.
- * @tparam N The alignment constraint for the vector_ptr. Defaults to KERNEL_FLOAT_MAX_ALIGNMENT.
- * @tparam U The type of the elements pointed to by the raw pointer.
- */
-template<typename T, size_t N = KERNEL_FLOAT_MAX_ALIGNMENT, typename U>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U> assert_aligned(U* ptr) {
-    return vector_ptr<T, N, U> {ptr};
+template<
+    typename T,
+    size_t N,
+    typename U,
+    size_t A,
+    typename = enable_if_t<(N * sizeof(U)) % A == 0>>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U, A>& operator+=(vector_ptr<T, N, U, A>& p, size_t i) {
+    return p = p + i;
 }
 
-// Doxygen cannot deal with the `assert_aligned` being defined twice, we ignore the second definition.
-/// @cond IGNORE
 /**
  * Creates a `vector_ptr<T, N>` from a raw pointer `T*` by asserting a specific alignment `N`.
  *
  * @tparam N The alignment constraint for the vector_ptr. Defaults to KERNEL_FLOAT_MAX_ALIGNMENT.
  * @tparam T The type of the elements pointed to by the raw pointer.
  */
-template<size_t N = KERNEL_FLOAT_MAX_ALIGNMENT, typename T>
+template<size_t N, typename T>
 KERNEL_FLOAT_INLINE vector_ptr<T, N> assert_aligned(T* ptr) {
     return vector_ptr<T, N> {ptr};
 }
+
+// Doxygen cannot deal with the `assert_aligned` being defined twice, we ignore the second definition.
+/// @cond IGNORE
+/**
+ * Creates a `vector_ptr<T, 1>` from a raw pointer `T*`. The alignment is assumed to be KERNEL_FLOAT_MAX_ALIGNMENT.
+ *
+ * @tparam T The type of the elements pointed to by the raw pointer.
+ */
+template<typename T>
+KERNEL_FLOAT_INLINE vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> assert_aligned(T* ptr) {
+    return vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> {ptr};
+}
 /// @endcond
 
-template<typename T, size_t N = 1, typename U = T>
-using vec_ptr = vector_ptr<T, N, U>;
+template<typename T, size_t N = 1, typename U = T, size_t Align = N>
+using vec_ptr = vector_ptr<T, N, U, Align * sizeof(U)>;
 
 #if defined(__cpp_deduction_guides)
 template<typename T>
@@ -4856,13 +4905,13 @@ KERNEL_FLOAT_DEVICE bfloat16x2_t normalize_trig_input(bfloat16x2_t x) {
 template<int Iter>
 KERNEL_FLOAT_DEVICE bfloat16x2_t cos(bfloat16x2_t x) {
     bfloat16x2_t xf = normalize_trig_input(x);
-    return cos_poly<__bfloat16, Iter + 1>::call(__hmul2(xf, xf));
+    return cos_poly<bfloat16_t, Iter + 1>::call(__hmul2(xf, xf));
 }
 
 template<int Iter>
 KERNEL_FLOAT_DEVICE bfloat16x2_t sin(bfloat16x2_t x) {
     bfloat16x2_t xf = normalize_trig_input(x);
-    return __hmul2(sin_poly<__bfloat16, Iter>::call(__hmul2(xf, xf)), xf);
+    return __hmul2(sin_poly<bfloat16_t, Iter>::call(__hmul2(xf, xf)), xf);
 }
 
 template<int Iter>

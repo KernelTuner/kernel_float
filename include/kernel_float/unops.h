@@ -20,43 +20,49 @@ struct cast<T, T, m> {
 };
 
 template<typename T>
-struct cast<T, T, RoundingMode::ANY> {
+struct cast<T, T> {
     KERNEL_FLOAT_INLINE T operator()(T input) noexcept {
         return input;
     }
 };
 
-template<typename T, typename R, typename = void>
-struct cast_float_fallback;
-
-template<typename T, typename R, typename>
-struct cast_float_fallback {
+template<typename T, typename R>
+struct cast<T, R> {
     KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return R(input);
+        if constexpr (
+            detail::allow_float_fallback<T>::value || detail::allow_float_fallback<R>::value) {
+            return cast<float, R> {}(cast<T, float> {}(input));
+        } else {
+            return R(input);
+        }
     }
 };
 
-// clang-format off
-template<typename T, typename R>
-struct cast_float_fallback<
-    T,
-    R,
-    enable_if_t<
-        !is_same_type<T, float> &&
-        !is_same_type<R, float> &&
-        (detail::allow_float_fallback<T>::value || detail::allow_float_fallback<R>::value)
-    >
-> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return cast<float, R> {}(cast<T, float> {}(input));
+template<>
+struct cast<float, float> {
+    KERNEL_FLOAT_INLINE float operator()(float input) noexcept {
+        return input;
     }
 };
-// clang-format on
 
-template<typename T, typename R>
-struct cast<T, R, RoundingMode::ANY> {
-    KERNEL_FLOAT_INLINE R operator()(T input) noexcept {
-        return cast_float_fallback<T, R> {}(input);
+template<RoundingMode m>
+struct cast<float, float, m> {
+    KERNEL_FLOAT_INLINE float operator()(float input) noexcept {
+        return input;
+    }
+};
+
+template<typename T>
+struct cast<T, float> {
+    KERNEL_FLOAT_INLINE float operator()(T input) noexcept {
+        return float(input);
+    }
+};
+
+template<typename T>
+struct cast<float, T> {
+    KERNEL_FLOAT_INLINE T operator()(float input) noexcept {
+        return T(input);
     }
 };
 
@@ -255,7 +261,7 @@ KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_FUN(float, tan, __tanf(input))
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rcp, "rcp.approx.ftz.f64", "d")
-KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.f64", "d")
+KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(double, rsqrt, "rsqrt.approx.ftz.f64", "d")
 
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, exp2, "ex2.approx.f32", "f")
 KERNEL_FLOAT_DEFINE_UNARY_FAST_IMPL_PTX(float, sqrt, "sqrt.approx.f32", "f")
