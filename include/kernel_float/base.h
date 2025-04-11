@@ -4,6 +4,10 @@
 #include "macros.h"
 #include "meta.h"
 
+#if KERNEL_FLOAT_IS_HIP
+#include <hip/hip_vector_types.h>
+#endif
+
 namespace kernel_float {
 
 template<typename T, size_t N, size_t Alignment = alignof(T)>
@@ -266,7 +270,7 @@ using promoted_vector_value_type = promote_t<vector_value_type<Vs>...>;
 
 template<typename V>
 KERNEL_FLOAT_INLINE vector_storage_type<V> into_vector_storage(V&& input) {
-    return into_vector_impl<V>::call(std::forward<V>(input));
+    return into_vector_impl<V>::call(static_cast<V&&>(input));
 }
 
 }  // namespace kernel_float

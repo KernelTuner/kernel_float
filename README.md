@@ -9,12 +9,12 @@
 ![GitHub Repo stars](https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social)
 
 
-_Kernel Float_ is a header-only library for CUDA that simplifies working with vector types and reduced precision floating-point arithmetic in GPU code.
+_Kernel Float_ is a header-only library for CUDA/HIP that simplifies working with vector types and reduced precision floating-point arithmetic in GPU code.
 
 
 ## Summary
 
-CUDA natively offers several reduced precision floating-point types (`__half`, `__nv_bfloat16`, `__nv_fp8_e4m3`, `__nv_fp8_e5m2`)
+CUDA/HIP natively offers several reduced precision floating-point types (`__half`, `__nv_bfloat16`, `__nv_fp8_e4m3`, `__nv_fp8_e5m2`)
 and vector types (e.g., `__half2`, `__nv_fp8x4_e4m3`, `float3`).
 However, working with these types is cumbersome:
 mathematical operations require intrinsics (e.g., `__hadd2` performs addition for `__half2`),
@@ -24,9 +24,9 @@ and some functionality is missing (e.g., one cannot convert a `__half` to `__nv_
 _Kernel Float_ resolves this by offering a single data type `kernel_float::vec<T, N>` that stores `N` elements of type `T`.
 Internally, the data is stored as a fixed-sized array of elements.
 Operator overloading (like `+`, `*`, `&&`) has been implemented such that the most optimal intrinsic for the available types is selected automatically.
-Many mathetical functions (like `log`, `exp`, `sin`) and common operations (such as `sum`, `range`, `for_each`) are also available.
+Many mathematical functions (like `log`, `exp`, `sin`) and common operations (such as `sum`, `range`, `for_each`) are also available.
 
-By using this library, developers can avoid the complexity of working with reduced precision floating-point types in CUDA and focus on their applications.
+Using Kernel Float, developers avoid the complexity of reduced precision floating-point types in CUDA and can focus on their applications.
 
 
 ## Features
@@ -40,6 +40,7 @@ In a nutshell, _Kernel Float_ offers the following features:
 * Easy integration as a single header file.
 * Written for C++17.
 * Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).
+* Compatible with HIPCC (AMD HIP Compiler)
 
 
 ## Example
@@ -49,7 +50,7 @@ Check out the [examples](https://github.com/KernelTuner/kernel_float/tree/master
 
 Below shows a simple example of a CUDA kernel that adds a `constant` to the `input` array and writes the results to the `output` array.
 Each thread processes two elements.
-Notice how easy it would be change the precision (for example, `double` to `half`) or the vector size (for example, 4 instead of 2 items per thread).
+Notice how easy it would be to change the precision (for example, `double` to `half`) or the vector size (for example, 4 instead of 2 items per thread).
 
 
 ```cpp
@@ -63,14 +64,14 @@ __global__ void kernel(const kf::vec<half, 2>* input, float constant, kf::vec<fl
 
 ```
 
-Here is how the same kernel would like without Kernel Float.
+Here is how the same kernel would look for CUDA without Kernel Float.
 
 ```cpp
 __global__ void kernel(const __half* input, float constant, float* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     __half in0 = input[2 * i + 0];
     __half in1 = input[2 * i + 1];
-    __half2 a = __halves2half2(in0, int1);
+    __half2 a = __halves2half2(in0, in1);
     float b = float(constant);
     __half c = __float2half(b);
     __half2 d = __half2half2(c);

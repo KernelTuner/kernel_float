@@ -24,7 +24,7 @@ struct reduce_recur_impl {
     template<typename F, typename T>
     KERNEL_FLOAT_INLINE static T call(F fun, const T* input) {
         vector_storage<T, K> temp;
-        map_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
+        default_map_impl<F, N - K, T, T, T>::call(fun, temp.data(), input, input + K);
 
         if constexpr (N < 2 * K) {
 #pragma unroll
@@ -183,11 +183,11 @@ struct dot_impl {
 
         if constexpr (N / K > 0) {
             T accum[K] = {T {}};
-            apply_impl<ops::multiply<T>, K, T, T, T>::call({}, accum, left, right);
+            apply_impl<default_policy, ops::multiply<T>, K, T, T, T>::call({}, accum, left, right);
 
 #pragma unroll
             for (size_t i = 1; i < N / K; i++) {
-                apply_impl<ops::fma<T>, K, T, T, T, T>::call(
+                apply_impl<default_policy, ops::fma<T>, K, T, T, T, T>::call(
                     ops::fma<T> {},
                     accum,
                     left + i * K,
@@ -200,7 +200,7 @@ struct dot_impl {
 
         if constexpr (N % K > 0) {
             for (size_t i = N - N % K; i < N; i++) {
-                apply_impl<ops::fma<T>, 1, T, T, T, T>::call(
+                apply_impl<default_policy, ops::fma<T>, 1, T, T, T, T>::call(
                     {},
                     &result,
                     left + i,
@@ -267,21 +267,21 @@ struct magnitude_impl<T, 2> {
 };
 
 // The 3-argument overload of hypot is only available on host from C++17
-#if defined(__cpp_lib_hypot) && KERNEL_FLOAT_IS_HOST
-template<>
-struct magnitude_impl<float, 3> {
-    static float call(const float* input) {
-        return ::hypot(input[0], input[1], input[2]);
-    }
-};
-
-template<>
-struct magnitude_impl<double, 3> {
-    static double call(const double* input) {
-        return ::hypot(input[0], input[1], input[2]);
-    }
-};
-#endif
+//#if defined(__cpp_lib_hypot) && KERNEL_FLOAT_IS_HOST
+//template<>
+//struct magnitude_impl<float, 3> {
+//    static float call(const float* input) {
+//        return ::hypot(input[0], input[1], input[2]);
+//    }
+//};
+//
+//template<>
+//struct magnitude_impl<double, 3> {
+//    static double call(const double* input) {
+//        return ::hypot(input[0], input[1], input[2]);
+//    }
+//};
+//#endif
 
 }  // namespace detail
 

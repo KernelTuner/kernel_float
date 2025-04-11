@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "../hip_compat.h"
 #include "kernel_float.h"
 namespace kf = kernel_float;
 
@@ -21,7 +22,7 @@ __global__ void my_kernel(
     int i = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (i * N < length) {
-        output(i) = kf::fma(input[i], input[i], kf::cast<__half>(constant));
+        output[i] = kf::fma(input[i], input[i], kf::cast<half>(constant));
     }
 }
 

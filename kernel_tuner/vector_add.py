@@ -9,6 +9,7 @@ from kernel_tuner.accuracy import TunablePrecision, AccuracyObserver
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__)) + "/../"
 flags = [f"-I{ROOT_DIR}/include", "-std=c++17"]
 
+
 def tune():
 
     # Prepare input data
@@ -54,7 +55,7 @@ def tune():
         answer=answer,
         observers=observers,
         metrics=metrics,
-        lang="cupy",
+        lang="CUDA",
         compiler_options=flags
     )
 

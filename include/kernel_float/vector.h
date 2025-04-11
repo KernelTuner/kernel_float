@@ -38,7 +38,7 @@ struct vector: public S {
     // Copy anything of type `storage_type`
     KERNEL_FLOAT_INLINE
     vector(const value_type& input = {}) :
-        storage_type(detail::broadcast_impl<T, extent<1>, E>::call(input)) {}
+        storage_type(detail::broadcast_impl<T, kernel_float::extent<1>, E>::call(input)) {}
 
     // For all other arguments, we convert it using `convert_storage` according to broadcast rules
     template<typename U, enable_if_t<is_implicit_convertible<vector_value_type<U>, T>, int> = 0>
@@ -80,6 +80,14 @@ struct vector: public S {
     KERNEL_FLOAT_INLINE
     const storage_type& storage() const {
         return *this;
+    }
+
+    /**
+     * Returns an instance of the `extent_type` for this vector.
+     */
+    KERNEL_FLOAT_INLINE
+    extent_type extent() const {
+        return {};
     }
 
     /**
@@ -206,7 +214,7 @@ struct vector: public S {
      */
     KERNEL_FLOAT_INLINE
     void set(size_t x, T value) {
-        at(x) = std::move(value);
+        at(x) = static_cast<T&&>(value);
     }
 
     /**
@@ -239,7 +247,8 @@ struct vector: public S {
      * Broadcast this vector into a new size `(Ns...)`.
      */
     template<size_t... Ns>
-    KERNEL_FLOAT_INLINE vector<T, extent<Ns...>> broadcast(extent<Ns...> new_size = {}) const {
+    KERNEL_FLOAT_INLINE vector<T, kernel_float::extent<Ns...>>
+    broadcast(kernel_float::extent<Ns...> new_size = {}) const {
         return kernel_float::broadcast(*this, new_size);
     }
 
@@ -274,15 +283,24 @@ struct vector: public S {
      */
     template<typename F>
     KERNEL_FLOAT_INLINE void for_each(F fun) const {
-        return kernel_float::for_each(*this, std::move(fun));
+        return kernel_float::for_each(*this, fun);
     }
 
     /**
-     * Returns the result of `*this + lhs * rhs`.
+     * Returns the result of `this + lhs * rhs`.
      *
      * The operation is performed using a single `kernel_float::fma` call, which may be faster then perform
      * the addition and multiplication separately.
      */
+    template<
+        typename L,
+        typename R,
+        typename T2 = promote_t<T, vector_value_type<L>, vector_value_type<R>>,
+        typename E2 = broadcast_extent<E, vector_extent_type<L>, vector_extent_type<R>>>
+    KERNEL_FLOAT_INLINE vector<T2, E2> add_mul(const L& lhs, const R& rhs) const {
+        return ::kernel_float::fma(lhs, rhs, *this);
+    }
+
     template<
         typename L,
         typename R,
@@ -303,7 +321,7 @@ struct vector: public S {
  */
 template<typename V>
 KERNEL_FLOAT_INLINE into_vector_type<V> into_vec(V&& input) {
-    return into_vector_impl<V>::call(std::forward<V>(input));
+    return into_vector_impl<V>::call(static_cast<V&&>(input));
 }
 
 template<typename T>
@@ -325,6 +343,7 @@ template<typename T> using vec8 = vec<T, 8>;
 
 #define KERNEL_FLOAT_VECTOR_ALIAS(NAME, T) \
     template<size_t N>                     \
+    using v##NAME = vec<T, N>;             \
     using NAME##1 = vec<T, 1>;             \
     using NAME##2 = vec<T, 2>;             \
     using NAME##3 = vec<T, 3>;             \

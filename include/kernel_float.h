@@ -1,6 +1,7 @@
 #ifndef KERNEL_FLOAT_H
 #define KERNEL_FLOAT_H
 
+#include "kernel_float/approx.h"
 #include "kernel_float/base.h"
 #include "kernel_float/bf16.h"
 #include "kernel_float/binops.h"

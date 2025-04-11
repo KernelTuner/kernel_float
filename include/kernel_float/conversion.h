@@ -17,7 +17,10 @@ struct convert_impl {
     static vector_storage<T2, extent_size<E2>> call(vector_storage<T, extent_size<E>> input) {
         using F = ops::cast<T, T2, M>;
         vector_storage<T2, extent_size<E>> intermediate;
-        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, intermediate.data(), input.data());
+        detail::default_map_impl<F, extent_size<E>, T2, T>::call(
+            F {},
+            intermediate.data(),
+            input.data());
         return detail::broadcast_impl<T2, E, E2>::call(intermediate);
     }
 };
@@ -48,7 +51,7 @@ struct convert_impl<T, E, T2, E, M> {
         using F = ops::cast<T, T2, M>;
 
         vector_storage<T2, extent_size<E>> result;
-        detail::map_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
+        detail::default_map_impl<F, extent_size<E>, T2, T>::call(F {}, result.data(), input.data());
         return result;
     }
 };
@@ -84,11 +87,11 @@ KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_s
 template<typename T, RoundingMode M = RoundingMode::ANY>
 struct AssignConversionProxy {
     KERNEL_FLOAT_INLINE
-    explicit AssignConversionProxy(T* ptr) : ptr_(ptr) {}
+    explicit AssignConversionProxy(T&& ptr) : ptr_(std::forward<T>(ptr)) {}
 
     template<typename U>
     KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
-        *ptr_ = detail::convert_impl<
+        ptr_ = detail::convert_impl<
             vector_value_type<U>,
             vector_extent_type<U>,
             vector_value_type<T>,
@@ -99,12 +102,12 @@ struct AssignConversionProxy {
     }
 
   private:
-    T* ptr_;
+    T ptr_;
 };
 
 /**
  * Takes a vector reference and gives back a helper object. This object allows you to assign
- * a vector of a different type to another vector while perofrming implicit type converion.
+ * a vector of a different type to another vector while performing implicit type conversion.
  *
  * For example, if `x = expression;` does not compile because `x` and `expression` are
  * different vector types, you can use `cast_to(x) = expression;` to make it work.
@@ -117,9 +120,9 @@ struct AssignConversionProxy {
  * cast_to(x) = y;  // Normally, `x = y;` would give an error, but `cast_to` fixes that.
  * ```
  */
-template<typename T, RoundingMode M = RoundingMode::ANY>
-KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T& input) {
-    return AssignConversionProxy<T, M>(&input);
+template<RoundingMode M = RoundingMode::ANY, typename T>
+KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T&& input) {
+    return AssignConversionProxy<T, M>(std::forward<T>(input));
 }
 
 /**
@@ -132,7 +135,7 @@ KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T& input) {
  * ```
  */
 template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value = {}, extent<N> = {}) {
+KERNEL_FLOAT_INLINE vector<T, extent<N>> fill(T value, extent<N> = {}) {
     vector_storage<T, 1> input = {value};
     return detail::broadcast_impl<T, extent<1>, extent<N>>::call(input);
 }

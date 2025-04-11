@@ -156,7 +156,8 @@ struct vector_ptr_test {
         };
 
         {
-            auto ptr = kf::vector_ptr<T, N, const U> {&storage.data[0]};
+            kf::vector_ptr<const U, N> storage_ptr = kf::assert_aligned(storage.data);
+            kf::vector_ptr<T, N, const U> ptr = storage_ptr;
             ASSERT_EQ(ptr.get(), static_cast<const U*>(storage.data));
 
             T expected[N] = {T(double(N + I))...};
@@ -174,7 +175,8 @@ struct vector_ptr_test {
         }
 
         {
-            auto ptr = kf::vector_ptr<T, N, U> {&storage.data[0]};
+            kf::vector_ptr<U, N> storage_ptr = kf::assert_aligned(storage.data);
+            kf::vector_ptr<T, N, U> ptr = storage_ptr;
             ASSERT_EQ(ptr.get(), static_cast<U*>(storage.data));
 
             T expected[N] = {T(double(N + I))...};
@@ -182,7 +184,7 @@ struct vector_ptr_test {
             auto a = ptr.read(1);
             ASSERT_EQ_ALL(a[I], expected[I]);
 
-            auto b = ptr[1];
+            kf::vec<T, N> b = ptr[1];
             ASSERT_EQ_ALL(b[I], expected[I]);
 
             kf::vec<T, N> c = ptr.at(1);
@@ -191,16 +193,20 @@ struct vector_ptr_test {
             kf::vec<T, N> overwrite = {T(double(100 + I))...};
             ptr.at(1) = overwrite;
 
-            auto e = ptr[1];
+            kf::vec<T, N> e = ptr[1];
             ASSERT_EQ_ALL(e[I], overwrite[I]);
 
             ptr.write(1, T(1337.0));
-            auto f = ptr[1];
+            kf::vec<T, N> f = ptr[1];
             ASSERT_EQ_ALL(f[I], T(1337.0));
 
             ptr.at(1) += T(1.0);
-            auto g = ptr[1];
+            kf::vec<T, N> g = ptr[1];
             ASSERT_EQ_ALL(g[I], T(1338.0));
+
+            kf::cast_to(ptr[1]) = double(3.14);
+            kf::vec<T, N> h = ptr[1];
+            ASSERT_EQ_ALL(h[I], T(3.14));
         }
     }
 };

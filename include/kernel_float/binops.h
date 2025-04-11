@@ -44,7 +44,7 @@ using zip_common_type = vector<
  * vec<float, 3> c = zip_common([](float x, float y){ return x + y; }, a, b); // returns [5.0f, 7.0f, 9.0f]
  * ```
  */
-template<typename F, typename L, typename R>
+template<typename Accuracy = default_policy, typename F, typename L, typename R>
 KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, const R& right) {
     using T = promoted_vector_value_type<L, R>;
     using O = result_t<F, T, T>;
@@ -52,7 +52,7 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 
     vector_storage<O, extent_size<E>> result;
 
-    detail::map_impl<F, extent_size<E>, O, T, T>::call(
+    detail::map_impl<Accuracy, F, extent_size<E>, O, T, T>::call(
         fun,
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -65,10 +65,17 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     return result;
 }
 
-#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                               \
-    template<typename L, typename R, typename C = promoted_vector_value_type<L, R>>        \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) {    \
-        return zip_common(ops::NAME<C> {}, std::forward<L>(left), std::forward<R>(right)); \
+#define KERNEL_FLOAT_DEFINE_BINARY_FUN(NAME)                                            \
+    template<                                                                           \
+        typename Accuracy = default_policy,                                             \
+        typename L,                                                                     \
+        typename R,                                                                     \
+        typename C = promoted_vector_value_type<L, R>>                                  \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R> NAME(L&& left, R&& right) { \
+        return zip_common<Accuracy>(                                                    \
+            ops::NAME<C> {},                                                            \
+            static_cast<L&&>(left),                                                     \
+            static_cast<R&&>(right));                                                   \
     }
 
 #define KERNEL_FLOAT_DEFINE_BINARY(NAME, EXPR, EXPR_F64, EXPR_F32)         \
@@ -144,7 +151,7 @@ KERNEL_FLOAT_DEFINE_BINARY_OP_FALLBACK(bit_xor, ^, bool(left) ^ bool(right), boo
 // clang-format on
 
 // clang-format off
-template<template<typename> typename F, typename T, typename E, typename R>
+template<template<typename, typename=void> typename F, typename T, typename E, typename R>
 static constexpr bool is_vector_assign_allowed =
         is_vector_broadcastable<R, E> &&
         is_implicit_convertible<
@@ -182,14 +189,16 @@ namespace ops {
 template<typename T>
 struct min {
     KERNEL_FLOAT_INLINE T operator()(T left, T right) {
-        return left < right ? left : right;
+        auto cond = less<T> {}(left, right);
+        return cast<decltype(cond), bool> {}(cond) ? left : right;
     }
 };
 
 template<typename T>
 struct max {
     KERNEL_FLOAT_INLINE T operator()(T left, T right) {
-        return left > right ? left : right;
+        auto cond = greater<T> {}(left, right);
+        return cast<decltype(cond), bool> {}(cond) ? left : right;
     }
 };
 
@@ -290,27 +299,42 @@ struct multiply<bool> {
 };  // namespace ops
 
 namespace detail {
-template<typename T, size_t N>
-struct apply_fastmath_impl<ops::divide<T>, N, T, T, T> {
-    KERNEL_FLOAT_INLINE static void
-    call(ops::divide<T> fun, T* result, const T* lhs, const T* rhs) {
+template<typename Policy, typename T, size_t N>
+struct apply_base_impl<Policy, ops::divide<T>, N, T, T, T> {
+    KERNEL_FLOAT_INLINE static void call(ops::divide<T>, T* result, const T* lhs, const T* rhs) {
         T rhs_rcp[N];
 
         // Fast way to perform division is to multiply by the reciprocal
-        apply_fastmath_impl<ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
-        apply_fastmath_impl<ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
+        apply_impl<Policy, ops::rcp<T>, N, T, T>::call({}, rhs_rcp, rhs);
+        apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, result, lhs, rhs_rcp);
     }
 };
 
 #if KERNEL_FLOAT_IS_DEVICE
 template<>
-struct apply_fastmath_impl<ops::divide<float>, 1, float, float, float> {
+struct apply_impl<fast_policy, ops::divide<float>, 1, float, float, float> {
     KERNEL_FLOAT_INLINE static void
-    call(ops::divide<float> fun, float* result, const float* lhs, const float* rhs) {
+    call(ops::divide<float>, float* result, const float* lhs, const float* rhs) {
         *result = __fdividef(*lhs, *rhs);
     }
 };
 #endif
+}  // namespace detail
+
+namespace detail {
+// Override `pow` using `log2` and `exp2`
+template<typename Policy, typename T, size_t N>
+struct apply_base_impl<Policy, ops::pow<T>, N, T, T, T> {
+    KERNEL_FLOAT_INLINE static void call(ops::pow<T>, T* result, const T* lhs, const T* rhs) {
+        T lhs_log[N];
+        T result_log[N];
+
+        // Fast way to perform power function is using log2 and exp2
+        apply_impl<Policy, ops::log2<T>, N, T, T>::call({}, lhs_log, lhs);
+        apply_impl<Policy, ops::multiply<T>, N, T, T, T>::call({}, result_log, lhs_log, rhs);
+        apply_impl<Policy, ops::exp2<T>, N, T, T, T>::call({}, result, result_log);
+    }
+};
 }  // namespace detail
 
 template<typename L, typename R, typename T = promoted_vector_value_type<L, R>>
@@ -319,7 +343,7 @@ fast_divide(const L& left, const R& right) {
     using E = broadcast_vector_extent_type<L, R>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::map_policy_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
+    detail::map_impl<fast_policy, ops::divide<T>, extent_size<E>, T, T, T>::call(
         ops::divide<T> {},
         result.data(),
         detail::convert_impl<vector_value_type<L>, vector_extent_type<L>, T, E>::call(
@@ -359,8 +383,7 @@ template<
     typename L,
     typename R,
     typename T = promoted_vector_value_type<L, R>,
-    typename =
-        enable_if_t<is_vector_broadcastable<L, extent<3>> && is_vector_broadcastable<R, extent<3>>>>
+    typename = enable_if_t<(vector_size<L> == 3 && vector_size<R> == 3)>>
 KERNEL_FLOAT_INLINE vector<T, extent<3>> cross(const L& left, const R& right) {
     return detail::cross_impl<T>::call(convert_storage<T, 3>(left), convert_storage<T, 3>(right));
 }

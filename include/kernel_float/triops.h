@@ -41,7 +41,7 @@ KERNEL_FLOAT_INLINE vector<T, E> where(const C& cond, const L& true_values, cons
     using F = ops::conditional<T>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::map_impl<F, extent_size<E>, T, bool, T, T>::call(
+    detail::default_map_impl<F, extent_size<E>, T, bool, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<C>, vector_extent_type<C>, bool, E>::call(
@@ -99,12 +99,12 @@ struct fma {
 
 namespace detail {
 template<typename T, size_t N>
-struct apply_impl<ops::fma<T>, N, T, T, T, T> {
+struct apply_impl<accurate_policy, ops::fma<T>, N, T, T, T, T> {
     KERNEL_FLOAT_INLINE
     static void call(ops::fma<T>, T* output, const T* a, const T* b, const T* c) {
         T temp[N];
-        apply_impl<ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
-        apply_impl<ops::add<T>, N, T, T, T>::call({}, output, temp, c);
+        apply_impl<accurate_policy, ops::multiply<T>, N, T, T, T>::call({}, temp, a, b);
+        apply_impl<accurate_policy, ops::add<T>, N, T, T, T>::call({}, output, temp, c);
     }
 };
 }  // namespace detail
@@ -140,7 +140,7 @@ KERNEL_FLOAT_INLINE vector<T, E> fma(const A& a, const B& b, const C& c) {
     using F = ops::fma<T>;
     vector_storage<T, extent_size<E>> result;
 
-    detail::map_impl<F, extent_size<E>, T, T, T, T>::call(
+    detail::default_map_impl<F, extent_size<E>, T, T, T, T>::call(
         F {},
         result.data(),
         detail::convert_impl<vector_value_type<A>, vector_extent_type<A>, T, E>::call(

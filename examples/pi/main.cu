@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "../hip_compat.h"
 #include "kernel_float.h"
 
 #define CUDA_CHECK(call)                                     \
@@ -9,12 +10,12 @@
         if (__err != cudaSuccess) {                          \
             fprintf(                                         \
                 stderr,                                      \
-                "CUDA error at %s:%d code=%d(%s) \"%s\" \n", \
+                "CUDA error at %s:%d (%s): %s (code %d) \n", \
                 __FILE__,                                    \
                 __LINE__,                                    \
-                __err,                                       \
+                #call,                                       \
                 cudaGetErrorString(__err),                   \
-                #call);                                      \
+                __err);                                      \
             exit(EXIT_FAILURE);                              \
         }                                                    \
     } while (0)
