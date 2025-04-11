@@ -1,0 +1,21 @@
+{
+    "title": "Kernel Float",
+    "description": "CUDA/HIP header-only library for writing vectorized and low-precision (16 bit, 8 bit) GPU kernels",
+    "license": "Apache-2.0",
+    "upload_type": "software",
+    "access_right": "open",
+    "creators": [
+        {
+            "orcid": "0000-0001-8792-6305",
+            "affiliation": "Netherlands eScience Center",
+            "name": "Heldens, Stijn"
+        },
+        {
+            "orcid": "0000-0002-7508-3272",
+            "affiliation": "Leiden University",
+            "name": "van Werkhoven, Ben"
+        }
+    ],
+    "keywords": ["mixed-precision", "GPU", "CUDA", "HIP", "low-precision", "floating-point", "half precision", "C++", "vectorization", "bfloat16"]
+}
+
