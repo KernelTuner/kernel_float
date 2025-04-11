@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en">
 <head>
@@ -5,19 +7,15 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kernel Float &mdash; Kernel Float  documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
-        <script src="_static/doctools.js?v=888ff710"></script>
-        <script src="_static/sphinx_highlight.js?v=4825356b"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="_static/doctools.js?v=888ff710"></script>
+      <script src="_static/sphinx_highlight.js?v=4825356b"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -86,10 +84,10 @@
 <img alt="GitHub" src="https://img.shields.io/github/license/KernelTuner/kernel_float" />
 <img alt="GitHub tag (latest by date)" src="https://img.shields.io/github/v/tag/KernelTuner/kernel_float" />
 <img alt="GitHub Repo stars" src="https://img.shields.io/github/stars/KernelTuner/kernel_float?style=social" /></p>
-<p><em>Kernel Float</em> is a header-only library for CUDA that simplifies working with vector types and reduced precision floating-point arithmetic in GPU code.</p>
+<p><em>Kernel Float</em> is a header-only library for CUDA/HIP that simplifies working with vector types and reduced precision floating-point arithmetic in GPU code.</p>
 <section id="summary">
 <h2>Summary<a class="headerlink" href="#summary" title="Permalink to this heading"></a></h2>
-<p>CUDA natively offers several reduced precision floating-point types (<code class="docutils literal notranslate"><span class="pre">__half</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_bfloat16</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e4m3</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e5m2</span></code>)
+<p>CUDA/HIP natively offers several reduced precision floating-point types (<code class="docutils literal notranslate"><span class="pre">__half</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_bfloat16</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e4m3</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8_e5m2</span></code>)
 and vector types (e.g., <code class="docutils literal notranslate"><span class="pre">__half2</span></code>, <code class="docutils literal notranslate"><span class="pre">__nv_fp8x4_e4m3</span></code>, <code class="docutils literal notranslate"><span class="pre">float3</span></code>).
 However, working with these types is cumbersome:
 mathematical operations require intrinsics (e.g., <code class="docutils literal notranslate"><span class="pre">__hadd2</span></code> performs addition for <code class="docutils literal notranslate"><span class="pre">__half2</span></code>),
@@ -98,8 +96,8 @@ and some functionality is missing (e.g., one cannot convert a <code class="docut
 <p><em>Kernel Float</em> resolves this by offering a single data type <code class="docutils literal notranslate"><span class="pre">kernel_float::vec&lt;T,</span> <span class="pre">N&gt;</span></code> that stores <code class="docutils literal notranslate"><span class="pre">N</span></code> elements of type <code class="docutils literal notranslate"><span class="pre">T</span></code>.
 Internally, the data is stored as a fixed-sized array of elements.
 Operator overloading (like <code class="docutils literal notranslate"><span class="pre">+</span></code>, <code class="docutils literal notranslate"><span class="pre">*</span></code>, <code class="docutils literal notranslate"><span class="pre">&amp;&amp;</span></code>) has been implemented such that the most optimal intrinsic for the available types is selected automatically.
-Many mathetical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>) and common operations (such as <code class="docutils literal notranslate"><span class="pre">sum</span></code>, <code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">for_each</span></code>) are also available.</p>
-<p>By using this library, developers can avoid the complexity of working with reduced precision floating-point types in CUDA and focus on their applications.</p>
+Many mathematical functions (like <code class="docutils literal notranslate"><span class="pre">log</span></code>, <code class="docutils literal notranslate"><span class="pre">exp</span></code>, <code class="docutils literal notranslate"><span class="pre">sin</span></code>) and common operations (such as <code class="docutils literal notranslate"><span class="pre">sum</span></code>, <code class="docutils literal notranslate"><span class="pre">range</span></code>, <code class="docutils literal notranslate"><span class="pre">for_each</span></code>) are also available.</p>
+<p>Using Kernel Float, developers avoid the complexity of reduced precision floating-point types in CUDA and can focus on their applications.</p>
 </section>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Permalink to this heading"></a></h2>
@@ -112,6 +110,7 @@ Many mathetical functions (like <code class="docutils literal notranslate"><span
 <li><p>Easy integration as a single header file.</p></li>
 <li><p>Written for C++17.</p></li>
 <li><p>Compatible with NVCC (NVIDIA Compiler) and NVRTC (NVIDIA Runtime Compilation).</p></li>
+<li><p>Compatible with HIPCC (AMD HIP Compiler)</p></li>
 </ul>
 </section>
 <section id="example">
@@ -119,7 +118,7 @@ Many mathetical functions (like <code class="docutils literal notranslate"><span
 <p>Check out the <a class="reference external" href="https://github.com/KernelTuner/kernel_float/tree/master/examples">examples</a> directory for some examples.</p>
 <p>Below shows a simple example of a CUDA kernel that adds a <code class="docutils literal notranslate"><span class="pre">constant</span></code> to the <code class="docutils literal notranslate"><span class="pre">input</span></code> array and writes the results to the <code class="docutils literal notranslate"><span class="pre">output</span></code> array.
 Each thread processes two elements.
-Notice how easy it would be change the precision (for example, <code class="docutils literal notranslate"><span class="pre">double</span></code> to <code class="docutils literal notranslate"><span class="pre">half</span></code>) or the vector size (for example, 4 instead of 2 items per thread).</p>
+Notice how easy it would be to change the precision (for example, <code class="docutils literal notranslate"><span class="pre">double</span></code> to <code class="docutils literal notranslate"><span class="pre">half</span></code>) or the vector size (for example, 4 instead of 2 items per thread).</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">&quot;kernel_float.h&quot;</span>
 <span class="k">namespace</span><span class="w"> </span><span class="nn">kf</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">kernel_float</span><span class="p">;</span>
 
@@ -129,12 +128,12 @@ Notice how easy it would be change the precision (for example, <code class="docu
 <span class="p">}</span>
 </pre></div>
 </div>
-<p>Here is how the same kernel would like without Kernel Float.</p>
+<p>Here is how the same kernel would look for CUDA without Kernel Float.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">__global__</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="n">kernel</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">__half</span><span class="o">*</span><span class="w"> </span><span class="n">input</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="w"> </span><span class="n">constant</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="o">*</span><span class="w"> </span><span class="n">output</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">blockIdx</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">blockDim</span><span class="p">.</span><span class="n">x</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">threadIdx</span><span class="p">.</span><span class="n">x</span><span class="p">;</span>
 <span class="w">    </span><span class="n">__half</span><span class="w"> </span><span class="n">in0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">0</span><span class="p">];</span>
 <span class="w">    </span><span class="n">__half</span><span class="w"> </span><span class="n">in1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">input</span><span class="p">[</span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">];</span>
-<span class="w">    </span><span class="n">__half2</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">__halves2half2</span><span class="p">(</span><span class="n">in0</span><span class="p">,</span><span class="w"> </span><span class="n">int1</span><span class="p">);</span>
+<span class="w">    </span><span class="n">__half2</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">__halves2half2</span><span class="p">(</span><span class="n">in0</span><span class="p">,</span><span class="w"> </span><span class="n">in1</span><span class="p">);</span>
 <span class="w">    </span><span class="kt">float</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="kt">float</span><span class="p">(</span><span class="n">constant</span><span class="p">);</span>
 <span class="w">    </span><span class="n">__half</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">__float2half</span><span class="p">(</span><span class="n">b</span><span class="p">);</span>
 <span class="w">    </span><span class="n">__half2</span><span class="w"> </span><span class="n">d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">__half2half2</span><span class="p">(</span><span class="n">c</span><span class="p">);</span>
