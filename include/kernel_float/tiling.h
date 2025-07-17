@@ -565,7 +565,7 @@ struct tiling_iterator {
     KERNEL_FLOAT_INLINE
     tiling_iterator operator++(int) {
         tiling_iterator old = *this;
-        this ++;
+        (*this)++;
         return old;
     }
 
