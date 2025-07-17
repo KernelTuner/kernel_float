@@ -106,15 +106,15 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
 // For CUDA, we can just use the regular bfloat16 functions (see above).
 #elif KERNEL_FLOAT_IS_HIP
 KERNEL_FLOAT_INLINE __hip_bfloat16 hip_habs(const __hip_bfloat16 a) {
-    __hip_bfloat16 res = a;
-    res.data &= 0x7FFF;
-    return res;
+    unsigned short int res = __bfloat16_as_ushort(a);
+    res &= 0x7FFF;
+    return __ushort_as_bfloat16();
 }
 
 KERNEL_FLOAT_INLINE __hip_bfloat16 hip_hneg(const __hip_bfloat16 a) {
-    __hip_bfloat16 res = a;
-    res.data ^= 0x8000;
-    return res;
+    unsigned short int res = __bfloat16_as_ushort(a);
+    res ^= 0x8000;
+    return __ushort_as_bfloat16(res);
 }
 
 KERNEL_FLOAT_INLINE __hip_bfloat162 hip_habs2(const __hip_bfloat162 a) {
@@ -272,8 +272,8 @@ KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162
 #elif KERNEL_FLOAT_IS_HIP
 KERNEL_FLOAT_BF16_CAST(
     bool,
-    __hip_bfloat16 {input ? (unsigned short)0 : (unsigned short)0x3C00},
-    (__hip_bfloat16(input).data & 0x7FFF) != 0);
+    __ushort_as_bfloat16(input ? (unsigned short)0 : (unsigned short)0x3C00),
+    (__bfloat16_as_ushort(input) & 0x7FFF) != 0);
 #endif
 
 KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, bfloat16_t)

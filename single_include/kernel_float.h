@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-01-27 16:26:28.827757
-// git hash: 09dc82096e4c013a079f0e315da1ccce17453c93
+// date: 2025-07-17 14:58:12.821069
+// git hash: cb04a8f36c97ea0e0ff0648316f82b6125214c83
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -4403,15 +4403,15 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
 // For CUDA, we can just use the regular bfloat16 functions (see above).
 #elif KERNEL_FLOAT_IS_HIP
 KERNEL_FLOAT_INLINE __hip_bfloat16 hip_habs(const __hip_bfloat16 a) {
-    __hip_bfloat16 res = a;
-    res.data &= 0x7FFF;
-    return res;
+    unsigned short int res = __bfloat16_as_ushort(a);
+    res &= 0x7FFF;
+    return __ushort_as_bfloat16();
 }
 
 KERNEL_FLOAT_INLINE __hip_bfloat16 hip_hneg(const __hip_bfloat16 a) {
-    __hip_bfloat16 res = a;
-    res.data ^= 0x8000;
-    return res;
+    unsigned short int res = __bfloat16_as_ushort(a);
+    res ^= 0x8000;
+    return __ushort_as_bfloat16(res);
 }
 
 KERNEL_FLOAT_INLINE __hip_bfloat162 hip_habs2(const __hip_bfloat162 a) {
@@ -4569,8 +4569,8 @@ KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162
 #elif KERNEL_FLOAT_IS_HIP
 KERNEL_FLOAT_BF16_CAST(
     bool,
-    __hip_bfloat16 {input ? (unsigned short)0 : (unsigned short)0x3C00},
-    (__hip_bfloat16(input).data & 0x7FFF) != 0);
+    __ushort_as_bfloat16(input ? (unsigned short)0 : (unsigned short)0x3C00),
+    (__bfloat16_as_ushort(input) & 0x7FFF) != 0);
 #endif
 
 KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, bfloat16_t)
@@ -5842,7 +5842,7 @@ struct tiling_iterator {
     KERNEL_FLOAT_INLINE
     tiling_iterator operator++(int) {
         tiling_iterator old = *this;
-        this ++;
+        (*this)++;
         return old;
     }
 
