@@ -57,9 +57,9 @@ Notice how easy it would be to change the precision (for example, `double` to `h
 #include "kernel_float.h"
 namespace kf = kernel_float;
 
-__global__ void kernel(const kf::vec<half, 2>* input, float constant, kf::vec<float, 2>* output) {
+__global__ void kernel(kf::vec_ptr<const half, 2> input, int constant, kf::vec_ptr<float, 2> output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    output[i] = input[i] + kf::cast<half>(constant);
+    output[i] += input[i] * constant;
 }
 
 ```
@@ -67,21 +67,20 @@ __global__ void kernel(const kf::vec<half, 2>* input, float constant, kf::vec<fl
 Here is how the same kernel would look for CUDA without Kernel Float.
 
 ```cpp
-__global__ void kernel(const __half* input, float constant, float* output) {
+__global__ void kernel(const half* input, double constant, float* output) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     __half in0 = input[2 * i + 0];
     __half in1 = input[2 * i + 1];
     __half2 a = __halves2half2(in0, in1);
-    float b = float(constant);
-    __half c = __float2half(b);
-    __half2 d = __half2half2(c);
-    __half2 e = __hadd2(a, d);
-    __half f = __low2half(e);
-    __half g = __high2half(e);
-    float out0 = __half2float(f);
-    float out1 = __half2float(g);
-    output[2 * i + 0] = out0;
-    output[2 * i + 1] = out1;
+    __half b = __int2half_rn(constant);
+    __half2 c = __half2half2(b);
+    __half2 d = __hmul2(a, c);
+    __half e = __low2half(d);
+    __half f = __high2half(d);
+    float out0 = __half2float(e);
+    float out1 = __half2float(f);
+    output[2 * i + 0] += out0;
+    output[2 * i + 1] += out1;
 }
 
 ```
