@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-07-17 14:58:12.821069
-// git hash: cb04a8f36c97ea0e0ff0648316f82b6125214c83
+// date: 2025-08-12 09:36:07.217735
+// git hash: 15a92ee9e96aef3147fdcfc3dcb3bd4ce501d063
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -340,6 +340,8 @@ struct is_implicit_convertible_impl {
     static constexpr bool value = false;
 };
 
+// This has to be done using SFINAE since `promote_type<From, To>` might actually be undefined if `From` is not
+// implicitly convertible to `To`.
 template<typename From, typename To>
 struct is_implicit_convertible_impl<From, To, typename promote_type<From, To>::type> {
     static constexpr bool value = true;
@@ -357,9 +359,6 @@ KERNEL_FLOAT_INLINE T& declval() {
         ;
 }
 }  // namespace detail
-
-template<typename F, typename... Args>
-using result_t = decltype((detail::declval<F>())(detail::declval<Args>()...));
 
 namespace detail {
 template<bool, typename T>
@@ -834,9 +833,9 @@ using default_policy = accurate_policy;
 
 namespace detail {
 
-template<typename F, typename Output, typename... Args>
+template<typename F, typename... Args>
 struct invoke_impl {
-    KERNEL_FLOAT_INLINE static Output call(F fun, Args... args) {
+    KERNEL_FLOAT_INLINE static auto call(F fun, Args... args) {
         return fun(args...);
     }
 };
@@ -856,7 +855,7 @@ struct apply_impl<accurate_policy, F, N, Output, Args...> {
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            output[i] = invoke_impl<F, Output, Args...>::call(fun, args[i]...);
+            output[i] = invoke_impl<F, Args...>::call(fun, args[i]...);
         }
     }
 };
@@ -890,6 +889,10 @@ template<typename F, size_t N, typename Output, typename... Args>
 using default_map_impl = map_impl<default_policy, F, N, Output, Args...>;
 
 }  // namespace detail
+
+template<typename F, typename... Args>
+using result_t = decltype(
+    detail::invoke_impl<F, Args...>::call(detail::declval<F>(), detail::declval<Args>()...));
 
 template<typename F, typename... Args>
 using map_type =

@@ -236,6 +236,8 @@ struct is_implicit_convertible_impl {
     static constexpr bool value = false;
 };
 
+// This has to be done using SFINAE since `promote_type<From, To>` might actually be undefined if `From` is not
+// implicitly convertible to `To`.
 template<typename From, typename To>
 struct is_implicit_convertible_impl<From, To, typename promote_type<From, To>::type> {
     static constexpr bool value = true;
@@ -253,9 +255,6 @@ KERNEL_FLOAT_INLINE T& declval() {
         ;
 }
 }  // namespace detail
-
-template<typename F, typename... Args>
-using result_t = decltype((detail::declval<F>())(detail::declval<Args>()...));
 
 namespace detail {
 template<bool, typename T>
