@@ -20,12 +20,12 @@ jobs:
     with:
       rocm-version: "6.3.0"
 
-  build-cuda-13-0:
+  build-cuda-12-7:
     if: github.ref_name == 'main'
     needs: build-cuda
     uses: ./.github/workflows/cmake-run-cuda.yml
     with:
-      cuda-version: "13.0.0"
+      cuda-version: "12.7.0"
 
   build-cuda-12-6:
     if: github.ref_name == 'main'

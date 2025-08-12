@@ -116,6 +116,37 @@ broadcast_like(const V& input, const R& other) {
     return broadcast(input, vector_extent_type<R> {});
 }
 
+namespace detail {
+
+template<typename F, typename... Args>
+struct invoke_impl {
+    KERNEL_FLOAT_INLINE static decltype(auto) call(F fun, Args... args) {
+        return std::forward<F>(fun)(std::forward<Args>(args)...);
+    }
+};
+
+}  // namespace detail
+
+template<typename F, typename... Args>
+using result_t = decltype(detail::invoke_impl<decay_t<F>, decay_t<Args>...>::call(
+    detail::declval<F>(),
+    detail::declval<Args>()...));
+
+/**
+* Invoke the given function `fun` with the arguments `args...`.
+*
+* The main difference between directly calling `fun(args...)`, is that the behavior can be overridden by
+* specializing on `detail::invoke_impl<F, Args...>`.
+*
+* @return The result of `fun(args...)`.
+*/
+template<typename F, typename... Args>
+KERNEL_FLOAT_INLINE result_t<F, Args...> invoke(F fun, const Args&... args) {
+    return detail::invoke_impl<decay_t<F>, decay_t<Args>...>::call(
+        std::forward<F>(fun),
+        std::forward<Args>(args)...);
+}
+
 /**
  * The accurate_policy is designed for computations where maximum accuracy is essential. This policy ensures that all
  * operations are performed without any approximations or optimizations that could potentially alter the precise
@@ -168,13 +199,6 @@ using default_policy = accurate_policy;
 
 namespace detail {
 
-template<typename F, typename... Args>
-struct invoke_impl {
-    KERNEL_FLOAT_INLINE static auto call(F fun, Args... args) {
-        return fun(args...);
-    }
-};
-
 template<typename Policy, typename F, size_t N, typename Output, typename... Args>
 struct apply_impl;
 
@@ -190,7 +214,7 @@ struct apply_impl<accurate_policy, F, N, Output, Args...> {
     KERNEL_FLOAT_INLINE static void call(F fun, Output* output, const Args*... args) {
 #pragma unroll
         for (size_t i = 0; i < N; i++) {
-            output[i] = invoke_impl<F, Args...>::call(fun, args[i]...);
+            output[i] = detail::invoke_impl<F, Args...>::call(fun, args[i]...);
         }
     }
 };
@@ -224,10 +248,6 @@ template<typename F, size_t N, typename Output, typename... Args>
 using default_map_impl = map_impl<default_policy, F, N, Output, Args...>;
 
 }  // namespace detail
-
-template<typename F, typename... Args>
-using result_t = decltype(
-    detail::invoke_impl<F, Args...>::call(detail::declval<F>(), detail::declval<Args>()...));
 
 template<typename F, typename... Args>
 using map_type =

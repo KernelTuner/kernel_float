@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stdint.h>
 #include <math.h>
+#include <stdint.h>
 #include <tgmath.h>
 
 #include "catch2/catch_all.hpp"
