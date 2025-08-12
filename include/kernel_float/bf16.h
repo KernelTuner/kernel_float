@@ -107,14 +107,12 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, ::__hneg, ::__hneg2)
 #elif KERNEL_FLOAT_IS_HIP
 KERNEL_FLOAT_INLINE __hip_bfloat16 hip_habs(const __hip_bfloat16 a) {
     unsigned short int res = __bfloat16_as_ushort(a);
-    res &= 0x7FFF;
-    return __ushort_as_bfloat16();
+    return __ushort_as_bfloat16(res & 0x7FFF);
 }
 
 KERNEL_FLOAT_INLINE __hip_bfloat16 hip_hneg(const __hip_bfloat16 a) {
     unsigned short int res = __bfloat16_as_ushort(a);
-    res ^= 0x8000;
-    return __ushort_as_bfloat16(res);
+    return __ushort_as_bfloat16(res ^ 0x8000);
 }
 
 KERNEL_FLOAT_INLINE __hip_bfloat162 hip_habs2(const __hip_bfloat162 a) {

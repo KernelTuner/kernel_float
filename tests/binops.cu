@@ -100,8 +100,8 @@ struct minmax_tests {
         kf::vec<T, N> a = {x[I]...};
         kf::vec<T, N> b = {y[I]...};
 
-        kf::vec<T, N> lo = min(a, b);
-        kf::vec<T, N> hi = max(a, b);
+        kf::vec<T, N> lo = kernel_float::min(a, b);
+        kf::vec<T, N> hi = kernel_float::max(a, b);
 
         if constexpr (is_one_of<T, double>) {
             ASSERT(equals(fmin(a[I], b[I]), lo[I]) && ...);
@@ -130,7 +130,7 @@ struct cross_test {
     __host__ __device__ void operator()(generator<T> gen) {
         kf::vec<T, 3> a = {T(1.0), T(2.0), T(3.0)};
         kf::vec<T, 3> b = {T(4.0), T(5.0), T(6.0)};
-        kf::vec<T, 3> c = cross(a, b);
+        kf::vec<T, 3> c = kernel_float::cross(a, b);
 
         ASSERT(c[0] == T(-3.0));
         ASSERT(c[1] == T(6.0));

@@ -1,6 +1,8 @@
 #pragma once
 
-#include <cstdint>
+#include <stdint.h>
+#include <math.h>
+#include <tgmath.h>
 
 #include "catch2/catch_all.hpp"
 #include "kernel_float.h"

@@ -6,23 +6,51 @@ on:
     branches: [ "main" ]
 
 env:
-  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
   BUILD_TYPE: Debug
 
 jobs:
   build-cuda:
-    uses: ./.github/workflows/cmake-action.yml
+    uses: ./.github/workflows/cmake-run-cuda.yml
     with:
       cuda-version: "12.8.0"
 
-  build-cuda-12-6:
+  build-hip:
+    needs: build-cuda #  Only attempt HIP after CUDA was succesfull
+    uses: ./.github/workflows/cmake-run-hip.yml
+    with:
+      rocm-version: "6.3.0"
+
+  build-cuda-13-0:
+    if: github.ref_name == 'main'
     needs: build-cuda
-    uses: ./.github/workflows/cmake-action.yml
+    uses: ./.github/workflows/cmake-run-cuda.yml
+    with:
+      cuda-version: "13.0.0"
+
+  build-cuda-12-6:
+    if: github.ref_name == 'main'
+    needs: build-cuda
+    uses: ./.github/workflows/cmake-run-cuda.yml
     with:
       cuda-version: "12.6.0"
 
   build-cuda-12-5:
+    if: github.ref_name == 'main'
     needs: build-cuda
-    uses: ./.github/workflows/cmake-action.yml
+    uses: ./.github/workflows/cmake-run-cuda.yml
     with:
       cuda-version: "12.5.0"
+
+  build-hip-6-2:
+    if: github.ref_name == 'main'
+    needs: build-hip
+    uses: ./.github/workflows/cmake-run-hip.yml
+    with:
+      rocm-version: "6.2.0"
+
+  build-hip-6-4:
+    if: github.ref_name == 'main'
+    needs: build-hip
+    uses: ./.github/workflows/cmake-run-hip.yml
+    with:
+      rocm-version: "6.4.0"

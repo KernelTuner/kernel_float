@@ -19,8 +19,8 @@
     #endif  // __CUDA_ARCH__
 #elif defined(__HIPCC__)
     #define KERNEL_FLOAT_IS_HIP (1)
-    #define KERNEL_FLOAT_DEVICE  __attribute__((always_inline)) __device__
-    #define KERNEL_FLOAT_INLINE  __attribute__((always_inline)) __host__ __device__
+    #define KERNEL_FLOAT_DEVICE  __attribute__((always_inline)) inline __device__
+    #define KERNEL_FLOAT_INLINE  __attribute__((always_inline)) inline __host__ __device__
 
     #ifdef __HIP_DEVICE_COMPILE__
         #define KERNEL_FLOAT_IS_DEVICE (1)
