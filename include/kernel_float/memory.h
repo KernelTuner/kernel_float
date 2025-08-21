@@ -414,7 +414,8 @@ struct vector_ref<T, N, const U, Alignment> {
     template<typename T, size_t N, typename U, size_t Alignment, typename V> \
     KERNEL_FLOAT_INLINE vector_ref<T, N, U, Alignment> operator OP_ASSIGN(   \
         vector_ref<T, N, U, Alignment> ptr,                                  \
-        const V& value) {                                                    \
+        const V                                                              \
+        & value) {                                                           \
         ptr.write(ptr.read() OP value);                                      \
         return ptr;                                                          \
     }
@@ -462,19 +463,27 @@ struct vector_ptr {
     vector_ptr() = default;
 
     /**
-     * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Align` elements.
+     * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Alignment`.
      */
+    template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
+
+    /**
+     * Constructor from a given pointer. This assumes that the alignment of the pointer equals `Alignment`.
+     */
+    template<typename V = U, enable_if_t<Alignment == alignof(V), int> = 0>
+    KERNEL_FLOAT_INLINE vector_ptr(pointer_type p) : data_(p) {}
 
     /**
      * Constructs a vector_ptr from another vector_ptr with potentially different alignment and type. This constructor
      * only allows conversion if the alignment of the source is greater than or equal to the alignment of the target.
      */
-    template<typename T2, size_t N2, size_t A2>
-    KERNEL_FLOAT_INLINE vector_ptr(
-        vector_ptr<T2, N2, U, A2> p,
-        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = {}) :
-        data_(p.get()) {}
+    template<
+        typename T2,
+        size_t N2,
+        size_t A2,
+        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = 0>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U, A2> p) : data_(p.get()) {}
 
     /**
      * Shorthand for `at(0)`.
@@ -548,19 +557,25 @@ struct vector_ptr<T, N, const U, Alignment> {
 
     vector_ptr() = default;
 
+    template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
 
-    template<typename T2, size_t N2, size_t A2>
-    KERNEL_FLOAT_INLINE vector_ptr(
-        vector_ptr<T2, N2, const U, A2> p,
-        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = {}) :
-        data_(p.get()) {}
+    template<typename V = U, enable_if_t<Alignment == alignof(V), int> = 0>
+    KERNEL_FLOAT_INLINE vector_ptr(pointer_type p) : data_(p) {}
 
-    template<typename T2, size_t N2, size_t A2>
-    KERNEL_FLOAT_INLINE vector_ptr(
-        vector_ptr<T2, N2, U, A2> p,
-        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = {}) :
-        data_(p.get()) {}
+    template<
+        typename T2,
+        size_t N2,
+        size_t A2,
+        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = 0>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, const U, A2> p) : data_(p.get()) {}
+
+    template<
+        typename T2,
+        size_t N2,
+        size_t A2,
+        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = 0>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U, A2> p) : data_(p.get()) {}
 
     KERNEL_FLOAT_INLINE vector_ref<value_type, N, const U, Alignment> operator*() const {
         return vector_ref<value_type, N, const U, Alignment> {data_};
@@ -614,7 +629,7 @@ KERNEL_FLOAT_INLINE vector_ptr<T, N, U, A>& operator+=(vector_ptr<T, N, U, A>& p
 /**
  * Creates a `vector_ptr<T, N>` from a raw pointer `T*` by asserting a specific alignment `N`.
  *
- * @tparam N The alignment constraint for the vector_ptr. Defaults to KERNEL_FLOAT_MAX_ALIGNMENT.
+ * @tparam N The alignment constraint for the vector_ptr.
  * @tparam T The type of the elements pointed to by the raw pointer.
  */
 template<size_t N, typename T>
@@ -637,6 +652,9 @@ KERNEL_FLOAT_INLINE vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> assert_align
 
 template<typename T, size_t N = 1, typename U = T, size_t Align = N>
 using vec_ptr = vector_ptr<T, N, U, Align * sizeof(U)>;
+
+template<typename T, typename U = T>
+using view_ptr = vector_ptr<T, 1, U, alignof(U)>;
 
 #if defined(__cpp_deduction_guides)
 template<typename T>

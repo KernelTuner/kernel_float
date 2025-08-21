@@ -118,12 +118,14 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
     template<typename L, typename R, typename C = promote_t<L, vector_value_type<R>>, typename E> \
     KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E>, R> operator OP(               \
         const vector<L, E>& left,                                                                 \
-        const R& right) {                                                                         \
+        const R                                                                                   \
+        & right) {                                                                                \
         return zip_common(ops::NAME<C> {}, left, right);                                          \
     }                                                                                             \
     template<typename L, typename R, typename C = promote_t<vector_value_type<L>, R>, typename E> \
     KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, vector<R, E>> operator OP(               \
-        const L& left,                                                                            \
+        const L                                                                                   \
+        & left,                                                                                   \
         const vector<R, E>& right) {                                                              \
         return zip_common(ops::NAME<C> {}, left, right);                                          \
     }
@@ -164,16 +166,16 @@ static constexpr bool is_vector_assign_allowed =
         >;
 // clang-format on
 
-#define KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(NAME, OP)                               \
-    template<                                                                        \
-        typename T,                                                                  \
-        typename E,                                                                  \
-        typename R,                                                                  \
-        typename = enable_if_t<is_vector_assign_allowed<ops::NAME, T, E, R>>>        \
-    KERNEL_FLOAT_INLINE vector<T, E>& operator OP(vector<T, E>& lhs, const R& rhs) { \
-        using F = ops::NAME<T>;                                                      \
-        lhs = zip_common(F {}, lhs, rhs);                                            \
-        return lhs;                                                                  \
+#define KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(NAME, OP)                                \
+    template<                                                                         \
+        typename T,                                                                   \
+        typename E,                                                                   \
+        typename R,                                                                   \
+        typename = enable_if_t<is_vector_assign_allowed<ops::NAME, T, E, R>>>         \
+    KERNEL_FLOAT_INLINE vector<T, E>& operator OP(vector<T, E>& lhs, const R & rhs) { \
+        using F = ops::NAME<T>;                                                       \
+        lhs = zip_common(F {}, lhs, rhs);                                             \
+        return lhs;                                                                   \
     }
 
 KERNEL_FLOAT_DEFINE_BINARY_ASSIGN_OP(add, +=)

@@ -127,6 +127,7 @@ KERNEL_FLOAT_DEVICE half2_t normalize_trig_input(half2_t x) {
     static constexpr double ONE_OVER_TWOPI = 0.15915494309189535;
     static constexpr double OFFSET = -2042.0;
 
+    // ws = (x / 2pi) - ((x / 2pi + OFFSET) - OFFSET)
     half2_t ws = __hfma2(x, make_half2(-ONE_OVER_TWOPI), make_half2(-OFFSET)) + make_half2(OFFSET);
     return __hfma2(x, make_half2(ONE_OVER_TWOPI), ws);
 }

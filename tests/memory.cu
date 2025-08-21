@@ -208,6 +208,31 @@ struct vector_ptr_test {
             kf::vec<T, N> h = ptr[1];
             ASSERT_EQ_ALL(h[I], T(3.14));
         }
+
+        {
+            // This does *not* require an explicit constructor (N == 1)
+            kf::vector_ptr<T, 1, U> a1_ptr = storage.data;
+            kf::vector_ptr<const T, 1, U> a2_ptr = storage.data;
+            kf::vector_ptr<T, 1, const U> a3_ptr = storage.data;
+            kf::vector_ptr<const T, 1, const U> a4_ptr = storage.data;
+
+            ASSERT_EQ(a1_ptr.get(), static_cast<U*>(storage.data));
+            ASSERT_EQ(a2_ptr.get(), static_cast<U*>(storage.data));
+            ASSERT_EQ(a3_ptr.get(), static_cast<const U*>(storage.data));
+            ASSERT_EQ(a4_ptr.get(), static_cast<const U*>(storage.data));
+
+            // This *does* require an explicit constructor (N > 1)
+            kf::vector_ptr<T, 2, U> b1_ptr = kf::vector_ptr<T, 2, U>(storage.data);
+            kf::vector_ptr<const T, 2, U> b2_ptr = kf::vector_ptr<const T, 2, U>(storage.data);
+            kf::vector_ptr<T, 2, const U> b3_ptr = kf::vector_ptr<T, 2, const U>(storage.data);
+            kf::vector_ptr<const T, 2, const U> b4_ptr =
+                kf::vector_ptr<const T, 2, const U>(storage.data);
+
+            ASSERT_EQ(b1_ptr.get(), static_cast<U*>(storage.data));
+            ASSERT_EQ(b2_ptr.get(), static_cast<U*>(storage.data));
+            ASSERT_EQ(b3_ptr.get(), static_cast<const U*>(storage.data));
+            ASSERT_EQ(b4_ptr.get(), static_cast<const U*>(storage.data));
+        }
     }
 };
 
