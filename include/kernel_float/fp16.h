@@ -72,6 +72,7 @@ struct allow_float_fallback<half_t> {
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 KERNEL_FLOAT_FP16_UNARY_FUN(sin, hsin, h2sin)
 KERNEL_FLOAT_FP16_UNARY_FUN(cos, hcos, h2cos)
 
@@ -92,6 +93,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(ceil, hceil, h2ceil)
 KERNEL_FLOAT_FP16_UNARY_FUN(rint, hrint, h2rint)
 KERNEL_FLOAT_FP16_UNARY_FUN(trunc, htrunc, h2trunc)
 KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
+#endif // KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                   \
@@ -118,10 +120,11 @@ KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
 #endif
 
 // There are not available in HIP
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 #if KERNEL_FLOAT_IS_CUDA
 KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
-#endif
+#endif // KERNEL_FLOAT_IS_CUDA
 
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_FP16_BINARY_FUN(subtract, __hsub, __hsub2)
@@ -134,6 +137,7 @@ KERNEL_FLOAT_FP16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater_equal, __hge, __hgt2)
+#endif // KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
 #if KERNEL_FLOAT_IS_DEVICE
 namespace ops {
@@ -236,6 +240,6 @@ KERNEL_FLOAT_VECTOR_ALIAS(half, half_t)
 
 }  // namespace kernel_float
 
-#endif
+#endif // KERNEL_FLOAT_FP16_AVAILABLE
 
 #endif  //KERNEL_FLOAT_FP16_H

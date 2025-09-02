@@ -16,7 +16,7 @@ if(${KERNEL_FLOAT_LANGUAGE_CUDA})
 
     target_compile_options(kernel_float_tests PRIVATE "-ftime-report -ftime-report-details")
     target_compile_options(kernel_float_tests PRIVATE "--extended-lambda")
-    set_target_properties(kernel_float_tests PROPERTIES CUDA_ARCHITECTURES "70;80")
+    set_target_properties(kernel_float_tests PROPERTIES CUDA_ARCHITECTURES "all-major")
 endif()
 
 if(${KERNEL_FLOAT_LANGUAGE_HIP})

@@ -29,9 +29,6 @@ using bfloat16_t = __hip_bfloat16;
 using bfloat16x2_t = __hip_bfloat162;
 #endif
 
-#if KERNEL_FLOAT_IS_CUDA && __CUDA_ARCH__ >= 800
-#define KERNEL_FLOAT_BF16_OPS_SUPPORTED 1
-#endif
 
 template<>
 struct preferred_vector_size<bfloat16_t> {
@@ -80,7 +77,7 @@ struct allow_float_fallback<bfloat16_t> {
     };                                                                                     \
     }
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_BF16_UNARY_FUN(cos, ::hcos, ::h2cos)
 
@@ -156,7 +153,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, hip_hneg, hip_hneg2)
     };                                                                                       \
     }
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_BF16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_BF16_BINARY_FUN(subtract, __hsub, __hsub2)
 KERNEL_FLOAT_BF16_BINARY_FUN(multiply, __hmul, __hmul2)
@@ -172,7 +169,7 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 #endif
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 namespace ops {
 template<>
 struct fma<bfloat16_t> {
@@ -243,7 +240,7 @@ KERNEL_FLOAT_FAST_F32_MAP(KERNEL_FLOAT_FAST_BF16_DISPATCH)
 KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input))
 KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), __bfloat162float(input))
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 // clang-format off
 // there are no official char casts. Instead, cast to int and then to char
 KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
@@ -297,6 +294,6 @@ struct promote_type<half_t, bfloat16_t> {
 }  // namespace kernel_float
 
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
-#endif
+#endif // KERNEL_FLOAT_BF16_AVAILABLE
 
 #endif  //KERNEL_FLOAT_BF16_H
