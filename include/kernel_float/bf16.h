@@ -29,7 +29,6 @@ using bfloat16_t = __hip_bfloat16;
 using bfloat16x2_t = __hip_bfloat162;
 #endif
 
-
 template<>
 struct preferred_vector_size<bfloat16_t> {
     static constexpr size_t value = 2;
@@ -294,6 +293,6 @@ struct promote_type<half_t, bfloat16_t> {
 }  // namespace kernel_float
 
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
-#endif // KERNEL_FLOAT_BF16_AVAILABLE
+#endif  // KERNEL_FLOAT_BF16_AVAILABLE
 
 #endif  //KERNEL_FLOAT_BF16_H

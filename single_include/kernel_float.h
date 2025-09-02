@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-08-21 10:13:04.148230
-// git hash: 4d0d49cad7962d3f9ba4f2a0abfa2faea3ec7efa
+// date: 2025-09-02 18:31:16.281730
+// git hash: 023bc75e8ec67145cdcb447c5fd9aa7d7f180cc6
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -59,9 +59,17 @@
     #define KERNEL_FLOAT_FP16_AVAILABLE (1)
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
 
+#ifndef KERNEL_FLOAT_FP16_OPS_AVAILABLE
+#define KERNEL_FLOAT_FP16_OPS_AVAILABLE ((KERNEL_FLOAT_IS_CUDA && __CUDA_ARCH__ >= 530) || KERNEL_FLOAT_IS_HIP)
+#endif
+
 #ifndef KERNEL_FLOAT_BF16_AVAILABLE
     #define KERNEL_FLOAT_BF16_AVAILABLE (1)
 #endif  // KERNEL_FLOAT_BF16_AVAILABLE
+
+#ifndef KERNEL_FLOAT_BF16_OPS_AVAILABLE
+#define KERNEL_FLOAT_BF16_OPS_AVAILABLE ((KERNEL_FLOAT_IS_CUDA && __CUDA_ARCH__ >= 800) || KERNEL_FLOAT_IS_HIP)
+#endif
 
 #ifndef KERNEL_FLOAT_FP8_AVAILABLE
     #ifdef __CUDACC_VER_MAJOR__
@@ -4171,6 +4179,7 @@ struct allow_float_fallback<half_t> {
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)
 #endif
 
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 KERNEL_FLOAT_FP16_UNARY_FUN(sin, hsin, h2sin)
 KERNEL_FLOAT_FP16_UNARY_FUN(cos, hcos, h2cos)
 
@@ -4191,6 +4200,7 @@ KERNEL_FLOAT_FP16_UNARY_FUN(ceil, hceil, h2ceil)
 KERNEL_FLOAT_FP16_UNARY_FUN(rint, hrint, h2rint)
 KERNEL_FLOAT_FP16_UNARY_FUN(trunc, htrunc, h2trunc)
 KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
+#endif  // KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_BINARY_FUN(NAME, FUN1, FUN2)                                   \
@@ -4217,10 +4227,11 @@ KERNEL_FLOAT_FP16_UNARY_FUN(negate, __hneg, __hneg2)
 #endif
 
 // There are not available in HIP
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 #if KERNEL_FLOAT_IS_CUDA
 KERNEL_FLOAT_FP16_BINARY_FUN(min, __hmin, __hmin2)
 KERNEL_FLOAT_FP16_BINARY_FUN(max, __hmax, __hmax2)
-#endif
+#endif  // KERNEL_FLOAT_IS_CUDA
 
 KERNEL_FLOAT_FP16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_FP16_BINARY_FUN(subtract, __hsub, __hsub2)
@@ -4233,7 +4244,9 @@ KERNEL_FLOAT_FP16_BINARY_FUN(less, __hlt, __hlt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(less_equal, __hle, __hle2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_FP16_BINARY_FUN(greater_equal, __hge, __hgt2)
+#endif  // KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 #if KERNEL_FLOAT_IS_DEVICE
 namespace ops {
 template<>
@@ -4270,7 +4283,8 @@ struct apply_impl<accurate_policy, ops::fma<half_t>, 2, half_t, half_t, half_t, 
 
 KERNEL_FLOAT_FAST_F32_MAP(KERNEL_FLOAT_FAST_FP16_DISPATCH)
 }  // namespace detail
-#endif
+#endif  // KERNEL_FLOAT_IS_DEVICE
+#endif  //KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
 #define KERNEL_FLOAT_FP16_CAST(T, TO_HALF, FROM_HALF)    \
     namespace ops {                                      \
@@ -4335,7 +4349,7 @@ KERNEL_FLOAT_VECTOR_ALIAS(half, half_t)
 
 }  // namespace kernel_float
 
-#endif
+#endif  // KERNEL_FLOAT_FP16_AVAILABLE
 
 #endif  //KERNEL_FLOAT_FP16_H
 #ifndef KERNEL_FLOAT_BF16_H
@@ -4367,10 +4381,6 @@ using bfloat16x2_t = __nv_bfloat162;
 #elif KERNEL_FLOAT_IS_HIP
 using bfloat16_t = __hip_bfloat16;
 using bfloat16x2_t = __hip_bfloat162;
-#endif
-
-#if KERNEL_FLOAT_IS_CUDA && __CUDA_ARCH__ >= 800
-#define KERNEL_FLOAT_BF16_OPS_SUPPORTED 1
 #endif
 
 template<>
@@ -4420,7 +4430,7 @@ struct allow_float_fallback<bfloat16_t> {
     };                                                                                     \
     }
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_BF16_UNARY_FUN(sin, ::hsin, ::h2sin)
 KERNEL_FLOAT_BF16_UNARY_FUN(cos, ::hcos, ::h2cos)
 
@@ -4496,7 +4506,7 @@ KERNEL_FLOAT_BF16_UNARY_FUN(negate, hip_hneg, hip_hneg2)
     };                                                                                       \
     }
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_BF16_BINARY_FUN(add, __hadd, __hadd2)
 KERNEL_FLOAT_BF16_BINARY_FUN(subtract, __hsub, __hsub2)
 KERNEL_FLOAT_BF16_BINARY_FUN(multiply, __hmul, __hmul2)
@@ -4512,7 +4522,7 @@ KERNEL_FLOAT_BF16_BINARY_FUN(greater, __hgt, __hgt2)
 KERNEL_FLOAT_BF16_BINARY_FUN(greater_equal, __hge, __hgt2)
 #endif
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 namespace ops {
 template<>
 struct fma<bfloat16_t> {
@@ -4583,7 +4593,7 @@ KERNEL_FLOAT_FAST_F32_MAP(KERNEL_FLOAT_FAST_BF16_DISPATCH)
 KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input))
 KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), __bfloat162float(input))
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 // clang-format off
 // there are no official char casts. Instead, cast to int and then to char
 KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
@@ -4637,7 +4647,7 @@ struct promote_type<half_t, bfloat16_t> {
 }  // namespace kernel_float
 
 #endif  // KERNEL_FLOAT_FP16_AVAILABLE
-#endif
+#endif  // KERNEL_FLOAT_BF16_AVAILABLE
 
 #endif  //KERNEL_FLOAT_BF16_H
 #pragma once
@@ -4728,7 +4738,7 @@ KERNEL_FLOAT_DEFINE_POLY(asin_poly, 3, 0.05167, -0.2057, 1.57)
 KERNEL_FLOAT_DEFINE_POLY(asin_poly, 4, -0.02103, 0.077, -0.2129, 1.57)
 KERNEL_FLOAT_DEFINE_POLY(asin_poly, 5, 0.009796, -0.03772, 0.0857, -0.2142, 1.57)
 
-#if KERNEL_FLOAT_FP16_AVAILABLE
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 KERNEL_FLOAT_DEVICE half2_t flipsign(half2_t input, half2_t sign) {
     // Flip signbit of input when sign<0
     uint32_t result;
@@ -4923,9 +4933,9 @@ KERNEL_FLOAT_DEVICE half2_t tanh(half2_t x) {
     }
 }
 
-#endif  // KERNEL_FLOAT_FP16_AVAILABLE
+#endif  // KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_DEVICE bfloat16x2_t make_bfloat162(bfloat16_t x) {
     return {x, x};
 }
@@ -5005,7 +5015,7 @@ KERNEL_FLOAT_DEVICE bfloat16x2_t exp(bfloat16x2_t arg) {
         transmute<bfloat16_t>(uint16_t(transmute<uint32_t>(a))),
         transmute<bfloat16_t>(uint16_t(transmute<uint32_t>(b)))};
 }
-#endif
+#endif  // KERNEL_FLOAT_BF16_OPS_AVAILABLE
 }  // namespace approx
 
 namespace detail {
@@ -5036,7 +5046,7 @@ struct apply_impl<approx_level_policy<Level>, F, 1, T, T> {
         apply_impl<approx_level_policy<DEFAULT_LEVEL>, ops::FUN<T>, 2, T, T> {};       \
     }
 
-#if KERNEL_FLOAT_FP16_AVAILABLE
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, sin, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, cos, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, rsqrt, 1)
@@ -5048,7 +5058,7 @@ KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, asin, 2)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, acos, 2)
 #endif
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, cos, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, sin, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, rcp, 1)

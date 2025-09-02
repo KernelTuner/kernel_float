@@ -86,7 +86,7 @@ KERNEL_FLOAT_DEFINE_POLY(asin_poly, 3, 0.05167, -0.2057, 1.57)
 KERNEL_FLOAT_DEFINE_POLY(asin_poly, 4, -0.02103, 0.077, -0.2129, 1.57)
 KERNEL_FLOAT_DEFINE_POLY(asin_poly, 5, 0.009796, -0.03772, 0.0857, -0.2142, 1.57)
 
-#if KERNEL_FLOAT_FP16_AVAILABLE
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 KERNEL_FLOAT_DEVICE half2_t flipsign(half2_t input, half2_t sign) {
     // Flip signbit of input when sign<0
     uint32_t result;
@@ -281,9 +281,9 @@ KERNEL_FLOAT_DEVICE half2_t tanh(half2_t x) {
     }
 }
 
-#endif  // KERNEL_FLOAT_FP16_AVAILABLE
+#endif  // KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_DEVICE bfloat16x2_t make_bfloat162(bfloat16_t x) {
     return {x, x};
 }
@@ -363,7 +363,7 @@ KERNEL_FLOAT_DEVICE bfloat16x2_t exp(bfloat16x2_t arg) {
         transmute<bfloat16_t>(uint16_t(transmute<uint32_t>(a))),
         transmute<bfloat16_t>(uint16_t(transmute<uint32_t>(b)))};
 }
-#endif
+#endif  // KERNEL_FLOAT_BF16_OPS_AVAILABLE
 }  // namespace approx
 
 namespace detail {
@@ -394,7 +394,7 @@ struct apply_impl<approx_level_policy<Level>, F, 1, T, T> {
         apply_impl<approx_level_policy<DEFAULT_LEVEL>, ops::FUN<T>, 2, T, T> {};       \
     }
 
-#if KERNEL_FLOAT_FP16_AVAILABLE
+#if KERNEL_FLOAT_FP16_OPS_AVAILABLE
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, sin, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, cos, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, rsqrt, 1)
@@ -406,7 +406,7 @@ KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, asin, 2)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(half_t, acos, 2)
 #endif
 
-#if KERNEL_FLOAT_BF16_OPS_SUPPORTED
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, cos, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, sin, 4)
 KERNEL_FLOAT_DEFINE_APPROX_IMPL(bfloat16_t, rcp, 1)
