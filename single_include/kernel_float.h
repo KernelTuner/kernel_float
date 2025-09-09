@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-09-02 18:31:16.281730
-// git hash: 023bc75e8ec67145cdcb447c5fd9aa7d7f180cc6
+// date: 2025-09-09 10:07:16.211257
+// git hash: 812619a8a211c35416f42945e01be86eb22efbb3
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -68,7 +68,7 @@
 #endif  // KERNEL_FLOAT_BF16_AVAILABLE
 
 #ifndef KERNEL_FLOAT_BF16_OPS_AVAILABLE
-#define KERNEL_FLOAT_BF16_OPS_AVAILABLE ((KERNEL_FLOAT_IS_CUDA && __CUDA_ARCH__ >= 800) || KERNEL_FLOAT_IS_HIP)
+#define KERNEL_FLOAT_BF16_OPS_AVAILABLE (KERNEL_FLOAT_IS_CUDA && __CUDA_ARCH__ >= 800)
 #endif
 
 #ifndef KERNEL_FLOAT_FP8_AVAILABLE
