@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-09-09 10:07:16.211257
-// git hash: 812619a8a211c35416f42945e01be86eb22efbb3
+// date: 2025-09-15 12:39:02.709972
+// git hash: 81efb0fbfcc587343ba798590ba1541babe378d6
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -4156,6 +4156,63 @@ struct allow_float_fallback<half_t> {
 };
 }  // namespace detail
 
+#define KERNEL_FLOAT_FP16_CAST(T, TO_HALF, FROM_HALF)    \
+    namespace ops {                                      \
+    template<>                                           \
+    struct cast<T, half_t> {                             \
+        KERNEL_FLOAT_INLINE half_t operator()(T input) { \
+            return TO_HALF;                              \
+        }                                                \
+    };                                                   \
+    template<>                                           \
+    struct cast<half_t, T> {                             \
+        KERNEL_FLOAT_INLINE T operator()(half_t input) { \
+            return FROM_HALF;                            \
+        }                                                \
+    };                                                   \
+    }
+
+// Only CUDA has a special `__double2half` intrinsic
+#if KERNEL_FLOAT_IS_HIP
+#define KERNEL_FLOAT_FP16_CAST_FWD(T) \
+    KERNEL_FLOAT_FP16_CAST(T, static_cast<_Float16>(input), static_cast<T>(input))
+
+KERNEL_FLOAT_FP16_CAST_FWD(double)
+KERNEL_FLOAT_FP16_CAST_FWD(float)
+
+KERNEL_FLOAT_FP16_CAST_FWD(char)
+KERNEL_FLOAT_FP16_CAST_FWD(signed char)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned char)
+
+KERNEL_FLOAT_FP16_CAST_FWD(signed short)
+KERNEL_FLOAT_FP16_CAST_FWD(signed int)
+KERNEL_FLOAT_FP16_CAST_FWD(signed long)
+KERNEL_FLOAT_FP16_CAST_FWD(signed long long)
+
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned short)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned int)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned long)
+KERNEL_FLOAT_FP16_CAST_FWD(unsigned long long)
+#else
+KERNEL_FLOAT_FP16_CAST(double, __double2half(input), double(__half2float(input)));
+KERNEL_FLOAT_FP16_CAST(float, __float2half(input), __half2float(input));
+
+// there are no official char casts. Instead, cast to int and then to char
+KERNEL_FLOAT_FP16_CAST(char, __int2half_rn(input), (char)__half2int_rz(input));
+KERNEL_FLOAT_FP16_CAST(signed char, __int2half_rn(input), (signed char)__half2int_rz(input));
+KERNEL_FLOAT_FP16_CAST(unsigned char, __int2half_rn(input), (unsigned char)__half2int_rz(input));
+
+KERNEL_FLOAT_FP16_CAST(signed short, __short2half_rn(input), __half2short_rz(input));
+KERNEL_FLOAT_FP16_CAST(signed int, __int2half_rn(input), __half2int_rz(input));
+KERNEL_FLOAT_FP16_CAST(signed long, __ll2half_rn(input), (signed long)(__half2ll_rz(input)));
+KERNEL_FLOAT_FP16_CAST(signed long long, __ll2half_rn(input), __half2ll_rz(input));
+
+KERNEL_FLOAT_FP16_CAST(unsigned short, __ushort2half_rn(input), __half2ushort_rz(input));
+KERNEL_FLOAT_FP16_CAST(unsigned int, __uint2half_rn(input), __half2uint_rz(input));
+KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__half2ull_rz(input)));
+KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
+#endif
+
 #if KERNEL_FLOAT_IS_DEVICE
 #define KERNEL_FLOAT_FP16_UNARY_FUN(NAME, FUN1, FUN2)                                              \
     namespace ops {                                                                                \
@@ -4286,63 +4343,6 @@ KERNEL_FLOAT_FAST_F32_MAP(KERNEL_FLOAT_FAST_FP16_DISPATCH)
 #endif  // KERNEL_FLOAT_IS_DEVICE
 #endif  //KERNEL_FLOAT_FP16_OPS_AVAILABLE
 
-#define KERNEL_FLOAT_FP16_CAST(T, TO_HALF, FROM_HALF)    \
-    namespace ops {                                      \
-    template<>                                           \
-    struct cast<T, half_t> {                             \
-        KERNEL_FLOAT_INLINE half_t operator()(T input) { \
-            return TO_HALF;                              \
-        }                                                \
-    };                                                   \
-    template<>                                           \
-    struct cast<half_t, T> {                             \
-        KERNEL_FLOAT_INLINE T operator()(half_t input) { \
-            return FROM_HALF;                            \
-        }                                                \
-    };                                                   \
-    }
-
-// Only CUDA has a special `__double2half` intrinsic
-#if KERNEL_FLOAT_IS_HIP
-#define KERNEL_FLOAT_FP16_CAST_FWD(T) \
-    KERNEL_FLOAT_FP16_CAST(T, static_cast<_Float16>(input), static_cast<T>(input))
-
-KERNEL_FLOAT_FP16_CAST_FWD(double)
-KERNEL_FLOAT_FP16_CAST_FWD(float)
-
-KERNEL_FLOAT_FP16_CAST_FWD(char)
-KERNEL_FLOAT_FP16_CAST_FWD(signed char)
-KERNEL_FLOAT_FP16_CAST_FWD(unsigned char)
-
-KERNEL_FLOAT_FP16_CAST_FWD(signed short)
-KERNEL_FLOAT_FP16_CAST_FWD(signed int)
-KERNEL_FLOAT_FP16_CAST_FWD(signed long)
-KERNEL_FLOAT_FP16_CAST_FWD(signed long long)
-
-KERNEL_FLOAT_FP16_CAST_FWD(unsigned short)
-KERNEL_FLOAT_FP16_CAST_FWD(unsigned int)
-KERNEL_FLOAT_FP16_CAST_FWD(unsigned long)
-KERNEL_FLOAT_FP16_CAST_FWD(unsigned long long)
-#else
-KERNEL_FLOAT_FP16_CAST(double, __double2half(input), double(__half2float(input)));
-KERNEL_FLOAT_FP16_CAST(float, __float2half(input), __half2float(input));
-
-// there are no official char casts. Instead, cast to int and then to char
-KERNEL_FLOAT_FP16_CAST(char, __int2half_rn(input), (char)__half2int_rz(input));
-KERNEL_FLOAT_FP16_CAST(signed char, __int2half_rn(input), (signed char)__half2int_rz(input));
-KERNEL_FLOAT_FP16_CAST(unsigned char, __int2half_rn(input), (unsigned char)__half2int_rz(input));
-
-KERNEL_FLOAT_FP16_CAST(signed short, __short2half_rn(input), __half2short_rz(input));
-KERNEL_FLOAT_FP16_CAST(signed int, __int2half_rn(input), __half2int_rz(input));
-KERNEL_FLOAT_FP16_CAST(signed long, __ll2half_rn(input), (signed long)(__half2ll_rz(input)));
-KERNEL_FLOAT_FP16_CAST(signed long long, __ll2half_rn(input), __half2ll_rz(input));
-
-KERNEL_FLOAT_FP16_CAST(unsigned short, __ushort2half_rn(input), __half2ushort_rz(input));
-KERNEL_FLOAT_FP16_CAST(unsigned int, __uint2half_rn(input), __half2uint_rz(input));
-KERNEL_FLOAT_FP16_CAST(unsigned long, __ull2half_rn(input), (unsigned long)(__half2ull_rz(input)));
-KERNEL_FLOAT_FP16_CAST(unsigned long long, __ull2half_rn(input), __half2ull_rz(input));
-#endif
-
 KERNEL_FLOAT_VECTOR_ALIAS(half, half_t)
 //KERNEL_FLOAT_TYPE_ALIAS(float16x, half_t)
 //KERNEL_FLOAT_TYPE_ALIAS(f16x, half_t)
@@ -4409,6 +4409,56 @@ struct allow_float_fallback<bfloat16_t> {
     static constexpr bool value = true;
 };
 };  // namespace detail
+
+#define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)        \
+    namespace ops {                                          \
+    template<>                                               \
+    struct cast<T, bfloat16_t> {                             \
+        KERNEL_FLOAT_INLINE bfloat16_t operator()(T input) { \
+            return TO_HALF;                                  \
+        }                                                    \
+    };                                                       \
+    template<>                                               \
+    struct cast<bfloat16_t, T> {                             \
+        KERNEL_FLOAT_INLINE T operator()(bfloat16_t input) { \
+            return FROM_HALF;                                \
+        }                                                    \
+    };                                                       \
+    }
+
+KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input))
+KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), __bfloat162float(input))
+
+#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
+// clang-format off
+// there are no official char casts. Instead, cast to int and then to char
+KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(signed char, __int2bfloat16_rn(input), (signed char)__bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(unsigned char, __int2bfloat16_rn(input), (unsigned char)__bfloat162int_rz(input));
+
+KERNEL_FLOAT_BF16_CAST(signed short, __short2bfloat16_rn(input), __bfloat162short_rz(input));
+KERNEL_FLOAT_BF16_CAST(signed int, __int2bfloat16_rn(input), __bfloat162int_rz(input));
+KERNEL_FLOAT_BF16_CAST(signed long, __ll2bfloat16_rn(input), (signed long)(__bfloat162ll_rz(input)));
+KERNEL_FLOAT_BF16_CAST(signed long long, __ll2bfloat16_rn(input), __bfloat162ll_rz(input));
+
+KERNEL_FLOAT_BF16_CAST(unsigned short, __ushort2bfloat16_rn(input), __bfloat162ushort_rz(input));
+KERNEL_FLOAT_BF16_CAST(unsigned int, __uint2bfloat16_rn(input), __bfloat162uint_rz(input));
+KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
+KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
+// clang-format on
+#endif
+
+#if KERNEL_FLOAT_IS_CUDA
+//KERNEL_FLOAT_BF16_CAST(
+//    bool,
+//    __nv_bfloat16_raw {input ? (unsigned short)0 : (unsigned short)0x3C00},
+//    (__nv_bfloat16_raw(input).x & 0x7FFF) != 0);
+#elif KERNEL_FLOAT_IS_HIP
+KERNEL_FLOAT_BF16_CAST(
+    bool,
+    __ushort_as_bfloat16(input ? (unsigned short)0 : (unsigned short)0x3C00),
+    (__bfloat16_as_ushort(input) & 0x7FFF) != 0);
+#endif
 
 #define KERNEL_FLOAT_BF16_UNARY_FUN(NAME, FUN1, FUN2)                                      \
     namespace ops {                                                                        \
@@ -4572,56 +4622,6 @@ struct apply_impl<
 
 KERNEL_FLOAT_FAST_F32_MAP(KERNEL_FLOAT_FAST_BF16_DISPATCH)
 }  // namespace detail
-#endif
-
-#define KERNEL_FLOAT_BF16_CAST(T, TO_HALF, FROM_HALF)        \
-    namespace ops {                                          \
-    template<>                                               \
-    struct cast<T, bfloat16_t> {                             \
-        KERNEL_FLOAT_INLINE bfloat16_t operator()(T input) { \
-            return TO_HALF;                                  \
-        }                                                    \
-    };                                                       \
-    template<>                                               \
-    struct cast<bfloat16_t, T> {                             \
-        KERNEL_FLOAT_INLINE T operator()(bfloat16_t input) { \
-            return FROM_HALF;                                \
-        }                                                    \
-    };                                                       \
-    }
-
-KERNEL_FLOAT_BF16_CAST(float, __float2bfloat16(input), __bfloat162float(input))
-KERNEL_FLOAT_BF16_CAST(double, __double2bfloat16(input), __bfloat162float(input))
-
-#if KERNEL_FLOAT_BF16_OPS_AVAILABLE
-// clang-format off
-// there are no official char casts. Instead, cast to int and then to char
-KERNEL_FLOAT_BF16_CAST(char, __int2bfloat16_rn(input), (char)__bfloat162int_rz(input));
-KERNEL_FLOAT_BF16_CAST(signed char, __int2bfloat16_rn(input), (signed char)__bfloat162int_rz(input));
-KERNEL_FLOAT_BF16_CAST(unsigned char, __int2bfloat16_rn(input), (unsigned char)__bfloat162int_rz(input));
-
-KERNEL_FLOAT_BF16_CAST(signed short, __short2bfloat16_rn(input), __bfloat162short_rz(input));
-KERNEL_FLOAT_BF16_CAST(signed int, __int2bfloat16_rn(input), __bfloat162int_rz(input));
-KERNEL_FLOAT_BF16_CAST(signed long, __ll2bfloat16_rn(input), (signed long)(__bfloat162ll_rz(input)));
-KERNEL_FLOAT_BF16_CAST(signed long long, __ll2bfloat16_rn(input), __bfloat162ll_rz(input));
-
-KERNEL_FLOAT_BF16_CAST(unsigned short, __ushort2bfloat16_rn(input), __bfloat162ushort_rz(input));
-KERNEL_FLOAT_BF16_CAST(unsigned int, __uint2bfloat16_rn(input), __bfloat162uint_rz(input));
-KERNEL_FLOAT_BF16_CAST(unsigned long, __ull2bfloat16_rn(input), (unsigned long)(__bfloat162ull_rz(input)));
-KERNEL_FLOAT_BF16_CAST(unsigned long long, __ull2bfloat16_rn(input), __bfloat162ull_rz(input));
-// clang-format on
-#endif
-
-#if KERNEL_FLOAT_IS_CUDA
-//KERNEL_FLOAT_BF16_CAST(
-//    bool,
-//    __nv_bfloat16_raw {input ? (unsigned short)0 : (unsigned short)0x3C00},
-//    (__nv_bfloat16_raw(input).x & 0x7FFF) != 0);
-#elif KERNEL_FLOAT_IS_HIP
-KERNEL_FLOAT_BF16_CAST(
-    bool,
-    __ushort_as_bfloat16(input ? (unsigned short)0 : (unsigned short)0x3C00),
-    (__bfloat16_as_ushort(input) & 0x7FFF) != 0);
 #endif
 
 KERNEL_FLOAT_VECTOR_ALIAS(bfloat16x, bfloat16_t)
