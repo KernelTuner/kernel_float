@@ -10,11 +10,16 @@
     #define KERNEL_FLOAT_IS_CUDA (1)
     #define KERNEL_FLOAT_DEVICE    __forceinline__ __device__
 
-    #ifdef __CUDA_ARCH__
+    // NVRTC cannot deal with __host__ annotations
+    #ifdef __CUDACC_RTC__
         #define KERNEL_FLOAT_INLINE    __forceinline__ __device__
+    #else
+        #define KERNEL_FLOAT_INLINE    __forceinline__ __host__ __device__
+    #endif
+
+    #ifdef __CUDA_ARCH__
         #define KERNEL_FLOAT_IS_DEVICE (1)
     #else  // __CUDA_ARCH__
-        #define KERNEL_FLOAT_INLINE  __forceinline__ __host__
         #define KERNEL_FLOAT_IS_HOST (1)
     #endif  // __CUDA_ARCH__
 #elif defined(__HIPCC__)
