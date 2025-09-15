@@ -233,6 +233,24 @@ struct vector_ptr_test {
             ASSERT_EQ(b3_ptr.get(), static_cast<const U*>(storage.data));
             ASSERT_EQ(b4_ptr.get(), static_cast<const U*>(storage.data));
         }
+
+        {
+            U* ptr = nullptr;
+
+            auto a1 = kf::wrap_ptr<T>(ptr);
+            ASSERT(std::is_same<decltype(a1), kf::vector_ptr<T, 1, U>>::value);
+
+            auto a2 = kf::wrap_ptr<T, 2>(ptr);
+            ASSERT(std::is_same<decltype(a2), kf::vector_ptr<T, 2, U>>::value);
+
+            auto a3 = kf::assert_aligned(ptr);
+            ASSERT(
+                std::is_same<decltype(a3), kf::vector_ptr<U, 1, U, KERNEL_FLOAT_MAX_ALIGNMENT>>::
+                    value);
+
+            auto a4 = kf::assert_aligned<2>(ptr);
+            ASSERT(std::is_same<decltype(a4), kf::vector_ptr<U, 2>>::value);
+        }
     }
 };
 

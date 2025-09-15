@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-09-15 12:44:05.768243
-// git hash: 9b41485a27b669ea6f4aae118b4d251947608bf6
+// date: 2025-09-15 16:14:44.345265
+// git hash: e824b62e2e7d40e70322cae48a0b652fbec3803c
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -3203,6 +3203,18 @@ KERNEL_FLOAT_INLINE vector_ptr<T, N, U, A>& operator+=(vector_ptr<T, N, U, A>& p
 }
 
 /**
+ * Creates a `vector_ptr<T, N, U>` from a raw pointer `U*`.
+ *
+ * @tparam T The type of the elements as viewed by the user.
+ * @tparam N The vector size in number of elements.
+ * @tparam U The type of the elements pointed to by the raw pointer.
+ */
+template<typename T, size_t N = 1, typename U>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U> wrap_ptr(U* ptr) {
+    return vector_ptr<T, N, U> {ptr};
+}
+
+/**
  * Creates a `vector_ptr<T, N>` from a raw pointer `T*` by asserting a specific alignment `N`.
  *
  * @tparam N The alignment constraint for the vector_ptr.
@@ -3234,10 +3246,10 @@ using view_ptr = vector_ptr<T, 1, U, alignof(U)>;
 
 #if defined(__cpp_deduction_guides)
 template<typename T>
-vector_ptr(T*) -> vector_ptr<T, 1, T>;
+vector_ptr(T*) -> vector_ptr<T, 1, T, alignof(T)>;
 
 template<typename T>
-vector_ptr(const T*) -> vector_ptr<T, 1, const T>;
+vector_ptr(const T*) -> vector_ptr<T, 1, const T, alignof(T)>;
 
 #if __cpp_deduction_guides >= 201907L
 template<typename T>
