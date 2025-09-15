@@ -301,7 +301,7 @@ struct type_sequence {};
 template<size_t... Is>
 struct size_sequence {};
 
-using default_size_sequence = size_sequence<1, 2, 3, 4, 5, 6, 7, 8>;
+using default_size_sequence = size_sequence<1, 2, 3, 4, 8>;
 
 namespace detail {
 template<typename T, typename F, size_t N, size_t... Ns>
