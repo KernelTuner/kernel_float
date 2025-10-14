@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-09-15 16:14:44.345265
-// git hash: e824b62e2e7d40e70322cae48a0b652fbec3803c
+// date: 2025-10-14 16:18:28.846436
+// git hash: 0e5f52493c7b7027921243e813c434b6cd55e42b
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -121,6 +121,8 @@
 
 
 namespace kernel_float {
+
+using size_t = decltype(sizeof(int));
 
 template<size_t... Is>
 struct index_sequence {
@@ -1381,18 +1383,12 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(log10)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(log1p)
 
 KERNEL_FLOAT_DEFINE_UNARY_MATH(erf)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(erfinv)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(erfc)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(erfcx)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(erfcinv)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(normcdf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(lgamma)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(tgamma)
 
 KERNEL_FLOAT_DEFINE_UNARY_MATH(sqrt)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(rsqrt)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(cbrt)
-KERNEL_FLOAT_DEFINE_UNARY_MATH(rcbrt)
 
 KERNEL_FLOAT_DEFINE_UNARY_MATH(abs)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(floor)
@@ -1400,6 +1396,13 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(round)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(ceil)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(trunc)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(rint)
+
+#if KERNEL_FLOAT_IS_DEVICE
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erfinv)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erfcx)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(erfcinv)
+KERNEL_FLOAT_DEFINE_UNARY_MATH(normcdf)
+#endif
 
 // There are not support on HIP
 #if !KERNEL_FLOAT_IS_HIP
@@ -1411,8 +1414,12 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(isfinite)
 // CUDA offers special reciprocal functions (rcp), but only on the device.
 #if KERNEL_FLOAT_IS_DEVICE
 KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, __drcp_rn(input), __frcp_rn(input))
+KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rsqrt, ::rsqrt(input), ::rsqrtf(input))
+KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcbrt, ::rcbrt(input), ::rcbrtf(input))
 #else
 KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcp, 1.0 / input, 1.0f / input)
+KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rsqrt, 1.0 / ::sqrt(input), 1.0f / ::sqrtf(input))
+KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcbrt, 1.0 / ::cbrt(input), 1.0f / ::cbrtf(input))
 #endif
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)

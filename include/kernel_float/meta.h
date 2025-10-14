@@ -5,6 +5,8 @@
 
 namespace kernel_float {
 
+using size_t = decltype(sizeof(int));
+
 template<size_t... Is>
 struct index_sequence {
     static constexpr size_t size = sizeof...(Is);
