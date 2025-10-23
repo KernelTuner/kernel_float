@@ -49,10 +49,6 @@ cosh
 ----
 .. doxygenfunction:: kernel_float::cosh
 
-cospi
------
-.. doxygenfunction:: kernel_float::cospi
-
 erf
 ---
 .. doxygenfunction:: kernel_float::erf
