@@ -168,7 +168,6 @@ groups = {
             "ceil",
             "cos",
             "cosh",
-            "cospi",
             "erf",
             "erfc",
             "erfcinv",
