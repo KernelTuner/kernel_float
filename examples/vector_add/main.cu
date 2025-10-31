@@ -54,9 +54,9 @@ void run_kernel(int n) {
     int grid_size = (n + items_per_block - 1) / items_per_block;
     my_kernel<items_per_thread><<<grid_size, block_size>>>(
         n,
-        kf::assert_aligned(input_dev),
+        kf::make_vec_ptr(input_dev),
         constant,
-        kf::assert_aligned(output_dev));
+        kf::make_vec_ptr(output_dev));
 
     // Copy results back
     cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));

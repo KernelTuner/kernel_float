@@ -156,7 +156,7 @@ struct vector_ptr_test {
         };
 
         {
-            kf::vector_ptr<const U, N> storage_ptr = kf::assert_aligned(storage.data);
+            kf::vector_ptr<const U, N> storage_ptr = kf::make_vec_ptr(storage.data);
             kf::vector_ptr<T, N, const U> ptr = storage_ptr;
             ASSERT_EQ(ptr.get(), static_cast<const U*>(storage.data));
 
@@ -175,7 +175,7 @@ struct vector_ptr_test {
         }
 
         {
-            kf::vector_ptr<U, N> storage_ptr = kf::assert_aligned(storage.data);
+            kf::vector_ptr<U, N> storage_ptr = kf::make_vec_ptr(storage.data);
             kf::vector_ptr<T, N, U> ptr = storage_ptr;
             ASSERT_EQ(ptr.get(), static_cast<U*>(storage.data));
 
@@ -237,18 +237,18 @@ struct vector_ptr_test {
         {
             U* ptr = nullptr;
 
-            auto a1 = kf::wrap_ptr<T>(ptr);
+            auto a1 = kf::make_vec_ptr<T>(ptr);
             ASSERT(std::is_same<decltype(a1), kf::vector_ptr<T, 1, U>>::value);
 
-            auto a2 = kf::wrap_ptr<T, 2>(ptr);
+            auto a2 = kf::make_vec_ptr<T, 2>(ptr);
             ASSERT(std::is_same<decltype(a2), kf::vector_ptr<T, 2, U>>::value);
 
-            auto a3 = kf::assert_aligned(ptr);
+            auto a3 = kf::make_vec_ptr(ptr);
             ASSERT(
                 std::is_same<decltype(a3), kf::vector_ptr<U, 1, U, KERNEL_FLOAT_MAX_ALIGNMENT>>::
                     value);
 
-            auto a4 = kf::assert_aligned<2>(ptr);
+            auto a4 = kf::make_vec_ptr<2>(ptr);
             ASSERT(std::is_same<decltype(a4), kf::vector_ptr<U, 2>>::value);
         }
     }
