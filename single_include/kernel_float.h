@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-10-14 16:18:28.846436
-// git hash: 0e5f52493c7b7027921243e813c434b6cd55e42b
+// date: 2025-10-31 19:02:16.510739
+// git hash: f01c913003692e3270c174964ddafb02a016e9b8
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2702,7 +2702,7 @@ constexpr size_t gcd(size_t a, size_t b) {
  * Returns true if a pointer having alignment of `a` bytes also has an alignment of `b` bytes. Returns false otherwise.
  */
 KERNEL_FLOAT_INLINE
-constexpr size_t alignment_divisible(size_t a, size_t b) {
+constexpr bool is_alignment_divisible(size_t a, size_t b) {
     return gcd(a, KERNEL_FLOAT_MAX_ALIGNMENT) % gcd(b, KERNEL_FLOAT_MAX_ALIGNMENT) == 0;
 }
 
@@ -3065,7 +3065,7 @@ struct vector_ptr {
         typename T2,
         size_t N2,
         size_t A2,
-        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = 0>
+        enable_if_t<detail::is_alignment_divisible(A2, Alignment), int> = 0>
     KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U, A2> p) : data_(p.get()) {}
 
     /**
@@ -3150,14 +3150,14 @@ struct vector_ptr<T, N, const U, Alignment> {
         typename T2,
         size_t N2,
         size_t A2,
-        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = 0>
+        enable_if_t<detail::is_alignment_divisible(A2, Alignment), int> = 0>
     KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, const U, A2> p) : data_(p.get()) {}
 
     template<
         typename T2,
         size_t N2,
         size_t A2,
-        enable_if_t<detail::alignment_divisible(A2, Alignment), int> = 0>
+        enable_if_t<detail::is_alignment_divisible(A2, Alignment), int> = 0>
     KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U, A2> p) : data_(p.get()) {}
 
     KERNEL_FLOAT_INLINE vector_ref<value_type, N, const U, Alignment> operator*() const {
@@ -3204,7 +3204,7 @@ template<
     size_t N,
     typename U,
     size_t A,
-    typename = enable_if_t<(N * sizeof(U)) % A == 0>>
+    typename = enable_if_t<detail::is_alignment_divisible(N * sizeof(U), A)>>
 KERNEL_FLOAT_INLINE vector_ptr<T, N, U, A>& operator+=(vector_ptr<T, N, U, A>& p, size_t i) {
     return p = p + i;
 }
@@ -3217,10 +3217,12 @@ KERNEL_FLOAT_INLINE vector_ptr<T, N, U, A>& operator+=(vector_ptr<T, N, U, A>& p
  * @tparam U The type of the elements pointed to by the raw pointer.
  */
 template<typename T, size_t N = 1, typename U>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U> wrap_ptr(U* ptr) {
+KERNEL_FLOAT_INLINE vector_ptr<T, N, U> make_vec_ptr(U* ptr) {
     return vector_ptr<T, N, U> {ptr};
 }
 
+// Doxygen cannot deal with the `make_vec_ptr` being defined multiple times, we ignore the second definition.
+/// @cond IGNORE
 /**
  * Creates a `vector_ptr<T, N>` from a raw pointer `T*` by asserting a specific alignment `N`.
  *
@@ -3228,19 +3230,17 @@ KERNEL_FLOAT_INLINE vector_ptr<T, N, U> wrap_ptr(U* ptr) {
  * @tparam T The type of the elements pointed to by the raw pointer.
  */
 template<size_t N, typename T>
-KERNEL_FLOAT_INLINE vector_ptr<T, N> assert_aligned(T* ptr) {
+KERNEL_FLOAT_INLINE vector_ptr<T, N> make_vec_ptr(T* ptr) {
     return vector_ptr<T, N> {ptr};
 }
 
-// Doxygen cannot deal with the `assert_aligned` being defined twice, we ignore the second definition.
-/// @cond IGNORE
 /**
  * Creates a `vector_ptr<T, 1>` from a raw pointer `T*`. The alignment is assumed to be KERNEL_FLOAT_MAX_ALIGNMENT.
  *
  * @tparam T The type of the elements pointed to by the raw pointer.
  */
-template<typename T>
-KERNEL_FLOAT_INLINE vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> assert_aligned(T* ptr) {
+template<decltype(nullptr) = nullptr, typename T>
+KERNEL_FLOAT_INLINE vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> make_vec_ptr(T* ptr) {
     return vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> {ptr};
 }
 /// @endcond
@@ -3249,7 +3249,7 @@ template<typename T, size_t N = 1, typename U = T, size_t Align = N>
 using vec_ptr = vector_ptr<T, N, U, Align * sizeof(U)>;
 
 template<typename T, typename U = T>
-using view_ptr = vector_ptr<T, 1, U, alignof(U)>;
+using scalar_ptr = vector_ptr<T, 1, U, alignof(U)>;
 
 #if defined(__cpp_deduction_guides)
 template<typename T>

@@ -666,7 +666,7 @@ template<typename T, size_t N = 1, typename U = T, size_t Align = N>
 using vec_ptr = vector_ptr<T, N, U, Align * sizeof(U)>;
 
 template<typename T, typename U = T>
-using view_ptr = vector_ptr<T, 1, U, alignof(U)>;
+using scalar_ptr = vector_ptr<T, 1, U, alignof(U)>;
 
 #if defined(__cpp_deduction_guides)
 template<typename T>
