@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-10-31 19:02:16.510739
-// git hash: f01c913003692e3270c174964ddafb02a016e9b8
+// date: 2025-11-20 10:30:52.307303
+// git hash: 933c1b91a0c1bca3ea28576dbff8a3d91d815ff9
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -642,14 +642,13 @@ struct preferred_vector_size {
 };
 
 template<typename V>
-struct vector_traits;
+struct is_vector_impl {
+    static constexpr bool value = false;
+};
 
 template<typename T, typename E, typename S>
-struct vector_traits<vector<T, E, S>> {
-    using value_type = T;
-    using extent_type = E;
-    using storage_type = S;
-    using vector_type = vector<T, E, S>;
+struct is_vector_impl<vector<T, E, S>> {
+    static constexpr bool value = true;
 };
 
 template<typename V>
@@ -660,6 +659,9 @@ using vector_extent_type = typename into_vector_impl<V>::extent_type;
 
 template<typename V>
 static constexpr size_t vector_size = extent_size<vector_extent_type<V>>;
+
+template<typename V>
+static constexpr bool is_vector = is_vector_impl<V>::value;
 
 template<typename V>
 using into_vector_type = vector<vector_value_type<V>, vector_extent_type<V>>;
@@ -1322,12 +1324,12 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
                                                     \
     KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                           \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                      \
-                                                                               \
-    template<typename T, typename E, typename S>                               \
-    KERNEL_FLOAT_INLINE vector<T, E> operator OP(const vector<T, E, S>& vec) { \
-        return NAME(vec);                                                      \
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                                   \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                              \
+                                                                                       \
+    template<typename V, typename T = enable_if_t<is_vector<V>, vector_value_type<V>>> \
+    KERNEL_FLOAT_INLINE map_type<ops::NAME<T>, V> operator OP(const V & vec) {         \
+        return NAME(vec);                                                              \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
@@ -1834,24 +1836,12 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 #define KERNEL_FLOAT_DEFINE_BINARY_OP_FALLBACK(NAME, OP, EXPR_F64, EXPR_F32)                      \
     KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right, EXPR_F64, EXPR_F32)                           \
                                                                                                   \
-    template<typename L, typename R, typename C = promote_t<L, R>, typename E1, typename E2>      \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E1>, vector<R, E2>> operator OP(  \
-        const vector<L, E1>& left,                                                                \
-        const vector<R, E2>& right) {                                                             \
-        return zip_common(ops::NAME<C> {}, left, right);                                          \
-    }                                                                                             \
-    template<typename L, typename R, typename C = promote_t<L, vector_value_type<R>>, typename E> \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E>, R> operator OP(               \
-        const vector<L, E>& left,                                                                 \
-        const R                                                                                   \
-        & right) {                                                                                \
-        return zip_common(ops::NAME<C> {}, left, right);                                          \
-    }                                                                                             \
-    template<typename L, typename R, typename C = promote_t<vector_value_type<L>, R>, typename E> \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, vector<R, E>> operator OP(               \
-        const L                                                                                   \
-        & left,                                                                                   \
-        const vector<R, E>& right) {                                                              \
+    template<                                                                                     \
+        typename L,                                                                               \
+        typename R,                                                                               \
+        typename C = enable_if_t<is_vector<L> || is_vector<R>, promoted_vector_value_type<L, R>>> \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R>                                       \
+    operator OP(const L & left, const R & right) {                                                \
         return zip_common(ops::NAME<C> {}, left, right);                                          \
     }
 
@@ -3019,6 +3009,11 @@ struct into_vector_impl<vector_ref<T, N, U, Alignment>> {
     }
 };
 
+template<typename T, size_t N, typename U, size_t Alignment>
+struct is_vector_impl<vector_ref<T, N, U, Alignment>> {
+    static constexpr bool value = true;
+};
+
 /**
  * A wrapper for a pointer that enables vectorized access and supports type conversions..
  *
@@ -3044,6 +3039,7 @@ struct vector_ptr {
      * Default constructor sets the pointer to `NULL`.
      */
     vector_ptr() = default;
+    vector_ptr(decltype(nullptr)) {}
 
     /**
      * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Alignment`.
@@ -3139,6 +3135,7 @@ struct vector_ptr<T, N, const U, Alignment> {
     using value_type = decay_t<T>;
 
     vector_ptr() = default;
+    vector_ptr(decltype(nullptr)) {}
 
     template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}

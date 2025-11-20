@@ -240,14 +240,13 @@ struct preferred_vector_size {
 };
 
 template<typename V>
-struct vector_traits;
+struct is_vector_impl {
+    static constexpr bool value = false;
+};
 
 template<typename T, typename E, typename S>
-struct vector_traits<vector<T, E, S>> {
-    using value_type = T;
-    using extent_type = E;
-    using storage_type = S;
-    using vector_type = vector<T, E, S>;
+struct is_vector_impl<vector<T, E, S>> {
+    static constexpr bool value = true;
 };
 
 template<typename V>
@@ -258,6 +257,9 @@ using vector_extent_type = typename into_vector_impl<V>::extent_type;
 
 template<typename V>
 static constexpr size_t vector_size = extent_size<vector_extent_type<V>>;
+
+template<typename V>
+static constexpr bool is_vector = is_vector_impl<V>::value;
 
 template<typename V>
 using into_vector_type = vector<vector_value_type<V>, vector_extent_type<V>>;

@@ -109,24 +109,12 @@ KERNEL_FLOAT_INLINE zip_common_type<F, L, R> zip_common(F fun, const L& left, co
 #define KERNEL_FLOAT_DEFINE_BINARY_OP_FALLBACK(NAME, OP, EXPR_F64, EXPR_F32)                      \
     KERNEL_FLOAT_DEFINE_BINARY(NAME, left OP right, EXPR_F64, EXPR_F32)                           \
                                                                                                   \
-    template<typename L, typename R, typename C = promote_t<L, R>, typename E1, typename E2>      \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E1>, vector<R, E2>> operator OP(  \
-        const vector<L, E1>& left,                                                                \
-        const vector<R, E2>& right) {                                                             \
-        return zip_common(ops::NAME<C> {}, left, right);                                          \
-    }                                                                                             \
-    template<typename L, typename R, typename C = promote_t<L, vector_value_type<R>>, typename E> \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, vector<L, E>, R> operator OP(               \
-        const vector<L, E>& left,                                                                 \
-        const R                                                                                   \
-        & right) {                                                                                \
-        return zip_common(ops::NAME<C> {}, left, right);                                          \
-    }                                                                                             \
-    template<typename L, typename R, typename C = promote_t<vector_value_type<L>, R>, typename E> \
-    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, vector<R, E>> operator OP(               \
-        const L                                                                                   \
-        & left,                                                                                   \
-        const vector<R, E>& right) {                                                              \
+    template<                                                                                     \
+        typename L,                                                                               \
+        typename R,                                                                               \
+        typename C = enable_if_t<is_vector<L> || is_vector<R>, promoted_vector_value_type<L, R>>> \
+    KERNEL_FLOAT_INLINE zip_common_type<ops::NAME<C>, L, R>                                       \
+    operator OP(const L & left, const R & right) {                                                \
         return zip_common(ops::NAME<C> {}, left, right);                                          \
     }
 

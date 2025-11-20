@@ -436,6 +436,11 @@ struct into_vector_impl<vector_ref<T, N, U, Alignment>> {
     }
 };
 
+template<typename T, size_t N, typename U, size_t Alignment>
+struct is_vector_impl<vector_ref<T, N, U, Alignment>> {
+    static constexpr bool value = true;
+};
+
 /**
  * A wrapper for a pointer that enables vectorized access and supports type conversions..
  *
@@ -461,6 +466,7 @@ struct vector_ptr {
      * Default constructor sets the pointer to `NULL`.
      */
     vector_ptr() = default;
+    vector_ptr(decltype(nullptr)) {}
 
     /**
      * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Alignment`.
@@ -556,6 +562,7 @@ struct vector_ptr<T, N, const U, Alignment> {
     using value_type = decay_t<T>;
 
     vector_ptr() = default;
+    vector_ptr(decltype(nullptr)) {}
 
     template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}

@@ -109,12 +109,12 @@ KERNEL_FLOAT_INLINE vector<R, vector_extent_type<V>> cast(const V& input) {
                                                     \
     KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)
 
-#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                           \
-    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                      \
-                                                                               \
-    template<typename T, typename E, typename S>                               \
-    KERNEL_FLOAT_INLINE vector<T, E> operator OP(const vector<T, E, S>& vec) { \
-        return NAME(vec);                                                      \
+#define KERNEL_FLOAT_DEFINE_UNARY_OP(NAME, OP, EXPR)                                   \
+    KERNEL_FLOAT_DEFINE_UNARY(NAME, EXPR)                                              \
+                                                                                       \
+    template<typename V, typename T = enable_if_t<is_vector<V>, vector_value_type<V>>> \
+    KERNEL_FLOAT_INLINE map_type<ops::NAME<T>, V> operator OP(const V & vec) {         \
+        return NAME(vec);                                                              \
     }
 
 KERNEL_FLOAT_DEFINE_UNARY_OP(negate, -, -input)
