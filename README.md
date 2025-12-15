@@ -108,6 +108,20 @@ make
 See the [documentation](https://kerneltuner.github.io/kernel_float/) for the [API reference](https://kerneltuner.github.io/kernel_float/api.html) of all functionality.
 
 
+## Citation
+
+If you use Kernel Float in scholarly work, please cite the following paper:
+```
+@article{heldens2025kernel,
+  author = {Heldens, Stijn and van Werkhoven, Ben},
+  title = {Kernel Float: Unlocking Mixed-Precision GPU Programming},
+  publisher = {ACM},
+  journal = {ACM Trans. Math. Softw.},
+  year = {2025},
+  doi = {10.1145/3779120},
+}
+```
+
 ## License
 
 Licensed under Apache 2.0. See [LICENSE](https://github.com/KernelTuner/kernel_float/blob/master/LICENSE).
