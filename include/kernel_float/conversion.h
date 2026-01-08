@@ -87,7 +87,7 @@ KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_s
 template<typename T, RoundingMode M = RoundingMode::ANY>
 struct AssignConversionProxy {
     KERNEL_FLOAT_INLINE
-    explicit AssignConversionProxy(T&& ptr) : ptr_(std::forward<T>(ptr)) {}
+    explicit AssignConversionProxy(T&& ptr) : ptr_(static_cast<T&&>(ptr)) {}
 
     template<typename U>
     KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
@@ -122,7 +122,17 @@ struct AssignConversionProxy {
  */
 template<RoundingMode M = RoundingMode::ANY, typename T>
 KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T&& input) {
-    return AssignConversionProxy<T, M>(std::forward<T>(input));
+    return AssignConversionProxy<T, M>(static_cast<T&&>(input));
+}
+
+template<typename L, typename R, typename = enable_if_t<is_vector<L>>>
+KERNEL_FLOAT_INLINE L&& operator<<=(L&& lhs, const R& rhs) {
+    lhs = detail::convert_impl<
+        vector_value_type<R>,
+        vector_extent_type<R>,
+        vector_value_type<L>,
+        vector_extent_type<L>>::call(into_vector_storage(rhs));
+    return static_cast<L&&>(lhs);
 }
 
 /**

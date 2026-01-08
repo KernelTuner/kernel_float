@@ -341,8 +341,7 @@ struct vector_ref {
      * @tparam V The type of the input vector, defaults to `T`.
      * @param values The values to be written.
      */
-    template<typename V = vector_type>
-    KERNEL_FLOAT_INLINE void write(const V& values) const {
+    KERNEL_FLOAT_INLINE void write(const vector_type& values) const {
         detail::copy_aligned_impl<U, N, access_alignment>::store(
             KERNEL_FLOAT_ASSUME_ALIGNED(U, data_, access_alignment),
             convert_storage<U, N>(values).data());

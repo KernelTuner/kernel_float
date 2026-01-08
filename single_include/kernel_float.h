@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2025-11-20 10:30:52.307303
-// git hash: 933c1b91a0c1bca3ea28576dbff8a3d91d815ff9
+// date: 2026-01-08 14:44:34.390982
+// git hash: b30d148dff8b64da40ed34e34ba6386c2ad150c5
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -646,6 +646,9 @@ struct is_vector_impl {
     static constexpr bool value = false;
 };
 
+template<typename V>
+struct is_vector_impl<V&>: is_vector_impl<V> {};
+
 template<typename T, typename E, typename S>
 struct is_vector_impl<vector<T, E, S>> {
     static constexpr bool value = true;
@@ -803,7 +806,7 @@ namespace detail {
 template<typename F, typename... Args>
 struct invoke_impl {
     KERNEL_FLOAT_INLINE static decltype(auto) call(F fun, Args... args) {
-        return std::forward<F>(fun)(std::forward<Args>(args)...);
+        return static_cast<F&&>(fun)(static_cast<Args&&>(args)...);
     }
 };
 
@@ -825,8 +828,8 @@ using result_t = decltype(detail::invoke_impl<decay_t<F>, decay_t<Args>...>::cal
 template<typename F, typename... Args>
 KERNEL_FLOAT_INLINE result_t<F, Args...> invoke(F fun, const Args&... args) {
     return detail::invoke_impl<decay_t<F>, decay_t<Args>...>::call(
-        std::forward<F>(fun),
-        std::forward<Args>(args)...);
+        static_cast<F&&>(fun),
+        static_cast<Args&&>(args)...);
 }
 
 /**
@@ -1594,7 +1597,7 @@ KERNEL_FLOAT_INLINE vector<R, extent<N>> convert(const V& input, extent<N> new_s
 template<typename T, RoundingMode M = RoundingMode::ANY>
 struct AssignConversionProxy {
     KERNEL_FLOAT_INLINE
-    explicit AssignConversionProxy(T&& ptr) : ptr_(std::forward<T>(ptr)) {}
+    explicit AssignConversionProxy(T&& ptr) : ptr_(static_cast<T&&>(ptr)) {}
 
     template<typename U>
     KERNEL_FLOAT_INLINE AssignConversionProxy& operator=(U&& values) {
@@ -1629,7 +1632,17 @@ struct AssignConversionProxy {
  */
 template<RoundingMode M = RoundingMode::ANY, typename T>
 KERNEL_FLOAT_INLINE AssignConversionProxy<T, M> cast_to(T&& input) {
-    return AssignConversionProxy<T, M>(std::forward<T>(input));
+    return AssignConversionProxy<T, M>(static_cast<T&&>(input));
+}
+
+template<typename L, typename R, typename = enable_if_t<is_vector<L>>>
+KERNEL_FLOAT_INLINE L&& operator<<=(L&& lhs, const R& rhs) {
+    lhs = detail::convert_impl<
+        vector_value_type<R>,
+        vector_extent_type<R>,
+        vector_value_type<L>,
+        vector_extent_type<L>>::call(into_vector_storage(rhs));
+    return static_cast<L&&>(lhs);
 }
 
 /**
@@ -2914,8 +2927,7 @@ struct vector_ref {
      * @tparam V The type of the input vector, defaults to `T`.
      * @param values The values to be written.
      */
-    template<typename V = vector_type>
-    KERNEL_FLOAT_INLINE void write(const V& values) const {
+    KERNEL_FLOAT_INLINE void write(const vector_type& values) const {
         detail::copy_aligned_impl<U, N, access_alignment>::store(
             KERNEL_FLOAT_ASSUME_ALIGNED(U, data_, access_alignment),
             convert_storage<U, N>(values).data());

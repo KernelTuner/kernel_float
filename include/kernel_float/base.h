@@ -244,6 +244,9 @@ struct is_vector_impl {
     static constexpr bool value = false;
 };
 
+template<typename V>
+struct is_vector_impl<V&>: is_vector_impl<V> {};
+
 template<typename T, typename E, typename S>
 struct is_vector_impl<vector<T, E, S>> {
     static constexpr bool value = true;

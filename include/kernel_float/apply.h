@@ -121,7 +121,7 @@ namespace detail {
 template<typename F, typename... Args>
 struct invoke_impl {
     KERNEL_FLOAT_INLINE static decltype(auto) call(F fun, Args... args) {
-        return std::forward<F>(fun)(std::forward<Args>(args)...);
+        return static_cast<F&&>(fun)(static_cast<Args&&>(args)...);
     }
 };
 
@@ -143,8 +143,8 @@ using result_t = decltype(detail::invoke_impl<decay_t<F>, decay_t<Args>...>::cal
 template<typename F, typename... Args>
 KERNEL_FLOAT_INLINE result_t<F, Args...> invoke(F fun, const Args&... args) {
     return detail::invoke_impl<decay_t<F>, decay_t<Args>...>::call(
-        std::forward<F>(fun),
-        std::forward<Args>(args)...);
+        static_cast<F&&>(fun),
+        static_cast<Args&&>(args)...);
 }
 
 /**
