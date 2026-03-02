@@ -464,8 +464,8 @@ struct vector_ptr {
     /**
      * Default constructor sets the pointer to `NULL`.
      */
-    vector_ptr() = default;
-    vector_ptr(decltype(nullptr)) {}
+    KERNEL_FLOAT_INLINE vector_ptr() {}
+    KERNEL_FLOAT_INLINE vector_ptr(decltype(nullptr)) {}
 
     /**
      * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Alignment`.
@@ -560,8 +560,8 @@ struct vector_ptr<T, N, const U, Alignment> {
     using pointer_type = const U*;
     using value_type = decay_t<T>;
 
-    vector_ptr() = default;
-    vector_ptr(decltype(nullptr)) {}
+    KERNEL_FLOAT_INLINE vector_ptr() {}
+    KERNEL_FLOAT_INLINE vector_ptr(decltype(nullptr)) {}
 
     template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}

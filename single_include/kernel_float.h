@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-01-08 14:44:34.390982
-// git hash: b30d148dff8b64da40ed34e34ba6386c2ad150c5
+// date: 2026-03-02 16:31:41.575770
+// git hash: a9bc5a6b4eaaa934175759ad44eb4b3b89f7ded2
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -3050,8 +3050,8 @@ struct vector_ptr {
     /**
      * Default constructor sets the pointer to `NULL`.
      */
-    vector_ptr() = default;
-    vector_ptr(decltype(nullptr)) {}
+    KERNEL_FLOAT_INLINE vector_ptr() {}
+    KERNEL_FLOAT_INLINE vector_ptr(decltype(nullptr)) {}
 
     /**
      * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Alignment`.
@@ -3146,8 +3146,8 @@ struct vector_ptr<T, N, const U, Alignment> {
     using pointer_type = const U*;
     using value_type = decay_t<T>;
 
-    vector_ptr() = default;
-    vector_ptr(decltype(nullptr)) {}
+    KERNEL_FLOAT_INLINE vector_ptr() {}
+    KERNEL_FLOAT_INLINE vector_ptr(decltype(nullptr)) {}
 
     template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
