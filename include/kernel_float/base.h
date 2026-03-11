@@ -22,13 +22,15 @@ struct alignas(Alignment) aligned_array {
         return items_;
     }
 
-    T items_[N] = {};
+    T items_[N];
 };
 
 template<typename T, size_t Alignment>
 struct alignas(Alignment) aligned_array<T, 1, Alignment> {
+    aligned_array() = default;
+
     KERNEL_FLOAT_INLINE
-    aligned_array(T item = {}) : item_(item) {}
+    aligned_array(T item) : item_(item) {}
 
     KERNEL_FLOAT_INLINE
     operator T() const {
@@ -45,7 +47,7 @@ struct alignas(Alignment) aligned_array<T, 1, Alignment> {
         return &item_;
     }
 
-    T item_ = {};
+    T item_;
 };
 
 template<typename T, size_t Alignment>

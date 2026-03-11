@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-03-02 16:31:41.575770
-// git hash: a9bc5a6b4eaaa934175759ad44eb4b3b89f7ded2
+// date: 2026-03-11 14:54:13.201632
+// git hash: 82ce926cbd4572184b5e19b456eda9c03dba1064
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -424,13 +424,15 @@ struct alignas(Alignment) aligned_array {
         return items_;
     }
 
-    T items_[N] = {};
+    T items_[N];
 };
 
 template<typename T, size_t Alignment>
 struct alignas(Alignment) aligned_array<T, 1, Alignment> {
+    aligned_array() = default;
+
     KERNEL_FLOAT_INLINE
-    aligned_array(T item = {}) : item_(item) {}
+    aligned_array(T item) : item_(item) {}
 
     KERNEL_FLOAT_INLINE
     operator T() const {
@@ -447,7 +449,7 @@ struct alignas(Alignment) aligned_array<T, 1, Alignment> {
         return &item_;
     }
 
-    T item_ = {};
+    T item_;
 };
 
 template<typename T, size_t Alignment>

@@ -146,3 +146,21 @@ struct creation_tests {
 };
 
 REGISTER_TEST_CASE("into_vec and make_vec", creation_tests, int, float)
+
+struct shared_memory_tests {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __device__ void operator()(generator<T> gen, std::index_sequence<I...>) {
+        // It should be possible to use vector_storage for shared memory.
+        // Using the regular vector type is not possible as it needs initialization.
+        __shared__ kernel_float::vector_storage<T, N> items;
+    }
+};
+
+REGISTER_TEST_CASE_GPU(
+    "shared memory",
+    shared_memory_tests,
+    int,
+    float,
+    double,
+    __half,
+    __nv_bfloat16)
