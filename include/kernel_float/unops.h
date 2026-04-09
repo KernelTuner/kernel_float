@@ -210,6 +210,8 @@ KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcbrt, 1.0 / ::cbrt(input), 1.0f / ::cbrtf(inpu
 #endif
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
+KERNEL_FLOAT_DEFINE_UNARY_FUN(rsqrt)
+KERNEL_FLOAT_DEFINE_UNARY_FUN(rcbrt)
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                            \
     template<typename V>                                                                    \

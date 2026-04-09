@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-03-11 14:54:13.201632
-// git hash: 82ce926cbd4572184b5e19b456eda9c03dba1064
+// date: 2026-04-09 10:28:01.035452
+// git hash: d4ea7202dd88aa23b79653ba45ffca3162e213bc
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1430,6 +1430,8 @@ KERNEL_FLOAT_DEFINE_UNARY_STRUCT(rcbrt, 1.0 / ::cbrt(input), 1.0f / ::cbrtf(inpu
 #endif
 
 KERNEL_FLOAT_DEFINE_UNARY_FUN(rcp)
+KERNEL_FLOAT_DEFINE_UNARY_FUN(rsqrt)
+KERNEL_FLOAT_DEFINE_UNARY_FUN(rcbrt)
 
 #define KERNEL_FLOAT_DEFINE_UNARY_FUN_FAST(NAME)                                            \
     template<typename V>                                                                    \
