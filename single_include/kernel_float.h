@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-04-09 10:28:01.035452
-// git hash: d4ea7202dd88aa23b79653ba45ffca3162e213bc
+// date: 2026-04-10 17:02:33.335438
+// git hash: 8f363a2146aff48ac4afc71f2283d91a6f1f65dd
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2225,6 +2225,20 @@ struct cast<constant<T>, R, m> {
         return cast<T, R, m> {}(input);
     }
 };
+
+template<typename T>
+struct cast<constant<T>, float> {
+    KERNEL_FLOAT_INLINE float operator()(const T& input) noexcept {
+        return cast<T, float> {}(input);
+    }
+};
+
+template<typename T, RoundingMode m>
+struct cast<constant<T>, float, m> {
+    KERNEL_FLOAT_INLINE float operator()(const T& input) noexcept {
+        return cast<T, float, m> {}(input);
+    }
+};
 }  // namespace ops
 
 #define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                                    \
@@ -2266,6 +2280,13 @@ KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(%)
+
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(==)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(!=)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(<=)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(>=)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(<)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(>)
 
 }  // namespace kernel_float
 

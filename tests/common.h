@@ -351,7 +351,7 @@ struct device_runner {
     template<typename T, size_t N>
     void run() {
         if (cudaSetDevice(0) != cudaSuccess) {
-            FAIL("failed to initialize CUDA device, does this machine have a GPU?");
+            FAIL("failed to initialize CUDA device, run with '~[GPU]' to skip GPU tests");
         }
 
         for (int seed = 0; seed < 5; seed++) {

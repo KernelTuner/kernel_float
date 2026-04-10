@@ -98,6 +98,20 @@ struct cast<constant<T>, R, m> {
         return cast<T, R, m> {}(input);
     }
 };
+
+template<typename T>
+struct cast<constant<T>, float> {
+    KERNEL_FLOAT_INLINE float operator()(const T& input) noexcept {
+        return cast<T, float> {}(input);
+    }
+};
+
+template<typename T, RoundingMode m>
+struct cast<constant<T>, float, m> {
+    KERNEL_FLOAT_INLINE float operator()(const T& input) noexcept {
+        return cast<T, float, m> {}(input);
+    }
+};
 }  // namespace ops
 
 #define KERNEL_FLOAT_CONSTANT_DEFINE_OP(OP)                                                    \
@@ -139,6 +153,13 @@ KERNEL_FLOAT_CONSTANT_DEFINE_OP(-)
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(*)
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(/)
 KERNEL_FLOAT_CONSTANT_DEFINE_OP(%)
+
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(==)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(!=)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(<=)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(>=)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(<)
+KERNEL_FLOAT_CONSTANT_DEFINE_OP(>)
 
 }  // namespace kernel_float
 
