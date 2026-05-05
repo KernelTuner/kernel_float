@@ -2,6 +2,10 @@ name: CMake
 
 on:
   push:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.gitignore'
   pull_request:
     branches: [ "main" ]
 
