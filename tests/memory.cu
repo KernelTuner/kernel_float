@@ -156,8 +156,8 @@ struct vector_ptr_test {
         };
 
         {
-            kf::vector_ptr<const U, N> storage_ptr = kf::make_vec_ptr(storage.data);
-            kf::vector_ptr<T, N, const U> ptr = storage_ptr;
+            kf::vec_ptr<const U, N> storage_ptr = kf::make_vec_ptr(storage.data);
+            kf::vec_ptr<T, N, const U> ptr = storage_ptr;
             ASSERT_EQ(ptr.get(), static_cast<const U*>(storage.data));
 
             T expected[N] = {T(double(N + I))...};
@@ -175,8 +175,8 @@ struct vector_ptr_test {
         }
 
         {
-            kf::vector_ptr<U, N> storage_ptr = kf::make_vec_ptr(storage.data);
-            kf::vector_ptr<T, N, U> ptr = storage_ptr;
+            kf::vec_ptr<U, N> storage_ptr = kf::make_vec_ptr(storage.data);
+            kf::vec_ptr<T, N, U> ptr = storage_ptr;
             ASSERT_EQ(ptr.get(), static_cast<U*>(storage.data));
 
             T expected[N] = {T(double(N + I))...};
@@ -211,10 +211,10 @@ struct vector_ptr_test {
 
         {
             // This does *not* require an explicit constructor (N == 1)
-            kf::vector_ptr<T, 1, U> a1_ptr = storage.data;
-            kf::vector_ptr<const T, 1, U> a2_ptr = storage.data;
-            kf::vector_ptr<T, 1, const U> a3_ptr = storage.data;
-            kf::vector_ptr<const T, 1, const U> a4_ptr = storage.data;
+            kf::vec_ptr<T, 1, U> a1_ptr = storage.data;
+            kf::vec_ptr<const T, 1, U> a2_ptr = storage.data;
+            kf::vec_ptr<T, 1, const U> a3_ptr = storage.data;
+            kf::vec_ptr<const T, 1, const U> a4_ptr = storage.data;
 
             ASSERT_EQ(a1_ptr.get(), static_cast<U*>(storage.data));
             ASSERT_EQ(a2_ptr.get(), static_cast<U*>(storage.data));
@@ -222,11 +222,11 @@ struct vector_ptr_test {
             ASSERT_EQ(a4_ptr.get(), static_cast<const U*>(storage.data));
 
             // This *does* require an explicit constructor (N > 1)
-            kf::vector_ptr<T, 2, U> b1_ptr = kf::vector_ptr<T, 2, U>(storage.data);
-            kf::vector_ptr<const T, 2, U> b2_ptr = kf::vector_ptr<const T, 2, U>(storage.data);
-            kf::vector_ptr<T, 2, const U> b3_ptr = kf::vector_ptr<T, 2, const U>(storage.data);
-            kf::vector_ptr<const T, 2, const U> b4_ptr =
-                kf::vector_ptr<const T, 2, const U>(storage.data);
+            kf::vec_ptr<T, 2, U> b1_ptr = kf::vec_ptr<T, 2, U>(storage.data);
+            kf::vec_ptr<const T, 2, U> b2_ptr = kf::vec_ptr<const T, 2, U>(storage.data);
+            kf::vec_ptr<T, 2, const U> b3_ptr = kf::vec_ptr<T, 2, const U>(storage.data);
+            kf::vec_ptr<const T, 2, const U> b4_ptr =
+                kf::vec_ptr<const T, 2, const U>(storage.data);
 
             ASSERT_EQ(b1_ptr.get(), static_cast<U*>(storage.data));
             ASSERT_EQ(b2_ptr.get(), static_cast<U*>(storage.data));
@@ -238,18 +238,19 @@ struct vector_ptr_test {
             U* ptr = nullptr;
 
             auto a1 = kf::make_vec_ptr<T>(ptr);
-            ASSERT(std::is_same<decltype(a1), kf::vector_ptr<T, 1, U>>::value);
+            ASSERT(std::is_same<decltype(a1), kf::vec_ptr<T, 1, U>>::value);
 
             auto a2 = kf::make_vec_ptr<T, 2>(ptr);
-            ASSERT(std::is_same<decltype(a2), kf::vector_ptr<T, 2, U>>::value);
+            ASSERT(std::is_same<decltype(a2), kf::vec_ptr<T, 2, U>>::value);
 
             auto a3 = kf::make_vec_ptr(ptr);
             ASSERT(
-                std::is_same<decltype(a3), kf::vector_ptr<U, 1, U, KERNEL_FLOAT_MAX_ALIGNMENT>>::
-                    value);
+                std::is_same<
+                    decltype(a3),
+                    kf::vector_ptr<U, 1, kf::access_policy<U, KERNEL_FLOAT_MAX_ALIGNMENT>>>::value);
 
             auto a4 = kf::make_vec_ptr<2>(ptr);
-            ASSERT(std::is_same<decltype(a4), kf::vector_ptr<U, 2>>::value);
+            ASSERT(std::is_same<decltype(a4), kf::vec_ptr<U, 2>>::value);
         }
     }
 };

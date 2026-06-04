@@ -115,14 +115,6 @@ constexpr size_t gcd(size_t a, size_t b) {
     return b == 0 ? a : gcd(b, a % b);
 }
 
-/**
- * Returns true if a pointer having alignment of `a` bytes also has an alignment of `b` bytes. Returns false otherwise.
- */
-KERNEL_FLOAT_INLINE
-constexpr bool is_alignment_divisible(size_t a, size_t b) {
-    return gcd(a, KERNEL_FLOAT_MAX_ALIGNMENT) % gcd(b, KERNEL_FLOAT_MAX_ALIGNMENT) == 0;
-}
-
 template<typename T, size_t N, size_t Alignment, typename = void>
 struct copy_aligned_impl {
     static constexpr size_t K = N > 8 ? 8 : (N > 4 ? 4 : (N > 2 ? 2 : 1));
@@ -296,6 +288,80 @@ KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
         convert_storage<T, N>(values).data());
 }
 
+enum struct access_mode { read_only, read_write };
+
+template<typename U, size_t Alignment = alignof(U)>
+struct access_policy {
+    using storage_type = U;
+    static constexpr access_mode mode = access_mode::read_write;
+    static constexpr size_t alignment = Alignment;
+    static constexpr size_t access_alignment = detail::gcd(alignment, KERNEL_FLOAT_MAX_ALIGNMENT);
+
+    static_assert(access_alignment >= alignof(storage_type), "invalid alignment for pointer type");
+
+    template<size_t NewAlignment>
+    using with_alignment = access_policy<storage_type, NewAlignment>;
+
+    template<typename T, size_t N>
+    KERNEL_FLOAT_INLINE static void read(const storage_type* input, vector_storage<T, N>& output) {
+        access_policy<const U, Alignment>::read(input, output);
+    }
+
+    template<typename T, size_t N>
+    KERNEL_FLOAT_INLINE static void write(storage_type* output, const vector_storage<T, N>& input) {
+        detail::copy_aligned_impl<storage_type, N, access_alignment>::store(
+            KERNEL_FLOAT_ASSUME_ALIGNED(storage_type, output, access_alignment),
+            convert_storage<storage_type, N>(input).data());
+    }
+};
+
+template<typename U, size_t Alignment>
+struct access_policy<const U, Alignment> {
+    using storage_type = const U;
+    static constexpr access_mode mode = access_mode::read_only;
+    static constexpr size_t alignment = Alignment;
+    static constexpr size_t access_alignment = detail::gcd(alignment, KERNEL_FLOAT_MAX_ALIGNMENT);
+    static_assert(access_alignment >= alignof(storage_type), "invalid alignment for pointer type");
+
+    template<size_t NewAlignment>
+    using with_alignment = access_policy<storage_type, NewAlignment>;
+
+    template<typename T, size_t N>
+    KERNEL_FLOAT_INLINE static void read(const storage_type* input, vector_storage<T, N>& output) {
+        vector_storage<U, N> result;
+        detail::copy_aligned_impl<U, N, access_alignment>::load(
+            result.data(),
+            KERNEL_FLOAT_ASSUME_ALIGNED(storage_type, input, access_alignment));
+
+        output = convert<T, N>(result);
+    }
+};
+
+namespace detail {
+/**
+ * Returns true if a pointer having alignment of `a` bytes also has an alignment of `b` bytes. Returns false otherwise.
+ */
+KERNEL_FLOAT_INLINE
+constexpr bool is_alignment_divisible(size_t a, size_t b) {
+    return gcd(a, KERNEL_FLOAT_MAX_ALIGNMENT) % gcd(b, KERNEL_FLOAT_MAX_ALIGNMENT) == 0;
+}
+
+template<typename DstPolicy, typename SrcPolicy>
+struct is_policy_convertible {
+    static constexpr bool value = is_same_type<DstPolicy, SrcPolicy>;
+};
+
+template<typename U, size_t A1, size_t A2>
+struct is_policy_convertible<access_policy<U, A1>, access_policy<U, A2>> {
+    static constexpr bool value = is_alignment_divisible(A2, A1);
+};
+
+template<typename U, size_t A1, size_t A2>
+struct is_policy_convertible<access_policy<const U, A1>, access_policy<U, A2>>:
+    is_policy_convertible<access_policy<const U, A1>, access_policy<const U, A2>> {};
+
+}  // namespace detail
+
 /**
  * @brief A reference wrapper that allows reading/writing a vector of type `T`and length `N` with optional data
  * conversion.
@@ -305,14 +371,15 @@ KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
  * @tparam U The underlying storage type. Defaults to the same type as T.
  * @tparam Align  The alignment constraint for read and write operations.
  */
-template<typename T, size_t N, typename U = T, size_t Alignment = alignof(U)>
+template<typename T, size_t N, typename Policy = access_policy<T>, access_mode = Policy::mode>
 struct vector_ref {
-    static constexpr size_t access_alignment = detail::gcd(Alignment, KERNEL_FLOAT_MAX_ALIGNMENT);
-    static_assert(access_alignment >= alignof(U), "invalid alignment for pointer type");
-
-    using pointer_type = U*;
+    using policy_type = Policy;
+    using storage_type = typename Policy::storage_type;
+    using pointer_type = storage_type*;
     using value_type = T;
     using vector_type = vector<value_type, extent<N>>;
+
+    static constexpr size_t alignment = Policy::alignment;
 
     /**
      * Constructs a vector_ref to manage access to a raw data pointer.
@@ -327,12 +394,9 @@ struct vector_ref {
      * @return vector_type A vector of type vector_type containing the read and converted data.
      */
     KERNEL_FLOAT_INLINE vector_type read() const {
-        vector_storage<U, N> result;
-        detail::copy_aligned_impl<U, N, access_alignment>::load(
-            result.data(),
-            KERNEL_FLOAT_ASSUME_ALIGNED(const U, data_, access_alignment));
-
-        return convert<value_type, N>(result);
+        vector_type result;
+        policy_type::read(data_, result);
+        return result;
     }
 
     /**
@@ -342,9 +406,7 @@ struct vector_ref {
      * @param values The values to be written.
      */
     KERNEL_FLOAT_INLINE void write(const vector_type& values) const {
-        detail::copy_aligned_impl<U, N, access_alignment>::store(
-            KERNEL_FLOAT_ASSUME_ALIGNED(U, data_, access_alignment),
-            convert_storage<U, N>(values).data());
+        policy_type::write(data_, values);
     }
 
     /**
@@ -377,24 +439,24 @@ struct vector_ref {
 /**
  * Specialization for `vector_ref` if the backing storage is const.
  */
-template<typename T, size_t N, typename U, size_t Alignment>
-struct vector_ref<T, N, const U, Alignment> {
-    static constexpr size_t access_alignment = detail::gcd(Alignment, KERNEL_FLOAT_MAX_ALIGNMENT);
-    static_assert(access_alignment >= alignof(U), "invalid alignment for pointer type");
-
-    using pointer_type = const U*;
+template<typename T, size_t N, typename Policy>
+struct vector_ref<T, N, Policy, access_mode::read_only> {
+    using policy_type = Policy;
+    using storage_type = typename policy_type::storage_type;
+    using pointer_type = storage_type*;
     using value_type = T;
     using vector_type = vector<value_type, extent<N>>;
+
+    static constexpr size_t alignment = policy_type::alignment;
+    static constexpr size_t access_alignment = detail::gcd(alignment, KERNEL_FLOAT_MAX_ALIGNMENT);
+    static_assert(access_alignment >= alignof(storage_type), "invalid alignment for pointer type");
 
     KERNEL_FLOAT_INLINE explicit vector_ref(pointer_type data) : data_(data) {}
 
     KERNEL_FLOAT_INLINE vector_type read() const {
-        vector_storage<U, N> result;
-        detail::copy_aligned_impl<U, N, access_alignment>::load(
-            result.data(),
-            KERNEL_FLOAT_ASSUME_ALIGNED(const U, data_, access_alignment));
-
-        return convert_storage<value_type, N>(result);
+        vector_type result;
+        policy_type::read(data_, result);
+        return result;
     }
 
     KERNEL_FLOAT_INLINE operator vector_type() const {
@@ -409,14 +471,14 @@ struct vector_ref<T, N, const U, Alignment> {
     pointer_type data_ = nullptr;
 };
 
-#define KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(OP, OP_ASSIGN)                     \
-    template<typename T, size_t N, typename U, size_t Alignment, typename V> \
-    KERNEL_FLOAT_INLINE vector_ref<T, N, U, Alignment> operator OP_ASSIGN(   \
-        vector_ref<T, N, U, Alignment> ptr,                                  \
-        const V                                                              \
-        & value) {                                                           \
-        ptr.write(ptr.read() OP value);                                      \
-        return ptr;                                                          \
+#define KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(OP, OP_ASSIGN)             \
+    template<typename T, size_t N, typename Policy, typename V>      \
+    KERNEL_FLOAT_INLINE vector_ref<T, N, Policy> operator OP_ASSIGN( \
+        vector_ref<T, N, Policy> ptr,                                \
+        const V                                                      \
+        & value) {                                                   \
+        ptr.write(ptr.read() OP value);                              \
+        return ptr;                                                  \
     }
 
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(+, +=)
@@ -424,19 +486,19 @@ KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(-, -=)
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(*, *=)
 KERNEL_FLOAT_VECTOR_REF_ASSIGN_OP(/, /=)
 
-template<typename T, size_t N, typename U, size_t Alignment>
-struct into_vector_impl<vector_ref<T, N, U, Alignment>> {
+template<typename T, size_t N, typename Policy>
+struct into_vector_impl<vector_ref<T, N, Policy>> {
     using value_type = T;
     using extent_type = extent<N>;
 
     KERNEL_FLOAT_INLINE
-    static vector_storage<value_type, N> call(const vector_ref<T, N, U, Alignment>& reference) {
+    static vector_storage<value_type, N> call(const vector_ref<T, N, Policy>& reference) {
         return reference.read();
     }
 };
 
-template<typename T, size_t N, typename U, size_t Alignment>
-struct is_vector_impl<vector_ref<T, N, U, Alignment>> {
+template<typename T, size_t N, typename Policy>
+struct is_vector_impl<vector_ref<T, N, Policy>> {
     static constexpr bool value = true;
 };
 
@@ -455,11 +517,20 @@ struct is_vector_impl<vector_ref<T, N, U, Alignment>> {
  * @tparam U The underlying storage type, defaults to T.
  * @tparam Alignment The assumed alignment of the underlying U* pointer.
  */
-template<typename T, size_t N, typename U = T, size_t Alignment = sizeof(U) * N>
+template<
+    typename T,
+    size_t N,
+    typename Policy = access_policy<T, sizeof(T) * N>,
+    access_mode = Policy::mode>
 struct vector_ptr {
-    static constexpr size_t offset_alignment = detail::gcd(Alignment, sizeof(U) * N);
-    using pointer_type = U*;
+    using policy_type = Policy;
+    using storage_type = typename policy_type::storage_type;
+    using pointer_type = storage_type*;
     using value_type = decay_t<T>;
+
+    static constexpr size_t alignment = policy_type::alignment;
+    static constexpr size_t offset_alignment = detail::gcd(alignment, sizeof(storage_type) * N);
+    using offset_policy_type = typename Policy::template with_alignment<offset_alignment>;
 
     /**
      * Default constructor sets the pointer to `NULL`.
@@ -470,13 +541,13 @@ struct vector_ptr {
     /**
      * Constructor from a given pointer. It is up to the user to assert that the pointer is aligned to `Alignment`.
      */
-    template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
+    template<typename V = storage_type, enable_if_t<alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
 
     /**
      * Constructor from a given pointer. This assumes that the alignment of the pointer equals `Alignment`.
      */
-    template<typename V = U, enable_if_t<Alignment == alignof(V), int> = 0>
+    template<typename V = storage_type, enable_if_t<alignment == alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE vector_ptr(pointer_type p) : data_(p) {}
 
     /**
@@ -486,15 +557,15 @@ struct vector_ptr {
     template<
         typename T2,
         size_t N2,
-        size_t A2,
-        enable_if_t<detail::is_alignment_divisible(A2, Alignment), int> = 0>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U, A2> p) : data_(p.get()) {}
+        typename P2,
+        enable_if_t<detail::is_policy_convertible<policy_type, P2>::value, int> = 0>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, P2> p) : data_(p.get()) {}
 
     /**
      * Shorthand for `at(0)`.
      */
-    KERNEL_FLOAT_INLINE const vector_ref<value_type, N, U, Alignment> operator*() const {
-        return vector_ref<value_type, N, U, Alignment> {data_};
+    KERNEL_FLOAT_INLINE const vector_ref<value_type, N, policy_type> operator*() const {
+        return vector_ref<value_type, N, policy_type> {data_};
     }
 
     /**
@@ -504,14 +575,14 @@ struct vector_ptr {
      * @param index The index at which to access the vector.
      */
     template<size_t K = N>
-    KERNEL_FLOAT_INLINE vector_ref<value_type, K, U, offset_alignment> at(size_t index) const {
-        return vector_ref<T, K, U, offset_alignment> {data_ + index * N};
+    KERNEL_FLOAT_INLINE vector_ref<value_type, K, offset_policy_type> at(size_t index) const {
+        return vector_ref<T, K, offset_policy_type> {data_ + index * N};
     }
 
     /**
      * Shorthand for `at(index)`.
      */
-    KERNEL_FLOAT_INLINE vector_ref<value_type, N, U, offset_alignment>
+    KERNEL_FLOAT_INLINE vector_ref<value_type, N, offset_policy_type>
     operator[](size_t index) const {
         return at(index);
     }
@@ -554,43 +625,40 @@ struct vector_ptr {
 /**
  * Specialization for `vector_ptr` if the backing storage is const.
  */
-template<typename T, size_t N, typename U, size_t Alignment>
-struct vector_ptr<T, N, const U, Alignment> {
-    static constexpr size_t offset_alignment = detail::gcd(Alignment, sizeof(U) * N);
-    using pointer_type = const U*;
+template<typename T, size_t N, typename Policy>
+struct vector_ptr<T, N, Policy, access_mode::read_only> {
+    using policy_type = Policy;
+    using storage_type = typename policy_type::storage_type;
+    using pointer_type = storage_type*;
     using value_type = decay_t<T>;
+
+    static constexpr size_t alignment = policy_type::alignment;
+    static constexpr size_t offset_alignment = detail::gcd(alignment, sizeof(storage_type) * N);
+    using offset_policy_type = typename Policy::template with_alignment<offset_alignment>;
 
     KERNEL_FLOAT_INLINE vector_ptr() {}
     KERNEL_FLOAT_INLINE vector_ptr(decltype(nullptr)) {}
 
-    template<typename V = U, enable_if_t<Alignment != alignof(V), int> = 0>
+    template<typename V = storage_type, enable_if_t<alignment != alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE explicit vector_ptr(pointer_type p) : data_(p) {}
 
-    template<typename V = U, enable_if_t<Alignment == alignof(V), int> = 0>
+    template<typename V = storage_type, enable_if_t<alignment == alignof(V), int> = 0>
     KERNEL_FLOAT_INLINE vector_ptr(pointer_type p) : data_(p) {}
 
     template<
         typename T2,
         size_t N2,
-        size_t A2,
-        enable_if_t<detail::is_alignment_divisible(A2, Alignment), int> = 0>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, const U, A2> p) : data_(p.get()) {}
+        typename P2,
+        enable_if_t<detail::is_policy_convertible<policy_type, P2>::value, int> = 0>
+    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, P2> p) : data_(p.get()) {}
 
-    template<
-        typename T2,
-        size_t N2,
-        size_t A2,
-        enable_if_t<detail::is_alignment_divisible(A2, Alignment), int> = 0>
-    KERNEL_FLOAT_INLINE vector_ptr(vector_ptr<T2, N2, U, A2> p) : data_(p.get()) {}
-
-    KERNEL_FLOAT_INLINE vector_ref<value_type, N, const U, Alignment> operator*() const {
-        return vector_ref<value_type, N, const U, Alignment> {data_};
+    KERNEL_FLOAT_INLINE vector_ref<value_type, N, policy_type> operator*() const {
+        return vector_ref<value_type, N, policy_type> {data_};
     }
 
     template<size_t K = N>
-    KERNEL_FLOAT_INLINE vector_ref<value_type, K, const U, offset_alignment>
-    at(size_t index) const {
-        return vector_ref<value_type, K, const U, offset_alignment> {data_ + index * N};
+    KERNEL_FLOAT_INLINE vector_ref<value_type, K, offset_policy_type> at(size_t index) const {
+        return vector_ref<value_type, K, offset_policy_type> {data_ + index * N};
     }
 
     template<size_t K = N>
@@ -611,14 +679,21 @@ struct vector_ptr<T, N, const U, Alignment> {
 };
 
 template<typename T, size_t N, typename U, size_t A>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U, detail::gcd(A, N * sizeof(U))>
-operator+(vector_ptr<T, N, U, A> p, size_t i) {
-    return vector_ptr<T, N, U, detail::gcd(A, N * sizeof(U))> {p.get() + i * N};
+KERNEL_FLOAT_INLINE vector_ptr<
+    T,
+    N,
+    typename access_policy<U, A>::template with_alignment<detail::gcd(A, N * sizeof(U))>>
+operator+(vector_ptr<T, N, access_policy<U, A>> p, size_t i) {
+    return vector_ptr<T, N, access_policy<U, detail::gcd(A, N * sizeof(U))>> {p.get() + i * N};
 }
 
-template<typename T, size_t N, typename U, size_t A>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U, detail::gcd(A, N * sizeof(U))>
-operator+(size_t i, vector_ptr<T, N, U, A> p) {
+template<typename T, size_t N, typename P>
+KERNEL_FLOAT_INLINE vector_ptr<
+    T,
+    N,
+    typename P::template with_alignment<
+        detail::gcd(P::alignment, N * sizeof(typename P::storage_type))>>
+operator+(size_t i, vector_ptr<T, N, P> p) {
     return p + i;
 }
 
@@ -627,8 +702,10 @@ template<
     size_t N,
     typename U,
     size_t A,
-    typename = enable_if_t<detail::is_alignment_divisible(N * sizeof(U), A)>>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U, A>& operator+=(vector_ptr<T, N, U, A>& p, size_t i) {
+    typename = enable_if_t<
+        detail::is_policy_convertible<access_policy<U, A>, access_policy<U, N * sizeof(U)>>::value>>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, access_policy<U, A>>&
+operator+=(vector_ptr<T, N, access_policy<U, A>>& p, size_t i) {
     return p = p + i;
 }
 
@@ -640,8 +717,8 @@ KERNEL_FLOAT_INLINE vector_ptr<T, N, U, A>& operator+=(vector_ptr<T, N, U, A>& p
  * @tparam U The type of the elements pointed to by the raw pointer.
  */
 template<typename T, size_t N = 1, typename U>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, U> make_vec_ptr(U* ptr) {
-    return vector_ptr<T, N, U> {ptr};
+KERNEL_FLOAT_INLINE vector_ptr<T, N, access_policy<U, N * sizeof(U)>> make_vec_ptr(U* ptr) {
+    return vector_ptr<T, N, access_policy<U, N * sizeof(U)>> {ptr};
 }
 
 // Doxygen cannot deal with the `make_vec_ptr` being defined multiple times, we ignore the second definition.
@@ -663,27 +740,28 @@ KERNEL_FLOAT_INLINE vector_ptr<T, N> make_vec_ptr(T* ptr) {
  * @tparam T The type of the elements pointed to by the raw pointer.
  */
 template<decltype(nullptr) = nullptr, typename T>
-KERNEL_FLOAT_INLINE vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> make_vec_ptr(T* ptr) {
-    return vector_ptr<T, 1, T, KERNEL_FLOAT_MAX_ALIGNMENT> {ptr};
+KERNEL_FLOAT_INLINE vector_ptr<T, 1, access_policy<T, KERNEL_FLOAT_MAX_ALIGNMENT>>
+make_vec_ptr(T* ptr) {
+    return vector_ptr<T, 1, access_policy<T, KERNEL_FLOAT_MAX_ALIGNMENT>> {ptr};
 }
 /// @endcond
 
 template<typename T, size_t N = 1, typename U = T, size_t Align = N>
-using vec_ptr = vector_ptr<T, N, U, Align * sizeof(U)>;
+using vec_ptr = vector_ptr<T, N, access_policy<U, Align * sizeof(U)>>;
 
 template<typename T, typename U = T>
-using scalar_ptr = vector_ptr<T, 1, U, alignof(U)>;
+using scalar_ptr = vector_ptr<T, 1, access_policy<U>>;
 
 #if defined(__cpp_deduction_guides)
 template<typename T>
-vector_ptr(T*) -> vector_ptr<T, 1, T, alignof(T)>;
+vector_ptr(T*) -> vector_ptr<T, 1, access_policy<T>>;
 
 template<typename T>
-vector_ptr(const T*) -> vector_ptr<T, 1, const T, alignof(T)>;
+vector_ptr(const T*) -> vector_ptr<T, 1, access_policy<const T>>;
 
 #if __cpp_deduction_guides >= 201907L
 template<typename T>
-vec_ptr(T*) -> vec_ptr<T, 1, T>;
+vec_ptr(T*) -> vec_ptr<T, 1>;
 
 template<typename T>
 vec_ptr(const T*) -> vec_ptr<T, 1, const T>;
