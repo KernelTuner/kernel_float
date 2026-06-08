@@ -57,18 +57,6 @@ erfc
 ----
 .. doxygenfunction:: kernel_float::erfc
 
-erfcinv
--------
-.. doxygenfunction:: kernel_float::erfcinv
-
-erfcx
------
-.. doxygenfunction:: kernel_float::erfcx
-
-erfinv
-------
-.. doxygenfunction:: kernel_float::erfinv
-
 exp
 ---
 .. doxygenfunction:: kernel_float::exp(const V&)
@@ -81,17 +69,9 @@ exp2
 ----
 .. doxygenfunction:: kernel_float::exp2
 
-fabs
-----
-.. doxygenfunction:: kernel_float::fabs
-
 floor
 -----
 .. doxygenfunction:: kernel_float::floor
-
-ilogb
------
-.. doxygenfunction:: kernel_float::ilogb
 
 lgamma
 ------
@@ -104,18 +84,6 @@ log
 log10
 -----
 .. doxygenfunction:: kernel_float::log10
-
-logb
-----
-.. doxygenfunction:: kernel_float::logb
-
-nearbyint
----------
-.. doxygenfunction:: kernel_float::nearbyint
-
-normcdf
--------
-.. doxygenfunction:: kernel_float::normcdf
 
 rcbrt
 -----
@@ -164,10 +132,6 @@ round
 trunc
 -----
 .. doxygenfunction:: kernel_float::trunc
-
-signbit
--------
-.. doxygenfunction:: kernel_float::signbit
 
 isinf
 -----

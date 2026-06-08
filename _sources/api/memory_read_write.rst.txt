@@ -29,9 +29,9 @@ write_aligned
 -------------
 .. doxygenfunction:: kernel_float::write_aligned(T*, const V&)
 
-assert_aligned
---------------
-.. doxygenfunction:: kernel_float::assert_aligned
+make_vec_ptr
+------------
+.. doxygenfunction:: kernel_float::make_vec_ptr
 
 vector_ptr
 ----------
