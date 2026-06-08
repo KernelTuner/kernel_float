@@ -62,8 +62,9 @@ __assertion_failed(const char* expr, const char* file, int line) {
         }                                                                   \
     } while (0)
 
-#define ASSERT_EQ(A, B)     ASSERT(equals(A, B))
-#define ASSERT_APPROX(A, B) ASSERT(approx(A, B))
+#define ASSERT_EQ(...)     ASSERT(equals(__VA_ARGS__))
+#define ASSERT_APPROX(...) ASSERT(approx(__VA_ARGS__))
+#define ASSERT_TYPE(...)   ASSERT(std::is_same_v<__VA_ARGS__>)
 
 #define ASSERT_ALL(E)           ASSERT((E) && ...)
 #define ASSERT_EQ_ALL(A, B)     ASSERT_ALL(equals(A, B))

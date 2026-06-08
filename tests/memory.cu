@@ -232,25 +232,60 @@ struct vector_ptr_test {
             ASSERT_EQ(b2_ptr.get(), static_cast<U*>(storage.data));
             ASSERT_EQ(b3_ptr.get(), static_cast<const U*>(storage.data));
             ASSERT_EQ(b4_ptr.get(), static_cast<const U*>(storage.data));
+
+            // These require implicit conversions
+            kf::vec_ptr<T, 2, U> c1_ptr = kf::vec_ptr<T, 2, U>(storage.data);
+            kf::vec_ptr<T, 2, U> c2_ptr = kf::vec_ptr<const T, 2, U>(storage.data);
+            kf::vec_ptr<T, 2, const U> c3_ptr = kf::vec_ptr<const T, 2, const U>(storage.data);
+            kf::vec_ptr<T, 2, const U> c4_ptr = kf::vec_ptr<T, 2, U>(storage.data);
+            kf::vec_ptr<T, 2, const U> c5_ptr = kf::vec_ptr<const T, 2, U>(storage.data);
+            kf::vec_ptr<T, 2, const U> c6_ptr = kf::vec_ptr<T, 2, const U>(storage.data);
+
+            kf::vec_ptr<const T, 2, U> c7_ptr = kf::vec_ptr<T, 2, U>(storage.data);
+            kf::vec_ptr<const T, 2, U> c8_ptr = kf::vec_ptr<const T, 2, U>(storage.data);
+            kf::vec_ptr<const T, 2, const U> c9_ptr = kf::vec_ptr<T, 2, const U>(storage.data);
+            kf::vec_ptr<const T, 2, const U> c10_ptr =
+                kf::vec_ptr<const T, 2, const U>(storage.data);
+            kf::vec_ptr<const T, 2, const U> c11_ptr = kf::vec_ptr<T, 2, U>(storage.data);
+            kf::vec_ptr<const T, 2, const U> c12_ptr = kf::vec_ptr<const T, 2, U>(storage.data);
         }
 
         {
             U* ptr = nullptr;
 
             auto a1 = kf::make_vec_ptr<T>(ptr);
-            ASSERT(std::is_same<decltype(a1), kf::vec_ptr<T, 1, U>>::value);
+            ASSERT_TYPE(decltype(a1), kf::vec_ptr<T, 1, U>);
 
             auto a2 = kf::make_vec_ptr<T, 2>(ptr);
-            ASSERT(std::is_same<decltype(a2), kf::vec_ptr<T, 2, U>>::value);
+            ASSERT_TYPE(decltype(a2), kf::vec_ptr<T, 2, U>);
 
             auto a3 = kf::make_vec_ptr(ptr);
-            ASSERT(
-                std::is_same<
-                    decltype(a3),
-                    kf::vector_ptr<U, 1, kf::access_policy<U, KERNEL_FLOAT_MAX_ALIGNMENT>>>::value);
+            ASSERT_TYPE(
+                decltype(a3),
+                kf::vector_ptr<U, 1, kf::access_policy<U, KERNEL_FLOAT_MAX_ALIGNMENT>>);
 
             auto a4 = kf::make_vec_ptr<2>(ptr);
-            ASSERT(std::is_same<decltype(a4), kf::vec_ptr<U, 2>>::value);
+            ASSERT_TYPE(decltype(a4), kf::vec_ptr<U, 2>);
+        }
+
+        {
+            T data[16] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
+
+            kf::vec_ptr<T, 4> p = kf::make_vec_ptr(data);
+            ASSERT_TYPE(decltype(p.offset(1)), decltype(p));
+            ASSERT(p.get() == data);
+            ASSERT(p.offset(1).get() == data + 4);
+            ASSERT((p + 1).get() == data + 4);
+            ASSERT((1 + p).get() == data + 4);
+            ASSERT((&p[1]).get() == data + 4);
+
+            // vector size = 6 elements, alignment = 4 elements
+            kf::vec_ptr<T, 6, T, 4> q = kf::make_vec_ptr(data);
+            ASSERT_TYPE(decltype(q.offset(1)), kf::vec_ptr<T, 6, T, 2>);
+            ASSERT(q.offset(1).get() == data + 6);
+            ASSERT((q + 1).get() == data + 6);
+            ASSERT((1 + q).get() == data + 6);
+            ASSERT((&q[1]).get() == data + 6);
         }
     }
 };
