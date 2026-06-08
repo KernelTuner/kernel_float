@@ -816,7 +816,26 @@ struct is_vector_impl<vector_ref<T, N, Policy>> {
 };
 
 /**
- * Creates a `vector_ptr<T, N, U>` from a raw pointer `U*`.
+ * Creates a `vector_ptr` from a raw pointer `U*`.
+ *
+ * This name resolves to one of four overloads depending on how it is called:
+ *
+ * 1. No template arguments: `make_vec_ptr(ptr)`.
+ *    Returns `vec_ptr<U, 1, U, KERNEL_FLOAT_MAX_ALIGNMENT>`.
+ *    The pointer is assumed to be aligned to `KERNEL_FLOAT_MAX_ALIGNMENT`.
+ *
+ * 2. Integer template argument: `make_vec_ptr<N>(ptr)`.
+ *    Returns `vec_ptr<U, N, U, N>`.
+ *    The pointer is assumed to be aligned for `N` consecutive elements.
+ *
+ * 3. Type template argument: `make_vec_ptr<T>(ptr)`.
+ *    Returns `vector_ptr<T, 1, U, 1>`.
+ *    Elements are stored as `U` but viewed as `T`, with element-aligned access.
+ *
+ * 4. Type and size template arguments: `make_vec_ptr<T, N>(ptr)`.
+ *    Returns `vector_ptr<T, N, U, N>`.
+ *    Elements are stored as `U` but viewed as `T`, assuming alignment for `N` elements.
+ *
  *
  * @tparam T The type of the elements as viewed by the user.
  * @tparam N The vector size in number of elements.
