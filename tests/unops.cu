@@ -78,6 +78,9 @@ struct unops_float_tests {
             b = rcp(a);
             ASSERT_EQ_ALL(b[I], T(1.0 / items[I]));
 
+            b = erf(a);
+            ASSERT_EQ_ALL(b[I], erf(T(items[I])));
+
             // seems that rsqrt does not match bitwise on GPU
             b = rsqrt(a);
             ASSERT_APPROX_ALL(b[I], T(1.0 / sqrt(double(items[I]))));

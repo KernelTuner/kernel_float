@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-06-08 12:00:54.978716
-// git hash: d47bafcb5d8554b5eb1a4618a883f85d6411b24e
+// date: 2026-06-18 10:19:56.606511
+// git hash: 3810ae656e2763c17aa31fa5d86fb24b7c3200ef
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1355,6 +1355,13 @@ KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T
     };                                                                    \
                                                                           \
     template<>                                                            \
+    struct NAME<float> {                                                  \
+        KERNEL_FLOAT_INLINE float operator()(float input) {               \
+            return ops::cast<decltype(EXPR_F32), float> {}(EXPR_F32);     \
+        }                                                                 \
+    };                                                                    \
+                                                                          \
+    template<>                                                            \
     struct NAME<double> {                                                 \
         KERNEL_FLOAT_INLINE double operator()(double input) {             \
             return double(EXPR_F64);                                      \
@@ -1362,9 +1369,11 @@ KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T
     };                                                                    \
     }
 
-#define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME)                             \
+#define KERNEL_FLOAT_DEFINE_UNARY_MATH_FUN(NAME, FUN_F64, FUN_F32)       \
     KERNEL_FLOAT_DEFINE_UNARY_STRUCT(NAME, ::NAME(input), ::NAME(input)) \
     KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)
+
+#define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME) KERNEL_FLOAT_DEFINE_UNARY_MATH_FUN(NAME, NAME, NAME##f)
 
 KERNEL_FLOAT_DEFINE_UNARY_MATH(sin)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(cos)
@@ -3427,7 +3436,26 @@ struct is_vector_impl<vector_ref<T, N, Policy>> {
 };
 
 /**
- * Creates a `vector_ptr<T, N, U>` from a raw pointer `U*`.
+ * Creates a `vector_ptr` from a raw pointer `U*`.
+ *
+ * This name resolves to one of four overloads depending on how it is called:
+ *
+ * 1. No template arguments: `make_vec_ptr(ptr)`.
+ *    Returns `vec_ptr<U, 1, U, KERNEL_FLOAT_MAX_ALIGNMENT>`.
+ *    The pointer is assumed to be aligned to `KERNEL_FLOAT_MAX_ALIGNMENT`.
+ *
+ * 2. Integer template argument: `make_vec_ptr<N>(ptr)`.
+ *    Returns `vec_ptr<U, N, U, N>`.
+ *    The pointer is assumed to be aligned for `N` consecutive elements.
+ *
+ * 3. Type template argument: `make_vec_ptr<T>(ptr)`.
+ *    Returns `vector_ptr<T, 1, U, 1>`.
+ *    Elements are stored as `U` but viewed as `T`, with element-aligned access.
+ *
+ * 4. Type and size template arguments: `make_vec_ptr<T, N>(ptr)`.
+ *    Returns `vector_ptr<T, N, U, N>`.
+ *    Elements are stored as `U` but viewed as `T`, assuming alignment for `N` elements.
+ *
  *
  * @tparam T The type of the elements as viewed by the user.
  * @tparam N The vector size in number of elements.

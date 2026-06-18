@@ -135,6 +135,13 @@ KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T
     };                                                                    \
                                                                           \
     template<>                                                            \
+    struct NAME<float> {                                                  \
+        KERNEL_FLOAT_INLINE float operator()(float input) {               \
+            return ops::cast<decltype(EXPR_F32), float> {}(EXPR_F32);     \
+        }                                                                 \
+    };                                                                    \
+                                                                          \
+    template<>                                                            \
     struct NAME<double> {                                                 \
         KERNEL_FLOAT_INLINE double operator()(double input) {             \
             return double(EXPR_F64);                                      \
@@ -142,9 +149,11 @@ KERNEL_FLOAT_DEFINE_UNARY_OP(logical_not, !, (ops::cast<bool, T> {}(!ops::cast<T
     };                                                                    \
     }
 
-#define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME)                             \
+#define KERNEL_FLOAT_DEFINE_UNARY_MATH_FUN(NAME, FUN_F64, FUN_F32)       \
     KERNEL_FLOAT_DEFINE_UNARY_STRUCT(NAME, ::NAME(input), ::NAME(input)) \
     KERNEL_FLOAT_DEFINE_UNARY_FUN(NAME)
+
+#define KERNEL_FLOAT_DEFINE_UNARY_MATH(NAME) KERNEL_FLOAT_DEFINE_UNARY_MATH_FUN(NAME, NAME, NAME##f)
 
 KERNEL_FLOAT_DEFINE_UNARY_MATH(sin)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(cos)
@@ -177,7 +186,7 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(tgamma)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(sqrt)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(cbrt)
 
-KERNEL_FLOAT_DEFINE_UNARY_MATH(abs)
+KERNEL_FLOAT_DEFINE_UNARY_MATH_FUN(abs, fabs, fabsf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(floor)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(round)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(ceil)
