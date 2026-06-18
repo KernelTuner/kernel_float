@@ -121,8 +121,8 @@ struct equals_helper<kf::vec<T, N>> {
 
 }  // namespace detail
 
-template<typename T>
-__host__ __device__ bool equals(const T& left, const T& right) {
+template<typename L, typename R, typename T = std::enable_if_t<std::is_same_v<L, R>, L>>
+__host__ __device__ bool equals(const L& left, const R& right) {
     return detail::equals_helper<T>::call(left, right);
 }
 

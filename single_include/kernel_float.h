@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-06-18 10:19:56.606511
-// git hash: 3810ae656e2763c17aa31fa5d86fb24b7c3200ef
+// date: 2026-06-18 14:56:21.693021
+// git hash: 044163ec361ae1b0757b505bccc15fa894543cb1
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -1406,7 +1406,7 @@ KERNEL_FLOAT_DEFINE_UNARY_MATH(tgamma)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(sqrt)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(cbrt)
 
-KERNEL_FLOAT_DEFINE_UNARY_MATH(abs)
+KERNEL_FLOAT_DEFINE_UNARY_MATH_FUN(abs, fabs, fabsf)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(floor)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(round)
 KERNEL_FLOAT_DEFINE_UNARY_MATH(ceil)
@@ -2212,12 +2212,12 @@ struct promote_type<constant<L>, constant<R>> {
 
 template<typename L, typename R>
 struct promote_type<constant<L>, R> {
-    using type = typename promote_type<L, R>::type;
+    using type = R;
 };
 
 template<typename L, typename R>
 struct promote_type<L, constant<R>> {
-    using type = typename promote_type<L, R>::type;
+    using type = L;
 };
 
 namespace ops {

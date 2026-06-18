@@ -76,12 +76,12 @@ struct promote_type<constant<L>, constant<R>> {
 
 template<typename L, typename R>
 struct promote_type<constant<L>, R> {
-    using type = typename promote_type<L, R>::type;
+    using type = R;
 };
 
 template<typename L, typename R>
 struct promote_type<L, constant<R>> {
-    using type = typename promote_type<L, R>::type;
+    using type = L;
 };
 
 namespace ops {
