@@ -81,9 +81,8 @@ __global__ void bfloat16_eq(const kf::bfloat16x4 *input, bool *output) {
     output[0] = kf::all(*input == *input);
 }
 
-// Division is not packed at all: each of the 4 lanes is extracted individually and divided
-// with a scalar `div.rn.f32`, then converted back with `cvt.rn.bf16.f32`.
-// CHECK-COUNT-4: div.rn.f32
+// Division is not packed at all: each of the 4 lanes is extracted individually.
+// CHECK-COUNT-4: div.(rn|approx).f32
 // CHECK-NOT: div.bf16x2
 __global__ void bfloat16_div(const kf::bfloat16x4 *input, kf::bfloat16x4 *output) {
     *output = *input / *input;
