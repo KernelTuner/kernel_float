@@ -49,3 +49,7 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ./tests/kernel_float_tests --durations=yes --success --verbosity=high ~[GPU]
 
+    - name: Codegen instruction checks
+      # These check exact instruction counts in the generated PTX, which can legitimately
+      # differ between nvcc versions even when the code itself is correct.
+      run: python3 tests_codegen/verify_codegen.py tests_codegen/*.cu --nvcc nvcc
