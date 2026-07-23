@@ -1,0 +1,222 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cache Modifiers &mdash; Kernel Float  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js?v=b3ba4146"></script>
+      <script src="../_static/doctools.js?v=888ff710"></script>
+      <script src="../_static/sphinx_highlight.js?v=4825356b"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Accuracy Level" href="accuracy.html" />
+    <link rel="prev" title="Memory Operations" href="memory.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Kernel Float
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../index.html">Kernel Float</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../guides.html">Guides</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="promotion.html">Casting and Type Promotion</a></li>
+<li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Cache Modifiers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-cache-modifier-enum">The <code class="docutils literal notranslate"><span class="pre">cache_modifier</span></code> enum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-read-aligned-write-aligned">Using <code class="docutils literal notranslate"><span class="pre">read_aligned</span></code>/<code class="docutils literal notranslate"><span class="pre">write_aligned</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-vector-ptr-access-policy">Using <code class="docutils literal notranslate"><span class="pre">vector_ptr</span></code>/<code class="docutils literal notranslate"><span class="pre">access_policy</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fallback-behavior">Fallback behavior</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="accuracy.html">Accuracy Level</a></li>
+<li class="toctree-l2"><a class="reference internal" href="constant.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="example.html">Full CUDA example</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../api.html">API Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../license.html">License</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://github.com/KernelTuner/kernel_float">Github repository</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Kernel Float</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../guides.html">Guides</a></li>
+      <li class="breadcrumb-item active">Cache Modifiers</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/guides/cache_modifiers.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cache-modifiers">
+<h1>Cache Modifiers<a class="headerlink" href="#cache-modifiers" title="Permalink to this heading"></a></h1>
+<p>On Nvidia GPUs, each load or store instruction can be annotated with a cache modifier hint that tells the hardware how to treat the accessed cache lines.
+For example, data that is only read once benefits from bypassing the cache entirely.
+Kernel Float exposes these hints through the <code class="docutils literal notranslate"><span class="pre">kf::cache_modifier</span></code> enumeration.</p>
+<section id="the-cache-modifier-enum">
+<h2>The <code class="docutils literal notranslate"><span class="pre">cache_modifier</span></code> enum<a class="headerlink" href="#the-cache-modifier-enum" title="Permalink to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">kf::cache_modifier</span></code> mirrors CUDA’s <code class="docutils literal notranslate"><span class="pre">__ldca</span></code>/<code class="docutils literal notranslate"><span class="pre">__ldcg</span></code>/<code class="docutils literal notranslate"><span class="pre">__ldcs</span></code>/<code class="docutils literal notranslate"><span class="pre">__ldlu</span></code>/<code class="docutils literal notranslate"><span class="pre">__ldcv</span></code> load intrinsics and <code class="docutils literal notranslate"><span class="pre">__stwb</span></code>/<code class="docutils literal notranslate"><span class="pre">__stcg</span></code>/<code class="docutils literal notranslate"><span class="pre">__stcs</span></code>/<code class="docutils literal notranslate"><span class="pre">__stwt</span></code> store intrinsics:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Meaning</p></th>
+<th class="head"><p>Load intrinsic</p></th>
+<th class="head"><p>Store intrinsic</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">normal</span></code></p></td>
+<td><p>No hint, caching behavior is left to the compiler (default)</p></td>
+<td><p>-</p></td>
+<td><p>-</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cache_all</span></code> (alias <code class="docutils literal notranslate"><span class="pre">ca</span></code>/<code class="docutils literal notranslate"><span class="pre">wb</span></code>)</p></td>
+<td><p>Cache at all levels, data is likely to be reused</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__ldca</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__stwb</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cache_global</span></code> (alias <code class="docutils literal notranslate"><span class="pre">cg</span></code>)</p></td>
+<td><p>Cache at the global (L2) level only, bypassing L1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__ldcg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__stcg</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">streaming</span></code> (alias <code class="docutils literal notranslate"><span class="pre">cs</span></code>)</p></td>
+<td><p>Streaming access, data is likely accessed only once</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__ldcs</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__stcs</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">uncached</span></code> (alias <code class="docutils literal notranslate"><span class="pre">cv</span></code>/<code class="docutils literal notranslate"><span class="pre">wt</span></code>)</p></td>
+<td><p>Bypass caching entirely and always go to memory</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__ldcv</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__stwt</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">last_use</span></code> (alias <code class="docutils literal notranslate"><span class="pre">lu</span></code>)</p></td>
+<td><p>Last use; the cache line will not be reused (loads only)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">__ldlu</span></code></p></td>
+<td><p>-</p></td>
+</tr>
+</tbody>
+</table>
+<p>Note that you can use both the short PTX-derived name (<code class="docutils literal notranslate"><span class="pre">ca</span></code>, <code class="docutils literal notranslate"><span class="pre">cg</span></code>, <code class="docutils literal notranslate"><span class="pre">cs</span></code>, <code class="docutils literal notranslate"><span class="pre">cv</span></code>, <code class="docutils literal notranslate"><span class="pre">wt</span></code>, <code class="docutils literal notranslate"><span class="pre">lu</span></code>)
+or a more descriptive alias (<code class="docutils literal notranslate"><span class="pre">cache_all</span></code>, <code class="docutils literal notranslate"><span class="pre">cache_global</span></code>, <code class="docutils literal notranslate"><span class="pre">streaming</span></code>, <code class="docutils literal notranslate"><span class="pre">uncached</span></code>, <code class="docutils literal notranslate"><span class="pre">last_use</span></code>).</p>
+<p><code class="docutils literal notranslate"><span class="pre">last_use</span></code> has no store equivalent (there is no <code class="docutils literal notranslate"><span class="pre">__stlu</span></code> intrinsic), so using it with a store operation silently falls back to a plain, unmodified store.</p>
+</section>
+<section id="using-read-aligned-write-aligned">
+<h2>Using <code class="docutils literal notranslate"><span class="pre">read_aligned</span></code>/<code class="docutils literal notranslate"><span class="pre">write_aligned</span></code><a class="headerlink" href="#using-read-aligned-write-aligned" title="Permalink to this heading"></a></h2>
+<p>The modifier is an extra (optional, defaulted) template argument on <code class="docutils literal notranslate"><span class="pre">read_aligned</span></code> and <code class="docutils literal notranslate"><span class="pre">write_aligned</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">float</span><span class="o">*</span><span class="w"> </span><span class="n">pointer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">...;</span>
+
+<span class="c1">// Read 4 elements as a streaming access. This avoids polluting the L1 cache.</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">read_aligned</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cache_modifier</span><span class="o">::</span><span class="n">streaming</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pointer</span><span class="p">);</span>
+
+<span class="c1">// Write 4 elements, explicitly bypassing L1 (cache at the L2/global level only).</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">write_aligned</span><span class="o">&lt;</span><span class="mi">4</span><span class="p">,</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">cache_modifier</span><span class="o">::</span><span class="n">cache_global</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pointer</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Both <code class="docutils literal notranslate"><span class="pre">read_aligned</span></code> and <code class="docutils literal notranslate"><span class="pre">write_aligned</span></code> place the modifier right after the alignment, so <code class="docutils literal notranslate"><span class="pre">N</span></code> (the number of elements) does not need to be repeated: it defaults to the given alignment, as shown above.</p>
+<p>Calling <code class="docutils literal notranslate"><span class="pre">read_aligned</span></code>/<code class="docutils literal notranslate"><span class="pre">write_aligned</span></code> without explicitly specifying a modifier (as shown in the <a class="reference internal" href="memory.html"><span class="std std-doc">memory operations guide</span></a>) is equivalent to explicitly passing <code class="docutils literal notranslate"><span class="pre">cache_modifier::normal</span></code>.</p>
+</section>
+<section id="using-vector-ptr-access-policy">
+<h2>Using <code class="docutils literal notranslate"><span class="pre">vector_ptr</span></code>/<code class="docutils literal notranslate"><span class="pre">access_policy</span></code><a class="headerlink" href="#using-vector-ptr-access-policy" title="Permalink to this heading"></a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">cache_modifier</span></code> can also be combined with <code class="docutils literal notranslate"><span class="pre">vector_ptr</span></code> by using the alias <code class="docutils literal notranslate"><span class="pre">cache_vec_ptr</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">float</span><span class="o">*</span><span class="w"> </span><span class="n">pointer</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">...;</span>
+
+<span class="c1">// Create the vector pointer with streaming access</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">cache_vec_ptr</span><span class="o">&lt;</span><span class="n">kf</span><span class="o">::</span><span class="n">cache_modifier</span><span class="o">::</span><span class="n">streaming</span><span class="p">,</span><span class="w"> </span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">make_vec_ptr</span><span class="o">&lt;</span><span class="mi">4</span><span class="o">&gt;</span><span class="p">(</span><span class="n">pointer</span><span class="p">);</span>
+
+<span class="c1">// Read data using the stream access policy</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">v</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">];</span>
+
+<span class="c1">// Write data using the stream access policy</span>
+<span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">v</span><span class="p">;</span>
+</pre></div>
+</div>
+</section>
+<section id="fallback-behavior">
+<h2>Fallback behavior<a class="headerlink" href="#fallback-behavior" title="Permalink to this heading"></a></h2>
+<p>Cache modifiers are a <em>hint</em>, not a guarantee. Kernel Float will attempt to emit the correct instruction if possible,
+but will fall back to regular load/store if not possible. There are several cases:</p>
+<ul class="simple">
+<li><p>The code is not being compiled for a CUDA device (e.g., host or HIP). The cache intrinsics are CUDA-specific.</p></li>
+<li><p>The requested modifier is <code class="docutils literal notranslate"><span class="pre">normal</span></code> (or <code class="docutils literal notranslate"><span class="pre">last_use</span></code> for a store, since it has no store equivalent).</p></li>
+<li><p>The data type being accessed has a size that does not match the supported cache intrinsics (1, 2, 4, 8, or 16 bytes).</p></li>
+</ul>
+<p>In these cases, the cache hint is ignored and a regular load/store instruction is emitted.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="memory.html" class="btn btn-neutral float-left" title="Memory Operations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="accuracy.html" class="btn btn-neutral float-right" title="Accuracy Level" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Stijn Heldens, Ben van Werkhoven.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -37,3 +37,11 @@ vector_ptr
 ----------
 .. doxygenstruct:: kernel_float::vector_ptr
 
+cache_modifier
+--------------
+.. doxygenenum:: kernel_float::cache_modifier
+
+access_policy
+-------------
+.. doxygenstruct:: kernel_float::access_policy
+

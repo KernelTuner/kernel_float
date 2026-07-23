@@ -30,10 +30,7 @@ For other input types, the operation falls back to the regular version.
 
 ## Approximate Math
 
-For 16-bit floats, several approximate functions are provided.
-These use approximations (typically low-degree polynomials) to calculate rough estimates of the functions.
-This can be very fast but also less accurate.
-
+Approximate math goes a step further than fast math: instead of relying on a hardware-accelerated instruction, it evaluates a low-degree polynomial that approximates the function. This trades even more accuracy for speed, and is only available for 16-bit floats.
 
 To use this functionality, use the `approx_*` functions from Kernel Float. For other input types, the operation falls back to the `fast_*` variant.
 
@@ -55,7 +52,6 @@ kf::vec<half, 4> d = kf::approx_div(a, b);
 
 You can adjust the degree of approximation by supplying an integer template parameter:
 
-
 ```cpp
 // Sine approximation with polynomial of degree 1
 kf::vec<half, 4> a = kf::approx_sin<1>(x);
@@ -69,8 +65,7 @@ kf::vec<half, 4> a = kf::approx_sin<3>(x);
 
 ## Tuning Accuracy Level
 
-Many functions in Kernel Float accept an additional `Accuracy` option as a template parameter.
-This allows you to tune the accuracy level without changing the function name.
+Calling `fast_sin`/`approx_sin` instead of `sin` works, but it means picking a fixed accuracy level up front and hard-coding it into every call site. Many functions in Kernel Float instead accept an additional `Accuracy` option as a template parameter on the regular function name, so the accuracy level can be tuned (or overridden per call) without renaming anything.
 
 There are five possible values for this parameter:
 
@@ -110,7 +105,7 @@ kf::vec<float, 2> g = kf::cos<my_own_policy>(input);
 
 ## Setting `default_policy`
 
-If no policy is explicitly set, any function use the `kf::default_policy`.
+If no policy is explicitly set, any function uses the `kf::default_policy`.
 By default, `kf::default_policy` is set to `kf::accurate_policy`.
 
 Set the preprocessor option `KERNEL_FLOAT_FAST_MATH=1` to change the default policy to `kf::fast_policy`.

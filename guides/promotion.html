@@ -58,6 +58,7 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache_modifiers.html">Cache Modifiers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="accuracy.html">Accuracy Level</a></li>
 <li class="toctree-l2"><a class="reference internal" href="constant.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="example.html">Full CUDA example</a></li>
@@ -166,6 +167,7 @@
 <span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;???</span><span class="p">,</span><span class="w"> </span><span class="o">???&gt;</span><span class="w"> </span><span class="n">c</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">factor</span><span class="p">;</span>
 </pre></div>
 </div>
+<p>These are exactly the questions type promotion answers. It resolves them in three steps: first turning any non-vector arguments into vectors, then unifying their lengths, then unifying their element types.</p>
 <section id="how-type-promotion-works">
 <h3>How Type Promotion Works<a class="headerlink" href="#how-type-promotion-works" title="Permalink to this heading"></a></h3>
 <p>Type promotion in Kernel Float unifies arguments for binary (and ternary) operations through the following steps:</p>
@@ -442,8 +444,6 @@ Combining a signed integer and an unsigned integer is not allowed.</p></li>
 </tr>
 </tbody>
 </table>
-<p>.. csv-table:: Type Promotion Rules.
-:file: promotion_table.csv</p>
 </section>
 </section>
 </section>

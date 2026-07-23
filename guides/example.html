@@ -49,6 +49,7 @@
 <li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
 <li class="toctree-l2"><a class="reference internal" href="promotion.html">Casting and Type Promotion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache_modifiers.html">Cache Modifiers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="accuracy.html">Accuracy Level</a></li>
 <li class="toctree-l2"><a class="reference internal" href="constant.html">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Full CUDA example</a><ul>
@@ -167,13 +168,13 @@ The y coordinates are all <code class="docutils literal notranslate"><span class
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">n</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">count</span><span class="p">(</span><span class="n">dist</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">float_type</span><span class="p">(</span><span class="mi">1</span><span class="p">));</span>
 </pre></div>
 </div>
-<p>Count the number of points in the unit circle (i.e., for which the distance is less than 4).
+<p>Count the number of points in the unit circle (i.e., for which the distance is less than or equal to 1).
 The expression <code class="docutils literal notranslate"><span class="pre">dist</span> <span class="pre">&lt;=</span> <span class="pre">1</span></code> returns a vector of booleans and <code class="docutils literal notranslate"><span class="pre">kf::count</span></code> counts the number of <code class="docutils literal notranslate"><span class="pre">true</span></code> values.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">atomicAdd</span><span class="p">(</span><span class="n">global_count</span><span class="p">,</span><span class="w"> </span><span class="n">n</span><span class="p">);</span>
 </pre></div>
 </div>
 <p>Add <code class="docutils literal notranslate"><span class="pre">n</span></code> to the <code class="docutils literal notranslate"><span class="pre">global_count</span></code> variable.
-This must be done using an atomic operation since multiple thread will write this variable simultaneously.</p>
+This must be done using an atomic operation since multiple threads will write this variable simultaneously.</p>
 </section>
 </section>
 

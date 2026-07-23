@@ -20,7 +20,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Using kernel_float::constant" href="constant.html" />
-    <link rel="prev" title="Memory Operations" href="memory.html" /> 
+    <link rel="prev" title="Cache Modifiers" href="cache_modifiers.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -49,6 +49,7 @@
 <li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
 <li class="toctree-l2"><a class="reference internal" href="promotion.html">Casting and Type Promotion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache_modifiers.html">Cache Modifiers</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Accuracy Level</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#fast-math">Fast Math</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#approximate-math">Approximate Math</a></li>
@@ -118,9 +119,7 @@ For other input types, the operation falls back to the regular version.</p>
 </section>
 <section id="approximate-math">
 <h2>Approximate Math<a class="headerlink" href="#approximate-math" title="Permalink to this heading"></a></h2>
-<p>For 16-bit floats, several approximate functions are provided.
-These use approximations (typically low-degree polynomials) to calculate rough estimates of the functions.
-This can be very fast but also less accurate.</p>
+<p>Approximate math goes a step further than fast math: instead of relying on a hardware-accelerated instruction, it evaluates a low-degree polynomial that approximates the function. This trades even more accuracy for speed, and is only available for 16-bit floats.</p>
 <p>To use this functionality, use the <code class="docutils literal notranslate"><span class="pre">approx_*</span></code> functions from Kernel Float. For other input types, the operation falls back to the <code class="docutils literal notranslate"><span class="pre">fast_*</span></code> variant.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="n">half</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0</span><span class="p">,</span><span class="w"> </span><span class="mf">3.0</span><span class="p">,</span><span class="w"> </span><span class="mf">4.0</span><span class="p">};</span>
 
@@ -151,8 +150,7 @@ This can be very fast but also less accurate.</p>
 </section>
 <section id="tuning-accuracy-level">
 <h2>Tuning Accuracy Level<a class="headerlink" href="#tuning-accuracy-level" title="Permalink to this heading"></a></h2>
-<p>Many functions in Kernel Float accept an additional <code class="docutils literal notranslate"><span class="pre">Accuracy</span></code> option as a template parameter.
-This allows you to tune the accuracy level without changing the function name.</p>
+<p>Calling <code class="docutils literal notranslate"><span class="pre">fast_sin</span></code>/<code class="docutils literal notranslate"><span class="pre">approx_sin</span></code> instead of <code class="docutils literal notranslate"><span class="pre">sin</span></code> works, but it means picking a fixed accuracy level up front and hard-coding it into every call site. Many functions in Kernel Float instead accept an additional <code class="docutils literal notranslate"><span class="pre">Accuracy</span></code> option as a template parameter on the regular function name, so the accuracy level can be tuned (or overridden per call) without renaming anything.</p>
 <p>There are five possible values for this parameter:</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">kf::accurate_policy</span></code>: Use the most accurate version of the function available.</p></li>
@@ -190,7 +188,7 @@ This allows you to tune the accuracy level without changing the function name.</
 </section>
 <section id="setting-default-policy">
 <h2>Setting <code class="docutils literal notranslate"><span class="pre">default_policy</span></code><a class="headerlink" href="#setting-default-policy" title="Permalink to this heading"></a></h2>
-<p>If no policy is explicitly set, any function use the <code class="docutils literal notranslate"><span class="pre">kf::default_policy</span></code>.
+<p>If no policy is explicitly set, any function uses the <code class="docutils literal notranslate"><span class="pre">kf::default_policy</span></code>.
 By default, <code class="docutils literal notranslate"><span class="pre">kf::default_policy</span></code> is set to <code class="docutils literal notranslate"><span class="pre">kf::accurate_policy</span></code>.</p>
 <p>Set the preprocessor option <code class="docutils literal notranslate"><span class="pre">KERNEL_FLOAT_FAST_MATH=1</span></code> to change the default policy to <code class="docutils literal notranslate"><span class="pre">kf::fast_policy</span></code>.
 This will use fast math for all functions and data types that support it.</p>
@@ -201,7 +199,7 @@ This will use fast math for all functions and data types that support it.</p>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="memory.html" class="btn btn-neutral float-left" title="Memory Operations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="cache_modifiers.html" class="btn btn-neutral float-left" title="Cache Modifiers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="constant.html" class="btn btn-neutral float-right" title="Using kernel_float::constant" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

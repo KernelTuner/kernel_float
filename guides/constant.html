@@ -49,6 +49,7 @@
 <li class="toctree-l2"><a class="reference internal" href="introduction.html">Getting started</a></li>
 <li class="toctree-l2"><a class="reference internal" href="promotion.html">Casting and Type Promotion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="memory.html">Memory Operations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cache_modifiers.html">Cache Modifiers</a></li>
 <li class="toctree-l2"><a class="reference internal" href="accuracy.html">Accuracy Level</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">Using <code class="docutils literal notranslate"><span class="pre">kernel_float::constant</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="example.html">Full CUDA example</a></li>
@@ -95,7 +96,19 @@ This happens since the left-hand side of this expression
 constants. Any binary operations between a value of type <code class="docutils literal notranslate"><span class="pre">U</span></code> and a <code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code> will result in both
 operands being cast to type <code class="docutils literal notranslate"><span class="pre">U</span></code> and the operation is performed in the precision of type <code class="docutils literal notranslate"><span class="pre">U</span></code>. This makes
 <code class="docutils literal notranslate"><span class="pre">constant&lt;T&gt;</span></code> useful for representing constants in your code.</p>
-<p>For example, consider the following code:</p>
+<p>To see the effect in isolation, compare the deduced type of <code class="docutils literal notranslate"><span class="pre">a</span></code> and <code class="docutils literal notranslate"><span class="pre">b</span></code> below:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">{</span><span class="mf">1.0f</span><span class="p">,</span><span class="w"> </span><span class="mf">2.0f</span><span class="p">};</span>
+
+<span class="c1">// Without `constant`: `3.14` is a `double`, so `x` is promoted to `double` and the</span>
+<span class="c1">// multiplication happens in `double` precision.</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">3.14</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+
+<span class="c1">// With `constant`: the `double` literal is wrapped in `constant&lt;double&gt;`, so the multiplication</span>
+<span class="c1">// is performed directly in `float` precision.</span>
+<span class="n">kf</span><span class="o">::</span><span class="n">vec</span><span class="o">&lt;</span><span class="kt">float</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="n">b</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">kf</span><span class="o">::</span><span class="n">make_constant</span><span class="p">(</span><span class="mf">3.14</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">x</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>Now consider a larger, more realistic example that puts this into practice:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1">#include &quot;kernel_float.h&quot;</span>
 <span class="n">namespace</span> <span class="n">kf</span> <span class="o">=</span> <span class="n">kernel_float</span><span class="p">;</span>
 
