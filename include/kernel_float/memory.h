@@ -106,6 +106,38 @@ KERNEL_FLOAT_INLINE void write(T* ptr, const V& values) {
     write(ptr, range<size_t, N>(), values);
 }
 
+/**
+ * Cache-eviction hint for `ld.global`/`st.global` operations, mirroring CUDA's `__ldca`/`__ldcg`/`__ldcs`/
+ * `__ldlu`/`__ldcv` load intrinsics and `__stwb`/`__stcg`/`__stcs`/`__stwt` store intrinsics. Used as a
+ * template parameter of `read_aligned`/`write_aligned` (and `copy_aligned_impl::load`/`::store`) to control
+ * caching behavior.
+ *
+ * Modifiers that are semantically equivalent between loads and stores share the same underlying value: `ca`
+ * (load) and `wb` (store) both mean "cache at all levels", and `cv` (load) and `wt` (store) both mean
+ * "bypass caching". Each PTX-derived short name also has a more descriptive human-readable alias with the
+ * same value (e.g. `cache_all` for `ca`/`wb`).
+ */
+enum struct cache_modifier {
+    normal,  // default behavior, caching behavior is left to the compiler
+
+    cache_all,  // Cache at all levels
+    ca = cache_all,  // Load: cache at all levels, likely to be accessed again (`__ldca`).
+    wb = cache_all,  // Store: write-back, cache at all levels (`__stwb`); equivalent to `ca`.
+
+    cache_global,  // cache at global level only, bypassing L1
+    cg = cache_global,  // Load/store: cache at global level only, bypassing L1 (`__ldcg`/`__stcg`).
+
+    streaming,  // streaming, likely to be accessed only once.
+    cs = streaming,  // Load/store: streaming, likely to be accessed only once (`__ldcs`/`__stcs`).
+
+    uncached,  // don't cache, already read or write directly from memory
+    cv = uncached,  // Load: don't cache, always re-fetch from memory (`__ldcv`).
+    wt = uncached,  // Store: write-through to system memory (`__stwt`); equivalent to `cv`.
+
+    last_use,  // last use, the cache line will not be re-used afterwards (loads only, not store equivalent).
+    lu = last_use,  // Load only: last use, the cache line will not be re-used (`__ldlu`)
+};
+
 namespace detail {
 /**
  * Returns the greatest common divisor of `a` and `b`.
@@ -115,45 +147,157 @@ constexpr size_t gcd(size_t a, size_t b) {
     return b == 0 ? a : gcd(b, a % b);
 }
 
+/**
+ * Returns true if a value of `bytes` bytes can be reinterpreted as one of the built-in types supported by
+ * the `__ldXX`/`__stXX` cache-modifier intrinsics (this covers exactly the sizes of `char`, `short`,
+ * `int`/`float`, `long long`/`double` and `int4`/`double2`/`ulonglong2`).
+ */
+KERNEL_FLOAT_INLINE
+constexpr bool cache_intrinsic_supported(size_t bytes) {
+    return bytes == 1 || bytes == 2 || bytes == 4 || bytes == 8 || bytes == 16;
+}
+
+template<size_t Bytes>
+struct cache_intrinsic_type;
+
+template<>
+struct cache_intrinsic_type<1> {
+    using type = unsigned char;
+};
+
+template<>
+struct cache_intrinsic_type<2> {
+    using type = unsigned short;
+};
+
+template<>
+struct cache_intrinsic_type<4> {
+    using type = unsigned int;
+};
+
+template<>
+struct cache_intrinsic_type<8> {
+    using type = unsigned long long;
+};
+
+template<>
+struct cache_intrinsic_type<16> {
+    using type = ulonglong2;
+};
+
+/**
+ * Loads a value of type `S` from `ptr`, applying the given cache-eviction hint. Falls back to a plain load
+ * if `Modifier` is `normal`, if `S` does not match one of the sizes supported by the cache intrinsics, or if
+ * this code is not compiled for a CUDA device (e.g., host compilation or HIP).
+ */
+template<typename S, cache_modifier Modifier>
+KERNEL_FLOAT_INLINE S cache_load(const S* ptr) {
+#if KERNEL_FLOAT_IS_CUDA && KERNEL_FLOAT_IS_DEVICE
+    if constexpr (!cache_intrinsic_supported(sizeof(S)) || Modifier == cache_modifier::normal) {
+        return *ptr;
+    } else {
+        using R = typename cache_intrinsic_type<sizeof(S)>::type;
+        const R* raw_ptr = reinterpret_cast<const R*>(ptr);
+        R result;
+
+        if constexpr (Modifier == cache_modifier::ca) {
+            result = __ldca(raw_ptr);
+        } else if constexpr (Modifier == cache_modifier::cg) {
+            result = __ldcg(raw_ptr);
+        } else if constexpr (Modifier == cache_modifier::cs) {
+            result = __ldcs(raw_ptr);
+        } else if constexpr (Modifier == cache_modifier::lu) {
+            result = __ldlu(raw_ptr);
+        } else if constexpr (Modifier == cache_modifier::cv) {
+            result = __ldcv(raw_ptr);
+        } else {
+            return *ptr;
+        }
+
+        return *reinterpret_cast<const S*>(&result);
+    }
+#else
+    return *ptr;
+#endif
+}
+
+/**
+ * Stores `value` of type `S` to `ptr`, applying the given cache-eviction hint. Falls back to a plain store
+ * if `Modifier` is `normal` or `lu` (which has no store equivalent), if `S` does not match one of the sizes
+ * supported by the cache intrinsics, or if this code is not compiled for a CUDA device (e.g., host
+ * compilation or HIP).
+ */
+template<typename S, cache_modifier Modifier>
+KERNEL_FLOAT_INLINE void cache_store(S* ptr, const S& value) {
+#if KERNEL_FLOAT_IS_CUDA && KERNEL_FLOAT_IS_DEVICE
+    if constexpr (!cache_intrinsic_supported(sizeof(S)) || Modifier == cache_modifier::normal) {
+        *ptr = value;
+    } else {
+        using R = typename cache_intrinsic_type<sizeof(S)>::type;
+        R* raw_ptr = reinterpret_cast<R*>(ptr);
+        R raw_value = *reinterpret_cast<const R*>(&value);
+
+        if constexpr (Modifier == cache_modifier::ca) {
+            __stwb(raw_ptr, raw_value);
+        } else if constexpr (Modifier == cache_modifier::cg) {
+            __stcg(raw_ptr, raw_value);
+        } else if constexpr (Modifier == cache_modifier::cs) {
+            __stcs(raw_ptr, raw_value);
+        } else if constexpr (Modifier == cache_modifier::cv) {
+            __stwt(raw_ptr, raw_value);
+        } else {
+            // Modifier == cache_modifier::normal or cache_modifier::lu (no store equivalent)
+            *ptr = value;
+        }
+    }
+#else
+    *ptr = value;
+#endif
+}
+
 template<typename T, size_t N, size_t Alignment, typename = void>
 struct copy_aligned_impl {
     static constexpr size_t K = N > 8 ? 8 : (N > 4 ? 4 : (N > 2 ? 2 : 1));
     static constexpr size_t Alignment_K = gcd(Alignment, sizeof(T) * K);
 
-    KERNEL_FLOAT_INLINE
-    static void load(T* output, const T* input) {
-        copy_aligned_impl<T, K, Alignment>::load(output, input);
-        copy_aligned_impl<T, N - K, Alignment_K>::load(output + K, input + K);
+    template<cache_modifier LoadModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void load(T* output, const T* input) {
+        copy_aligned_impl<T, K, Alignment>::template load<LoadModifier>(output, input);
+        copy_aligned_impl<T, N - K, Alignment_K>::template load<LoadModifier>(
+            output + K,
+            input + K);
     }
 
-    KERNEL_FLOAT_INLINE
-    static void store(T* output, const T* input) {
-        copy_aligned_impl<T, K, Alignment>::store(output, input);
-        copy_aligned_impl<T, N - K, Alignment_K>::store(output + K, input + K);
+    template<cache_modifier StoreModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void store(T* output, const T* input) {
+        copy_aligned_impl<T, K, Alignment>::template store<StoreModifier>(output, input);
+        copy_aligned_impl<T, N - K, Alignment_K>::template store<StoreModifier>(
+            output + K,
+            input + K);
     }
 };
 
 template<typename T, size_t Alignment>
 struct copy_aligned_impl<T, 0, Alignment> {
-    KERNEL_FLOAT_INLINE
-    static void load(T* output, const T* input) {}
+    template<cache_modifier LoadModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void load(T* output, const T* input) {}
 
-    KERNEL_FLOAT_INLINE
-    static void store(T* output, const T* input) {}
+    template<cache_modifier StoreModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void store(T* output, const T* input) {}
 };
 
 template<typename T, size_t Alignment>
 struct copy_aligned_impl<T, 1, Alignment> {
     using storage_type = T;
 
-    KERNEL_FLOAT_INLINE
-    static void load(T* output, const T* input) {
-        output[0] = input[0];
+    template<cache_modifier LoadModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void load(T* output, const T* input) {
+        output[0] = cache_load<T, LoadModifier>(&input[0]);
     }
 
-    KERNEL_FLOAT_INLINE
-    static void store(T* output, const T* input) {
-        output[0] = input[0];
+    template<cache_modifier StoreModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void store(T* output, const T* input) {
+        cache_store<T, StoreModifier>(&output[0], input[0]);
     }
 };
 
@@ -164,16 +308,19 @@ struct copy_aligned_impl<T, 2, Alignment, enable_if_t<(Alignment > sizeof(T))>> 
         T v0, v1;
     };
 
-    KERNEL_FLOAT_INLINE
-    static void load(T* output, const T* input) {
-        storage_type storage = *reinterpret_cast<const storage_type*>(input);
+    template<cache_modifier LoadModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void load(T* output, const T* input) {
+        storage_type storage =
+            cache_load<storage_type, LoadModifier>(reinterpret_cast<const storage_type*>(input));
         output[0] = storage.v0;
         output[1] = storage.v1;
     }
 
-    KERNEL_FLOAT_INLINE
-    static void store(T* output, const T* input) {
-        *reinterpret_cast<storage_type*>(output) = storage_type {input[0], input[1]};
+    template<cache_modifier StoreModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void store(T* output, const T* input) {
+        cache_store<storage_type, StoreModifier>(
+            reinterpret_cast<storage_type*>(output),
+            storage_type {input[0], input[1]});
     }
 };
 
@@ -184,22 +331,25 @@ struct copy_aligned_impl<T, 4, Alignment, enable_if_t<(Alignment > 2 * sizeof(T)
         T v0, v1, v2, v3;
     };
 
-    KERNEL_FLOAT_INLINE
-    static void load(T* output, const T* input) {
-        storage_type storage = *reinterpret_cast<const storage_type*>(input);
+    template<cache_modifier LoadModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void load(T* output, const T* input) {
+        storage_type storage =
+            cache_load<storage_type, LoadModifier>(reinterpret_cast<const storage_type*>(input));
         output[0] = storage.v0;
         output[1] = storage.v1;
         output[2] = storage.v2;
         output[3] = storage.v3;
     }
 
-    KERNEL_FLOAT_INLINE
-    static void store(T* output, const T* input) {
-        *reinterpret_cast<storage_type*>(output) = storage_type {
-            input[0],  //
-            input[1],
-            input[2],
-            input[3]};
+    template<cache_modifier StoreModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void store(T* output, const T* input) {
+        cache_store<storage_type, StoreModifier>(
+            reinterpret_cast<storage_type*>(output),
+            storage_type {
+                input[0],  //
+                input[1],
+                input[2],
+                input[3]});
     }
 };
 
@@ -210,9 +360,10 @@ struct copy_aligned_impl<T, 8, Alignment, enable_if_t<(Alignment > 4 * sizeof(T)
         T v0, v1, v2, v3, v4, v5, v6, v7;
     };
 
-    KERNEL_FLOAT_INLINE
-    static void load(T* output, const T* input) {
-        storage_type storage = *reinterpret_cast<const storage_type*>(input);
+    template<cache_modifier LoadModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void load(T* output, const T* input) {
+        storage_type storage =
+            cache_load<storage_type, LoadModifier>(reinterpret_cast<const storage_type*>(input));
         output[0] = storage.v0;
         output[1] = storage.v1;
         output[2] = storage.v2;
@@ -223,17 +374,19 @@ struct copy_aligned_impl<T, 8, Alignment, enable_if_t<(Alignment > 4 * sizeof(T)
         output[7] = storage.v7;
     }
 
-    KERNEL_FLOAT_INLINE
-    static void store(T* output, const T* input) {
-        *reinterpret_cast<storage_type*>(output) = storage_type {
-            input[0],  //
-            input[1],
-            input[2],
-            input[3],
-            input[4],
-            input[5],
-            input[6],
-            input[7]};
+    template<cache_modifier StoreModifier = cache_modifier::normal>
+    KERNEL_FLOAT_INLINE static void store(T* output, const T* input) {
+        cache_store<storage_type, StoreModifier>(
+            reinterpret_cast<storage_type*>(output),
+            storage_type {
+                input[0],  //
+                input[1],
+                input[2],
+                input[3],
+                input[4],
+                input[5],
+                input[6],
+                input[7]});
     }
 };
 
@@ -253,11 +406,15 @@ struct copy_aligned_impl<T, 8, Alignment, enable_if_t<(Alignment > 4 * sizeof(T)
  * vec<T, 4> values2 = read_aligned<4>(data + 12);
  * ```
  */
-template<size_t Align, size_t N = Align, typename T>
+template<
+    size_t Align,
+    cache_modifier LoadModifier = cache_modifier::normal,
+    size_t N = Align,
+    typename T>
 KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
     static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
     vector_storage<T, N> result;
-    detail::copy_aligned_impl<T, N, alignment>::load(
+    detail::copy_aligned_impl<T, N, alignment>::template load<LoadModifier>(
         result.data(),
         KERNEL_FLOAT_ASSUME_ALIGNED(const T, ptr, alignment));
     return result;
@@ -278,12 +435,16 @@ KERNEL_FLOAT_INLINE vector<T, extent<N>> read_aligned(const T* ptr) {
  * write_aligned(data + 10, values);
  * ```
  */
-template<size_t Align, typename V, typename T>
+template<
+    size_t Align,
+    cache_modifier StoreModifier = cache_modifier::normal,
+    typename V,
+    typename T>
 KERNEL_FLOAT_INLINE void write_aligned(T* ptr, const V& values) {
     static constexpr size_t N = vector_size<V>;
     static constexpr size_t alignment = detail::gcd(Align * sizeof(T), KERNEL_FLOAT_MAX_ALIGNMENT);
 
-    return detail::copy_aligned_impl<T, N, alignment>::store(
+    return detail::copy_aligned_impl<T, N, alignment>::template store<StoreModifier>(
         KERNEL_FLOAT_ASSUME_ALIGNED(T, ptr, alignment),
         convert_storage<T, N>(values).data());
 }
@@ -296,7 +457,11 @@ enum struct access_mode { read_only, read_write };
  * runtime state. Policies that are stateless (such as the default `access_policy` below) remain empty
  * classes and therefore add no size to `vector_ref`/`vector_ptr` thanks to empty-base-class optimization.
  */
-template<typename U, size_t Alignment = alignof(U)>
+template<
+    typename U,
+    size_t Alignment = alignof(U),
+    cache_modifier ReadPolicy = cache_modifier::normal,
+    cache_modifier WritePolicy = ReadPolicy>
 struct access_policy {
     using storage_type = U;
     static constexpr access_mode mode = access_mode::read_write;
@@ -306,11 +471,14 @@ struct access_policy {
     static_assert(access_alignment >= alignof(storage_type), "invalid alignment for pointer type");
 
     template<size_t N>
-    using with_offset =
-        access_policy<storage_type, detail::gcd(alignment, N * sizeof(storage_type))>;
+    using with_offset = access_policy<
+        storage_type,
+        detail::gcd(alignment, N * sizeof(storage_type)),
+        ReadPolicy,
+        WritePolicy>;
 
-    template<size_t M>
-    KERNEL_FLOAT_INLINE access_policy(access_policy<U, M>) {}
+    template<size_t M, cache_modifier RP, cache_modifier WP>
+    KERNEL_FLOAT_INLINE access_policy(access_policy<U, M, RP, WP>) {}
     access_policy() = default;
 
     /**
@@ -326,20 +494,20 @@ struct access_policy {
     template<typename T, size_t N>
     KERNEL_FLOAT_INLINE void
     read_impl(const storage_type* input, vector_storage<T, N>& output) const {
-        access_policy<const U, Alignment>().read_impl(input, output);
+        access_policy<const U, Alignment, ReadPolicy, WritePolicy>().read_impl(input, output);
     }
 
     template<typename T, size_t N>
     KERNEL_FLOAT_INLINE void
     write_impl(storage_type* output, const vector_storage<T, N>& input) const {
-        detail::copy_aligned_impl<storage_type, N, access_alignment>::store(
+        detail::copy_aligned_impl<storage_type, N, access_alignment>::template store<WritePolicy>(
             KERNEL_FLOAT_ASSUME_ALIGNED(storage_type, output, access_alignment),
             convert_storage<storage_type, N>(input).data());
     }
 };
 
-template<typename U, size_t Alignment>
-struct access_policy<const U, Alignment> {
+template<typename U, size_t Alignment, cache_modifier ReadPolicy, cache_modifier WritePolicy>
+struct access_policy<const U, Alignment, ReadPolicy, WritePolicy> {
     using storage_type = const U;
     static constexpr access_mode mode = access_mode::read_only;
     static constexpr size_t alignment = Alignment;
@@ -347,14 +515,17 @@ struct access_policy<const U, Alignment> {
     static_assert(access_alignment >= alignof(storage_type), "invalid alignment for pointer type");
 
     template<size_t N>
-    using with_offset =
-        access_policy<storage_type, detail::gcd(alignment, N * sizeof(storage_type))>;
+    using with_offset = access_policy<
+        storage_type,
+        detail::gcd(alignment, N * sizeof(storage_type)),
+        ReadPolicy,
+        WritePolicy>;
 
-    template<size_t M>
-    KERNEL_FLOAT_INLINE access_policy(access_policy<const U, M>) {}
-    template<size_t M>
+    template<size_t M, cache_modifier RP, cache_modifier WP>
+    KERNEL_FLOAT_INLINE access_policy(access_policy<const U, M, RP, WP>) {}
 
-    KERNEL_FLOAT_INLINE access_policy(access_policy<U, M>) {}
+    template<size_t M, cache_modifier RP, cache_modifier WP>
+    KERNEL_FLOAT_INLINE access_policy(access_policy<U, M, RP, WP>) {}
     access_policy() = default;
 
     template<size_t N>
@@ -366,7 +537,7 @@ struct access_policy<const U, Alignment> {
     KERNEL_FLOAT_INLINE void
     read_impl(const storage_type* input, vector_storage<T, N>& output) const {
         vector_storage<U, N> result;
-        detail::copy_aligned_impl<U, N, access_alignment>::load(
+        detail::copy_aligned_impl<U, N, access_alignment>::template load<ReadPolicy>(
             result.data(),
             KERNEL_FLOAT_ASSUME_ALIGNED(storage_type, input, access_alignment));
 
@@ -388,14 +559,34 @@ struct is_policy_convertible {
     static constexpr bool value = is_same_type<DstPolicy, SrcPolicy>;
 };
 
-template<typename U, size_t A1, size_t A2>
-struct is_policy_convertible<access_policy<U, A1>, access_policy<U, A2>> {
+template<
+    typename U,
+    size_t A1,
+    size_t A2,
+    cache_modifier ReadPolicy1,
+    cache_modifier WritePolicy1,
+    cache_modifier ReadPolicy2,
+    cache_modifier WritePolicy2>
+struct is_policy_convertible<
+    access_policy<U, A1, ReadPolicy1, WritePolicy1>,
+    access_policy<U, A2, ReadPolicy2, WritePolicy2>> {
     static constexpr bool value = is_alignment_divisible(A2, A1);
 };
 
-template<typename U, size_t A1, size_t A2>
-struct is_policy_convertible<access_policy<const U, A1>, access_policy<U, A2>>:
-    is_policy_convertible<access_policy<const U, A1>, access_policy<const U, A2>> {};
+template<
+    typename U,
+    size_t A1,
+    size_t A2,
+    cache_modifier ReadPolicy1,
+    cache_modifier WritePolicy1,
+    cache_modifier ReadPolicy2,
+    cache_modifier WritePolicy2>
+struct is_policy_convertible<
+    access_policy<const U, A1, ReadPolicy1, WritePolicy1>,
+    access_policy<U, A2, ReadPolicy2, WritePolicy2>>:
+    is_policy_convertible<
+        access_policy<const U, A1, ReadPolicy1, WritePolicy1>,
+        access_policy<const U, A2, ReadPolicy2, WritePolicy2>> {};
 
 }  // namespace detail
 
@@ -873,6 +1064,9 @@ make_vec_ptr(T* ptr) {
 
 template<typename T, size_t N = 1, typename U = T, size_t Align = N>
 using vec_ptr = vector_ptr<T, N, access_policy<U, Align * sizeof(U)>>;
+
+template<cache_modifier modifier, typename T, size_t N = 1, typename U = T, size_t Align = N>
+using cache_vec_ptr = vector_ptr<T, N, access_policy<U, Align * sizeof(U), modifier>>;
 
 template<typename T, typename U = T>
 using scalar_ptr = vector_ptr<T, 1, access_policy<U>>;

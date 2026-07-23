@@ -141,6 +141,80 @@ struct aligned_access_test {
 
 REGISTER_TEST_CASE("aligned access", aligned_access_test, int, float, double, __half, __nv_bfloat16)
 
+struct cache_modifier_test {
+    template<typename T, size_t... I, size_t N = sizeof...(I)>
+    __host__ __device__ void operator()(generator<T>, std::index_sequence<I...>) {
+        struct alignas(32) storage_type {
+            T data[N];
+        };
+
+        storage_type input = {T(double(I))...};
+
+        // Load modifiers
+        {
+            auto v = kf::read_aligned<N, kf::cache_modifier::normal>(input.data);
+            ASSERT_EQ_ALL(v[I], T(double(I)));
+        }
+        {
+            auto v = kf::read_aligned<N, kf::cache_modifier::ca>(input.data);
+            ASSERT_EQ_ALL(v[I], T(double(I)));
+        }
+        {
+            auto v = kf::read_aligned<N, kf::cache_modifier::cg>(input.data);
+            ASSERT_EQ_ALL(v[I], T(double(I)));
+        }
+        {
+            auto v = kf::read_aligned<N, kf::cache_modifier::cs>(input.data);
+            ASSERT_EQ_ALL(v[I], T(double(I)));
+        }
+        {
+            auto v = kf::read_aligned<N, kf::cache_modifier::lu>(input.data);
+            ASSERT_EQ_ALL(v[I], T(double(I)));
+        }
+        {
+            auto v = kf::read_aligned<N, kf::cache_modifier::cv>(input.data);
+            ASSERT_EQ_ALL(v[I], T(double(I)));
+        }
+
+        auto v = kf::read_aligned<N>(input.data);
+
+        // Store modifiers
+        {
+            storage_type output = {T(double(I * 0))...};
+            kf::write_aligned<N, kf::cache_modifier::normal>(output.data, v);
+            ASSERT_EQ_ALL(output.data[I], T(double(I)));
+        }
+        {
+            storage_type output = {T(double(I * 0))...};
+            kf::write_aligned<N, kf::cache_modifier::wb>(output.data, v);
+            ASSERT_EQ_ALL(output.data[I], T(double(I)));
+        }
+        {
+            storage_type output = {T(double(I * 0))...};
+            kf::write_aligned<N, kf::cache_modifier::cg>(output.data, v);
+            ASSERT_EQ_ALL(output.data[I], T(double(I)));
+        }
+        {
+            storage_type output = {T(double(I * 0))...};
+            kf::write_aligned<N, kf::cache_modifier::cs>(output.data, v);
+            ASSERT_EQ_ALL(output.data[I], T(double(I)));
+        }
+        {
+            storage_type output = {T(double(I * 0))...};
+            kf::write_aligned<N, kf::cache_modifier::wt>(output.data, v);
+            ASSERT_EQ_ALL(output.data[I], T(double(I)));
+        }
+        {
+            // `lu` has no store equivalent; write_aligned should fall back to a plain store.
+            storage_type output = {T(double(I * 0))...};
+            kf::write_aligned<N, kf::cache_modifier::lu>(output.data, v);
+            ASSERT_EQ_ALL(output.data[I], T(double(I)));
+        }
+    }
+};
+
+REGISTER_TEST_CASE("cache modifier", cache_modifier_test, int, float, double, __half, __nv_bfloat16)
+
 struct vector_ptr_test {
     template<typename T, size_t... I, size_t N = sizeof...(I)>
     __host__ __device__ void operator()(generator<T>, std::index_sequence<I...>) {
