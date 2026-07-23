@@ -101,7 +101,7 @@ Take the element-wise square root.
     int n = kf::count(dist <= float_type(1));
 ```
 
-Count the number of points in the unit circle (i.e., for which the distance is less than 4).
+Count the number of points in the unit circle (i.e., for which the distance is less than or equal to 1).
 The expression `dist <= 1` returns a vector of booleans and `kf::count` counts the number of `true` values.
 
 ```cpp
@@ -109,4 +109,4 @@ atomicAdd(global_count, n);
 ```
 
 Add `n` to the `global_count` variable.
-This must be done using an atomic operation since multiple thread will write this variable simultaneously.
+This must be done using an atomic operation since multiple threads will write this variable simultaneously.

@@ -229,6 +229,8 @@ groups = {
             "make_vec_ptr",
 
             ("vector_ptr", "vector_ptr", "struct"),
+            ("cache_modifier", "cache_modifier", "enum"),
+            ("access_policy", "access_policy", "struct"),
         ],
         "Utilities": [
             ("constant", "constant", "struct"),

@@ -66,8 +66,6 @@ kf::cast_to(b) = a;
 
 When performing operations between vectors of different types or sizes, Kernel Float automatically promotes types to ensure compatibility. This process is known as **type promotion**.
 
-
-
 Consider the following example. What should the type of `c` be in this case?
 
 ```cpp
@@ -86,7 +84,10 @@ int factor = 2;
 kf::vec<???, ???> c = x * factor;
 ```
 
+These are exactly the questions type promotion answers. It resolves them in three steps: first turning any non-vector arguments into vectors, then unifying their lengths, then unifying their element types.
+
 ### How Type Promotion Works
+
 Type promotion in Kernel Float unifies arguments for binary (and ternary) operations through the following steps:
 
 * **Vectorization**: Each non-vector argument is converted into a vector using the `into_vec` function.
@@ -96,6 +97,7 @@ Type promotion in Kernel Float unifies arguments for binary (and ternary) operat
 * **Type Unification**: The element types are promoted to a common type based on the following promotion rules.
 
 ### Promotion Rules
+
 The rules for element type promotion in Kernel Float are slightly different from standard C++. Here's a summary:
 
 * **Boolean Types**: If one of the types is bool, the result type is the other type.
@@ -121,7 +123,4 @@ The following table summarizes the type promotion rules. The labels used are:
 ```{csv-table} Type Promotion Rules.
 :file: promotion_table.csv
 ```
-
-.. csv-table:: Type Promotion Rules.
-   :file: promotion_table.csv
 

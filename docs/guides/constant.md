@@ -1,5 +1,4 @@
-Using `kernel_float::constant`
-===
+# Using `kernel_float::constant`
 
 When working with mixed precision types, you will find that working with constants presents a bit of a challenge.
 
@@ -13,7 +12,21 @@ constants. Any binary operations between a value of type `U` and a `constant<T>`
 operands being cast to type `U` and the operation is performed in the precision of type `U`. This makes
 `constant<T>` useful for representing constants in your code.
 
-For example, consider the following code:
+To see the effect in isolation, compare the deduced type of `a` and `b` below:
+
+```cpp
+kf::vec<float, 2> x = {1.0f, 2.0f};
+
+// Without `constant`: `3.14` is a `double`, so `x` is promoted to `double` and the
+// multiplication happens in `double` precision.
+kf::vec<double, 2> a = 3.14 * x;
+
+// With `constant`: the `double` literal is wrapped in `constant<double>`, so the multiplication
+// is performed directly in `float` precision.
+kf::vec<float, 2> b = kf::make_constant(3.14) * x;
+```
+
+Now consider a larger, more realistic example that puts this into practice:
 
 ```
 #include "kernel_float.h"
