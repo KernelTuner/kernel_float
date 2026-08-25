@@ -175,6 +175,10 @@ struct cache_modifier_test {
             auto v = kf::read_aligned<N, kf::cache_modifier::cv>(input.data);
             ASSERT_EQ_ALL(v[I], T(double(I)));
         }
+        {
+            auto v = kf::read_aligned<N, kf::cache_modifier::nc>(input.data);
+            ASSERT_EQ_ALL(v[I], T(double(I)));
+        }
 
         auto v = kf::read_aligned<N>(input.data);
 
@@ -208,6 +212,12 @@ struct cache_modifier_test {
             // `lu` has no store equivalent; write_aligned should fall back to a plain store.
             storage_type output = {T(double(I * 0))...};
             kf::write_aligned<N, kf::cache_modifier::lu>(output.data, v);
+            ASSERT_EQ_ALL(output.data[I], T(double(I)));
+        }
+        {
+            // `nc` has no store equivalent; write_aligned should fall back to a plain store.
+            storage_type output = {T(double(I * 0))...};
+            kf::write_aligned<N, kf::cache_modifier::nc>(output.data, v);
             ASSERT_EQ_ALL(output.data[I], T(double(I)));
         }
     }

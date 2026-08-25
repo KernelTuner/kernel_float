@@ -136,6 +136,9 @@ enum struct cache_modifier {
 
     last_use,  // last use, the cache line will not be re-used afterwards (loads only, not store equivalent).
     lu = last_use,  // Load only: last use, the cache line will not be re-used (`__ldlu`)
+
+    read_only,  // load through the read-only/non-coherent cache (loads only, not store equivalent).
+    nc = read_only  // Load only: non-coherent, read-only cache load (`ld.global.nc`, i.e. `__ldg`).
 };
 
 namespace detail {
@@ -210,6 +213,8 @@ KERNEL_FLOAT_INLINE S cache_load(const S* ptr) {
             result = __ldlu(raw_ptr);
         } else if constexpr (Modifier == cache_modifier::cv) {
             result = __ldcv(raw_ptr);
+        } else if constexpr (Modifier == cache_modifier::nc) {
+            result = __ldg(raw_ptr);
         } else {
             return *ptr;
         }

@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-07-23 12:03:44.219200
-// git hash: 91cc6e374e07f8c2222c6ded1755cb774b6fb1af
+// date: 2026-08-25 17:05:35.335482
+// git hash: f4e2d65be6e0f28156781eb766bae0fbcbe48b42
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2756,6 +2756,9 @@ enum struct cache_modifier {
 
     last_use,  // last use, the cache line will not be re-used afterwards (loads only, not store equivalent).
     lu = last_use,  // Load only: last use, the cache line will not be re-used (`__ldlu`)
+
+    read_only,  // load through the read-only/non-coherent cache (loads only, not store equivalent).
+    nc = read_only  // Load only: non-coherent, read-only cache load (`ld.global.nc`, i.e. `__ldg`).
 };
 
 namespace detail {
@@ -2830,6 +2833,8 @@ KERNEL_FLOAT_INLINE S cache_load(const S* ptr) {
             result = __ldlu(raw_ptr);
         } else if constexpr (Modifier == cache_modifier::cv) {
             result = __ldcv(raw_ptr);
+        } else if constexpr (Modifier == cache_modifier::nc) {
+            result = __ldg(raw_ptr);
         } else {
             return *ptr;
         }

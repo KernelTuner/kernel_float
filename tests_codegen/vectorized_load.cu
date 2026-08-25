@@ -87,5 +87,19 @@ __global__ void vector4_load_cv(const float *input, float *output) {
     output[0] = kf::sum(kf::read_aligned<4, kf::cache_modifier::uncached>(input));
 }
 
+// aligned read of 2 elements through the read-only/non-coherent cache, packed
+// into a single scalar 64-bit load (no native .vN form for cache-modified loads)
+// CHECK: ld.global.nc.u64
+__global__ void vector2_load_nc(const float *input, float *output) {
+    output[0] = kf::sum(kf::read_aligned<2, kf::cache_modifier::read_only>(input));
+}
+
+// aligned read of 4 elements through the read-only/non-coherent cache,
+// vectorized as a v2.u64 load
+// CHECK: ld.global.nc.v2.u64
+__global__ void vector4_load_nc(const float *input, float *output) {
+    output[0] = kf::sum(kf::read_aligned<4, kf::cache_modifier::read_only>(input));
+}
+
 
 }
