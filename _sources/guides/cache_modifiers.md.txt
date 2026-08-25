@@ -6,7 +6,7 @@ Kernel Float exposes these hints through the `kf::cache_modifier` enumeration.
 
 ## The `cache_modifier` enum
 
-`kf::cache_modifier` mirrors CUDA's `__ldca`/`__ldcg`/`__ldcs`/`__ldlu`/`__ldcv` load intrinsics and `__stwb`/`__stcg`/`__stcs`/`__stwt` store intrinsics:
+`kf::cache_modifier` mirrors CUDA's `__ldca`/`__ldcg`/`__ldcs`/`__ldlu`/`__ldcv`/`__ldg` load intrinsics and `__stwb`/`__stcg`/`__stcs`/`__stwt` store intrinsics:
 
 | Value                       | Meaning                                                     | Load intrinsic | Store intrinsic |
 |-----------------------------|-------------------------------------------------------------|-----------------|------------------|
@@ -16,11 +16,12 @@ Kernel Float exposes these hints through the `kf::cache_modifier` enumeration.
 | `streaming` (alias `cs`)    | Streaming access, data is likely accessed only once         | `__ldcs`        | `__stcs`         |
 | `uncached` (alias `cv`/`wt`) | Bypass caching entirely and always go to memory             | `__ldcv`        | `__stwt`         |
 | `last_use` (alias `lu`)     | Last use; the cache line will not be reused (loads only)    | `__ldlu`        | -                |
+| `read_only` (alias `nc`)    | Load through the read-only/non-coherent cache (loads only, data must not be written during the kernel) | `__ldg` | -       |
 
-Note that you can use both the short PTX-derived name (`ca`, `cg`, `cs`, `cv`, `wt`, `lu`)
-or a more descriptive alias (`cache_all`, `cache_global`, `streaming`, `uncached`, `last_use`).
+Note that you can use both the short PTX-derived name (`ca`, `cg`, `cs`, `cv`, `wt`, `lu`, `nc`)
+or a more descriptive alias (`cache_all`, `cache_global`, `streaming`, `uncached`, `last_use`, `read_only`).
 
-`last_use` has no store equivalent (there is no `__stlu` intrinsic), so using it with a store operation silently falls back to a plain, unmodified store.
+`last_use` and `read_only` have no store equivalent (there is no `__stlu` or corresponding store for `__ldg`), so using either with a store operation silently falls back to a plain, unmodified store.
 
 ## Using `read_aligned`/`write_aligned`
 
@@ -64,7 +65,7 @@ Cache modifiers are a *hint*, not a guarantee. Kernel Float will attempt to emit
 but will fall back to regular load/store if not possible. There are several cases:
 
 * The code is not being compiled for a CUDA device (e.g., host or HIP). The cache intrinsics are CUDA-specific.
-* The requested modifier is `normal` (or `last_use` for a store, since it has no store equivalent).
+* The requested modifier is `normal` (or `last_use`/`read_only` for a store, since neither has a store equivalent).
 * The data type being accessed has a size that does not match the supported cache intrinsics (1, 2, 4, 8, or 16 bytes). 
 
 In these cases, the cache hint is ignored and a regular load/store instruction is emitted.
