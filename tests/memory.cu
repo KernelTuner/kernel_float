@@ -363,6 +363,18 @@ struct vector_ptr_test {
             ASSERT((1 + p).get() == data + 4);
             ASSERT((&p[1]).get() == data + 4);
 
+            // operator+= advances in place and keeps the same type
+            p += 1;
+            ASSERT_TYPE(decltype(p += 1), decltype(p)&);
+            ASSERT(p.get() == data + 4);
+            p += 2;
+            ASSERT(p.get() == data + 12);
+
+            // also works for a cache-modified pointer
+            kf::cache_ptr<kf::cache_modifier::streaming, T, 4> cp = kf::make_vec_ptr(data);
+            cp += 1;
+            ASSERT(cp.get() == data + 4);
+
             // vector size = 6 elements, alignment = 4 elements
             kf::vec_ptr<T, 6, T, 4> q = kf::make_vec_ptr(data);
             ASSERT_TYPE(decltype(q.offset(1)), kf::vec_ptr<T, 6, T, 2>);

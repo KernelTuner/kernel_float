@@ -43,13 +43,13 @@ Calling `read_aligned`/`write_aligned` without explicitly specifying a modifier 
 
 ## Using `vector_ptr`/`access_policy`
 
-The `cache_modifier` can also be combined with `vector_ptr` by using the alias `cache_vec_ptr`:
+The `cache_modifier` can also be combined with `vector_ptr` by using the alias `cache_ptr`:
 
 ```cpp
 float* pointer = ...;
 
 // Create the vector pointer with streaming access
-kf::cache_vec_ptr<kf::cache_modifier::streaming, float, 4> a = kf::make_vec_ptr<4>(pointer);
+kf::cache_ptr<kf::cache_modifier::streaming, float, 4> a = kf::make_vec_ptr<4>(pointer);
 
 // Read data using the stream access policy
 kf::vec<float, 4> v = a[0];

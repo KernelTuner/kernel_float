@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-08-25 17:05:35.335482
-// git hash: f4e2d65be6e0f28156781eb766bae0fbcbe48b42
+// date: 2026-08-28 13:42:54.102829
+// git hash: 14a94fbc188ca3285e7351e5bb79184ce89c75d7
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -2771,17 +2771,14 @@ constexpr size_t gcd(size_t a, size_t b) {
 }
 
 /**
- * Returns true if a value of `bytes` bytes can be reinterpreted as one of the built-in types supported by
- * the `__ldXX`/`__stXX` cache-modifier intrinsics (this covers exactly the sizes of `char`, `short`,
- * `int`/`float`, `long long`/`double` and `int4`/`double2`/`ulonglong2`).
+ * Maps a size in bytes to the built-in type that a value of that size can be reinterpreted as for the
+ * `__ldXX`/`__stXX` cache-modifier intrinsics. Only the sizes of `char`, `short`, `int`/`float`,
+ * `long long`/`double` and `int4`/`double2`/`ulonglong2` are supported; every other size maps to `void`.
  */
-KERNEL_FLOAT_INLINE
-constexpr bool cache_intrinsic_supported(size_t bytes) {
-    return bytes == 1 || bytes == 2 || bytes == 4 || bytes == 8 || bytes == 16;
-}
-
 template<size_t Bytes>
-struct cache_intrinsic_type;
+struct cache_intrinsic_type {
+    using type = void;
+};
 
 template<>
 struct cache_intrinsic_type<1> {
@@ -2809,6 +2806,14 @@ struct cache_intrinsic_type<16> {
 };
 
 /**
+ * Returns true if a value of `Bytes` bytes can be reinterpreted as one of the built-in types supported by
+ * the cache-modifier intrinsics.
+ */
+template<size_t Bytes>
+static constexpr bool cache_intrinsic_supported =
+    !is_same_type<typename cache_intrinsic_type<Bytes>::type, void>;
+
+/**
  * Loads a value of type `S` from `ptr`, applying the given cache-eviction hint. Falls back to a plain load
  * if `Modifier` is `normal`, if `S` does not match one of the sizes supported by the cache intrinsics, or if
  * this code is not compiled for a CUDA device (e.g., host compilation or HIP).
@@ -2816,7 +2821,7 @@ struct cache_intrinsic_type<16> {
 template<typename S, cache_modifier Modifier>
 KERNEL_FLOAT_INLINE S cache_load(const S* ptr) {
 #if KERNEL_FLOAT_IS_CUDA && KERNEL_FLOAT_IS_DEVICE
-    if constexpr (!cache_intrinsic_supported(sizeof(S)) || Modifier == cache_modifier::normal) {
+    if constexpr (!cache_intrinsic_supported<sizeof(S)> || Modifier == cache_modifier::normal) {
         return *ptr;
     } else {
         using R = typename cache_intrinsic_type<sizeof(S)>::type;
@@ -2855,7 +2860,7 @@ KERNEL_FLOAT_INLINE S cache_load(const S* ptr) {
 template<typename S, cache_modifier Modifier>
 KERNEL_FLOAT_INLINE void cache_store(S* ptr, const S& value) {
 #if KERNEL_FLOAT_IS_CUDA && KERNEL_FLOAT_IS_DEVICE
-    if constexpr (!cache_intrinsic_supported(sizeof(S)) || Modifier == cache_modifier::normal) {
+    if constexpr (!cache_intrinsic_supported<sizeof(S)> || Modifier == cache_modifier::normal) {
         *ptr = value;
     } else {
         using R = typename cache_intrinsic_type<sizeof(S)>::type;
@@ -3106,11 +3111,6 @@ struct access_policy {
     KERNEL_FLOAT_INLINE access_policy(access_policy<U, M, RP, WP>) {}
     access_policy() = default;
 
-    /**
-     * Returns the policy to use after the pointer has been offset by a multiple of `N` elements. This stateless
-     * policy simply constructs the offset policy type; a stateful policy should override this to carry its state
-     * forward so that derived `vector_ref`s observe the same state.
-     */
     template<size_t N>
     KERNEL_FLOAT_INLINE with_offset<N> offset_impl(size_t index) const {
         return with_offset<N> {};
@@ -3451,15 +3451,20 @@ operator+(size_t i, vector_ptr<T, N, P> p) {
     return p.offset(i);
 }
 
+/**
+ * Offsets `p` in place by `i * N` elements.
+ *
+ * This is only available when offsetting the pointer does not lose alignment, i.e. when the policy after
+ * offsetting is convertible back to the original policy. Otherwise `p + i` has a different (less aligned)
+ * type than `p` and cannot be assigned back; capture it in a new variable instead (e.g. `auto q = p + i`).
+ */
 template<
     typename T,
     size_t N,
-    typename U,
-    size_t A,
-    typename = enable_if_t<
-        detail::is_policy_convertible<access_policy<U, A>, access_policy<U, N * sizeof(U)>>::value>>
-KERNEL_FLOAT_INLINE vector_ptr<T, N, access_policy<U, A>>&
-operator+=(vector_ptr<T, N, access_policy<U, A>>& p, size_t i) {
+    typename P,
+    typename =
+        enable_if_t<detail::is_policy_convertible<P, typename P::template with_offset<N>>::value>>
+KERNEL_FLOAT_INLINE vector_ptr<T, N, P>& operator+=(vector_ptr<T, N, P>& p, size_t i) {
     return p = p + i;
 }
 
@@ -3690,8 +3695,11 @@ make_vec_ptr(T* ptr) {
 template<typename T, size_t N = 1, typename U = T, size_t Align = N>
 using vec_ptr = vector_ptr<T, N, access_policy<U, Align * sizeof(U)>>;
 
+template<typename T, size_t N = 1, typename U = T>
+using unaligned_ptr = vector_ptr<T, N, access_policy<U, alignof(U)>>;
+
 template<cache_modifier modifier, typename T, size_t N = 1, typename U = T, size_t Align = N>
-using cache_vec_ptr = vector_ptr<T, N, access_policy<U, Align * sizeof(U), modifier>>;
+using cache_ptr = vector_ptr<T, N, access_policy<U, Align * sizeof(U), modifier>>;
 
 template<typename T, typename U = T>
 using scalar_ptr = vector_ptr<T, 1, access_policy<U>>;
