@@ -1090,14 +1090,6 @@ vector_ptr(T*) -> vector_ptr<T, 1, access_policy<T>>;
 
 template<typename T>
 vector_ptr(const T*) -> vector_ptr<T, 1, access_policy<const T>>;
-
-#if __cpp_deduction_guides >= 201907L
-template<typename T>
-vec_ptr(T*) -> vec_ptr<T, 1>;
-
-template<typename T>
-vec_ptr(const T*) -> vec_ptr<T, 1, const T>;
-#endif
 #endif
 
 }  // namespace kernel_float

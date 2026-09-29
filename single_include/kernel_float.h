@@ -16,8 +16,8 @@
 
 //================================================================================
 // this file has been auto-generated, do not modify its contents!
-// date: 2026-08-28 13:42:54.102829
-// git hash: 14a94fbc188ca3285e7351e5bb79184ce89c75d7
+// date: 2026-09-25 19:45:19.408615
+// git hash: 5226c9232b45c090be46c41e17034c089ffbf8d0
 //================================================================================
 
 #ifndef KERNEL_FLOAT_MACROS_H
@@ -3710,14 +3710,6 @@ vector_ptr(T*) -> vector_ptr<T, 1, access_policy<T>>;
 
 template<typename T>
 vector_ptr(const T*) -> vector_ptr<T, 1, access_policy<const T>>;
-
-#if __cpp_deduction_guides >= 201907L
-template<typename T>
-vec_ptr(T*) -> vec_ptr<T, 1>;
-
-template<typename T>
-vec_ptr(const T*) -> vec_ptr<T, 1, const T>;
-#endif
 #endif
 
 }  // namespace kernel_float
@@ -4571,12 +4563,6 @@ KERNEL_FLOAT_INLINE vec<promote_t<Args...>, sizeof...(Args)> make_vec(Args&&... 
 // Deduction guide for `vector`
 template<typename... Args>
 vector(Args&&... args) -> vector<promote_t<Args...>, extent<sizeof...(Args)>>;
-
-// Deduction guides for aliases are only supported from C++20
-#if __cpp_deduction_guides >= 201907L
-template<typename... Args>
-vec(Args&&... args) -> vec<promote_t<Args...>, sizeof...(Args)>;
-#endif
 #endif
 
 }  // namespace kernel_float
@@ -5787,18 +5773,6 @@ KERNEL_FLOAT_INLINE
 static constexpr kconstant<long long int> operator""_c(unsigned long long int v) {
     return static_cast<long long int>(v);
 }
-
-// Deduction guides for aliases are only supported from C++20
-#if defined(__cpp_deduction_guides) && __cpp_deduction_guides >= 201907L
-template<typename T>
-kscalar(T&&) -> kscalar<decay_t<T>>;
-
-template<typename... Args>
-kvec(Args&&...) -> kvec<promote_t<Args...>, sizeof...(Args)>;
-
-template<typename T>
-kconstant(T&&) -> kconstant<decay_t<T>>;
-#endif
 
 }  // namespace prelude
 }  // namespace kernel_float
