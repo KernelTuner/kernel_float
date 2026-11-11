@@ -30,13 +30,14 @@ template<int items_per_thread>
 void run_kernel(int n) {
     double constant = 1.0;
     std::vector<half> input(n);
-    std::vector<float> output_expected;
-    std::vector<float> output_result;
+    std::vector<float> output_expected(n);
+    std::vector<float> output_result(n);
 
     // Generate input data
     for (int i = 0; i < n; i++) {
         input[i] = half(i);
-        output_expected[i] = float(i + constant);
+        output_expected[i] =
+            float(half(float(input[i]) * float(input[i]) + float(half(constant))));
     }
 
     // Allocate device memory
@@ -59,7 +60,7 @@ void run_kernel(int n) {
         kf::make_vec_ptr(output_dev));
 
     // Copy results back
-    cuda_check(cudaMemcpy(output_dev, output_result.data(), sizeof(float) * n, cudaMemcpyDefault));
+    cuda_check(cudaMemcpy(output_result.data(), output_dev, sizeof(float) * n, cudaMemcpyDefault));
 
     // Check results
     for (int i = 0; i < n; i++) {
