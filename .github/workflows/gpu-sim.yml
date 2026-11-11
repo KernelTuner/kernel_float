@@ -1,0 +1,78 @@
+name: CUDA tests (simulated H100)
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds
+# the test suite and runs the GPU-tagged tests on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behavior or timing, so it complements real-GPU testing and
+# does not replace it.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "include/**"
+      - "tests/**"
+      - "examples/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/gpu-sim.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cuda-sim:
+    name: CUDA 13.0, simulated H100
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+          persist-credentials: false
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@ca87fe3143b29166822b923d6050945c5179408c # v0.1.5
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+
+      # The simulator runs PTX only (90-virtual) and needs a shared CUDA runtime.
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_CUDA_COMPILER=/usr/local/cuda-13.0/bin/nvcc \
+                -DCMAKE_CUDA_ARCHITECTURES=90-virtual \
+                -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared \
+                -DKERNEL_FLOAT_BUILD_TEST=1 \
+                -DKERNEL_FLOAT_BUILD_EXAMPLE=1
+
+      - name: Build
+        run: cmake --build build -j3
+
+      # Four test cases are skipped (see the filter below):
+      #  - binary operators and constant eq tests for __nv_bfloat16: the
+      #    simulator compares .bf16 values by raw bits in setp
+      #    (pantheongpu/pantheonsim#502).
+      #  - ternary operators for __half: the reference expression x * y + z
+      #    compiles to mul.f16 and add.f16 without a rounding modifier. Hardware
+      #    fuses them into an fma, the simulator rounds twice, so the last bit
+      #    can differ.
+      #  - ternary operators for __nv_bfloat16: also fails on an RTX 3060 (sm_86).
+      - name: Run tests
+        working-directory: build
+        run: |
+          vgpu run ./tests/kernel_float_tests --durations=yes \
+            '~"binary operators - GPU - __nv_bfloat16" ~"constant eq tests - GPU - __nv_bfloat16" ~"ternary operators - GPU - __half" ~"ternary operators - GPU - __nv_bfloat16"'
+
+      # vector_add and vector_add_tiling are not run: they index empty
+      # std::vectors and crash on real hardware as well.
+      - name: Run example
+        working-directory: build/examples
+        run: vgpu run ./pi/kernel_float_pi
